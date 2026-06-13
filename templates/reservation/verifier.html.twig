@@ -24,9 +24,8 @@
                     {{ include('components/icon.html.twig', {name: 'wrench'}) }}
                     {% set noms = [] %}
                     {% for mid in c.machines %}
-                        {% for m in machinesDispo if m.id == mid %}
-                            {% set noms = noms|merge([m.nom]) %}
-                        {% endfor %}
+                        {% set trouvee = machinesDispo|filter(m => m.id == mid)|first %}
+                        {% if trouvee %}{% set noms = noms|merge([trouvee.nom]) %}{% endif %}
                     {% endfor %}
                     {{ noms|join(', ') }}
                 </div>

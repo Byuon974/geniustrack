@@ -8,7 +8,7 @@ use App\Entity\Machine;
 use App\Entity\Reservation;
 use App\Enum\ReservationStatut;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
-use Doctrine\ORM\LockMode;
+use Doctrine\DBAL\LockMode;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
