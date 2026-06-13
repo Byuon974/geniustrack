@@ -34,7 +34,31 @@ class ReservationRepository extends ServiceEntityRepository
         \DateTimeImmutable $fin,
         bool $verrouiller = false,
     ): int {
-        $qb = $this->createQueryBuilder('r')
+        // Verrou pessimiste : PostgreSQL interdit « FOR UPDATE » sur une requête
+        // d'agrégat (SUM). On verrouille donc d'abord les LIGNES concernées via une
+        // requête sans agrégat (SELECT ... FOR UPDATE), ce qui bloque les écritures
+        // concurrentes sur ces lignes jusqu'à la fin de la transaction, PUIS on
+        // calcule la somme sans verrou. Le verrou de lignes suffit à empêcher le
+        // dépassement de capacité, et l'agrégat reste cohérent dans la transaction.
+        // Réf. : doc PostgreSQL (verrou explicite) et fil pgsql-novice « Table locks ».
+        if ($verrouiller) {
+            $this->createQueryBuilder('rl')
+                ->select('rl.id')
+                ->where('rl.statut IN (:actifs)')
+                ->andWhere('rl.dateDebut < :fin')
+                ->andWhere('rl.dateFin > :debut')
+                ->setParameter('actifs', [
+                    ReservationStatut::Planifiee->value,
+                    ReservationStatut::Effectuee->value,
+                ])
+                ->setParameter('debut', $debut)
+                ->setParameter('fin', $fin)
+                ->getQuery()
+                ->setLockMode(LockMode::PESSIMISTIC_WRITE)
+                ->getResult();
+        }
+
+        return (int) $this->createQueryBuilder('r')
             ->select('COALESCE(SUM(r.nbPersonnesPrevues), 0)')
             ->where('r.statut IN (:actifs)')
             // chevauchement d'intervalles semi-ouverts : r.debut < fin ET r.fin > debut
@@ -45,17 +69,9 @@ class ReservationRepository extends ServiceEntityRepository
                 ReservationStatut::Effectuee->value,
             ])
             ->setParameter('debut', $debut)
-            ->setParameter('fin', $fin);
-
-        $query = $qb->getQuery();
-
-        if ($verrouiller) {
-            // Verrou pessimiste : bloque les écritures concurrentes sur les lignes lues
-            // jusqu'à la fin de la transaction → empêche le dépassement de capacité.
-            $query->setLockMode(LockMode::PESSIMISTIC_WRITE);
-        }
-
-        return (int) $query->getSingleScalarResult();
+            ->setParameter('fin', $fin)
+            ->getQuery()
+            ->getSingleScalarResult();
     }
 
     /**
