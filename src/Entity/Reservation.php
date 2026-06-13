@@ -57,8 +57,13 @@ class Reservation
     private ReservationStatut $statut = ReservationStatut::Planifiee;
 
     // BF_3.9 : compte dans la limite de 15 personnes simultanées.
+    // PositiveOrZero (et non Positive) : sur un créneau multi-machines, l'effectif
+    // n'est porté que par la première réservation du créneau ; les machines
+    // supplémentaires du même créneau portent 0 (même groupe, déjà compté dans
+    // la capacité). Zéro est donc une valeur métier légitime ici, pas une saisie
+    // vide. La borne haute (capacité) reste inchangée.
     #[ORM\Column]
-    #[Assert\Positive]
+    #[Assert\PositiveOrZero]
     #[Assert\LessThanOrEqual(self::CAPACITE_MAX_FABLAB)]
     private int $nbPersonnesPrevues = 1;
 

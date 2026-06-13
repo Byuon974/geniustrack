@@ -1,0 +1,21 @@
+{# Fil de progression du parcours de réservation.
+   Paramètre : courante (1 = composer, 2 = vérifier, 3 = confirmé).
+   Chaque étape porte un état (faite / courante / à venir) reflété par une classe,
+   et l'étape courante est annoncée aux lecteurs d'écran via aria-current. #}
+{% set etapes = [
+    {n: 1, libelle: 'Composer'},
+    {n: 2, libelle: 'Vérifier'},
+    {n: 3, libelle: 'Confirmé'}
+] %}
+<ol class="resa-stepper" aria-label="Progression de la réservation">
+    {% for e in etapes %}
+        {% set etat = e.n < courante ? 'faite' : (e.n == courante ? 'courante' : 'avenir') %}
+        <li class="resa-stepper__etape resa-stepper__etape--{{ etat }}"
+            {{ etat == 'courante' ? 'aria-current="step"' : '' }}>
+            <span class="resa-stepper__puce">
+                {% if etat == 'faite' %}{{ include('components/icon.html.twig', {name: 'check'}) }}{% else %}{{ e.n }}{% endif %}
+            </span>
+            <span class="resa-stepper__libelle">{{ e.libelle }}</span>
+        </li>
+    {% endfor %}
+</ol>

@@ -109,4 +109,47 @@ class ReservationServiceTest extends KernelTestCase
         $this->expectException(ReservationImpossibleException::class);
         $this->service->creerSession($projet, $m2, ReservationType::Realisation, $debut, 6);
     }
+
+    public function testLotMultiMachinesCompteEffectifUneSeuleFois(): void
+    {
+        $projet = $this->creerProjetValide();
+        $m1 = $this->creerMachine();
+        $m2 = $this->creerMachine();
+        $m3 = $this->creerMachine();
+        $debut = new \DateTimeImmutable('+2 days 10:00');
+
+        // Un groupe de 7 personnes sur 3 machines en parallèle : l'effectif est
+        // porté par la 1re réservation, 0 sur les suivantes (même groupe).
+        $creees = $this->service->creerSessionsLot([
+            ['projet' => $projet, 'machine' => $m1, 'type' => ReservationType::Realisation, 'debut' => $debut, 'nbPersonnes' => 7, 'duree' => 60],
+            ['projet' => $projet, 'machine' => $m2, 'type' => ReservationType::Realisation, 'debut' => $debut, 'nbPersonnes' => 0, 'duree' => 60],
+            ['projet' => $projet, 'machine' => $m3, 'type' => ReservationType::Realisation, 'debut' => $debut, 'nbPersonnes' => 0, 'duree' => 60],
+        ]);
+
+        self::assertCount(3, $creees);
+        // La capacité consommée sur le créneau est 7 (le groupe), pas 21.
+        $somme = array_sum(array_map(fn ($r) => $r->getNbPersonnesPrevues(), $creees));
+        self::assertSame(7, $somme);
+    }
+
+    public function testLotEchoueEntierementSiUneMachineIndisponible(): void
+    {
+        $projet = $this->creerProjetValide();
+        $m1 = $this->creerMachine();
+        $hs = $this->creerMachine(MachineEtat::Maintenance);
+        $debut = new \DateTimeImmutable('+2 days 10:00');
+
+        try {
+            $this->service->creerSessionsLot([
+                ['projet' => $projet, 'machine' => $m1, 'type' => ReservationType::Realisation, 'debut' => $debut, 'nbPersonnes' => 3, 'duree' => 60],
+                ['projet' => $projet, 'machine' => $hs, 'type' => ReservationType::Realisation, 'debut' => $debut, 'nbPersonnes' => 0, 'duree' => 60],
+            ]);
+            self::fail('Le lot aurait dû échouer sur la machine en maintenance.');
+        } catch (ReservationImpossibleException) {
+            // Atomicité : aucune réservation ne doit subsister, pas même celle de m1.
+            $this->em->clear();
+            $rechargé = $this->em->getRepository(\App\Entity\Reservation::class)->findAll();
+            self::assertCount(0, $rechargé, 'Le lot partiel ne doit rien laisser en base.');
+        }
+    }
 }

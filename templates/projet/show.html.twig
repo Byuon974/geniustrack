@@ -6,11 +6,17 @@
     {libelle: projet.titre, url: null}
 ]}) }}{% endblock %}
 {% block body %}
+{# Créneaux planifiés (statut « planifiee ») : base des compteurs de synthèse et
+   de la liste. Calculés une fois ici pour éviter de re-filtrer dans le gabarit. #}
+{% set planifies = projet.reservations|filter(r => r.statut.value == 'planifiee') %}
+{% set nbRealisations = projet.reservations|filter(
+    r => r.type.value == 'realisation' and r.statut.value not in ['annulee', 'reportee']
+)|length %}
+
 <div class="page-header">
     <h1>{{ projet.titre }}</h1>
     {{ include('components/badge.html.twig', {couleur: projet.statut.couleur, label: projet.statut.libelle}) }}
 </div>
-
 
 <div class="prevision-carte">
     <p>{{ projet.description }}</p>
@@ -39,42 +45,81 @@
         </form>
     {% endif %}
 
-    {% if projet.statut.value == 'valide' %}
+    {% if projet.statut.value in ['valide', 'en_cours'] %}
         <a href="{{ path('reservation_creer', {id: projet.id}) }}" class="btn btn--primary">Réserver un créneau</a>
     {% endif %}
 </div>
 
+{% if planifies is not empty %}
+    {# Synthèse : rend visibles des informations métier déjà calculées côté
+       serveur mais jamais montrées (quota de sessions, prochaine échéance). #}
+    {% set prochaine = planifies|sort((a, b) => a.dateDebut <=> b.dateDebut)|first %}
+    <div class="resa-synthese">
+        <div class="resa-stat">
+            <span class="resa-stat__label">Créneaux planifiés</span>
+            <span class="resa-stat__valeur">{{ planifies|length }}</span>
+        </div>
+        <div class="resa-stat">
+            <span class="resa-stat__label">Prochaine session</span>
+            <span class="resa-stat__valeur resa-stat__valeur--date">
+                {{ prochaine.dateDebut|date('d/m') }}
+                <small>{{ prochaine.dateDebut|date('H\\hi') }}</small>
+            </span>
+        </div>
+        <div class="resa-stat">
+            <span class="resa-stat__label">Sessions de réalisation</span>
+            <span class="resa-stat__valeur">{{ nbRealisations }} <small>/ {{ constant('App\\Entity\\Projet::MAX_SESSIONS_REALISATION') }}</small></span>
+        </div>
+    </div>
+{% endif %}
+
 {% if projet.reservations is not empty %}
-    <h2 class="section-title">Mes créneaux</h2>
-    <table class="data-table">
-        <thead><tr><th>Type</th><th>Machine</th><th>Début</th><th>Statut</th><th></th></tr></thead>
-        <tbody>
+    <div class="resa-liste-tete">
+        <h2 class="section-title">Mes créneaux</h2>
+        {% if projet.statut.value in ['valide', 'en_cours'] %}
+            <a href="{{ path('reservation_creer', {id: projet.id}) }}" class="resa-liste-ajout">+ Réserver d'autres créneaux</a>
+        {% endif %}
+    </div>
+
+    <div class="resa-cartes">
         {% for r in projet.reservations %}
-            <tr>
-                <td>{{ r.type.libelle }}</td>
-                <td>{{ r.machine.nom }}</td>
-                <td>{{ r.dateDebut|date('d/m/Y H:i') }}</td>
-                <td>{{ r.statut.libelle }}</td>
-                <td class="actions-col">
-                    {% if r.statut.value == 'planifiee' %}
-                    <div class="reservation-actions">
+            <div class="resa-carte resa-carte--{{ r.statut.value }}">
+                <div class="resa-carte__icone" aria-hidden="true">
+                    {{ include('components/icon.html.twig', {name: 'wrench'}) }}
+                </div>
+                <div class="resa-carte__corps">
+                    <div class="resa-carte__machine">{{ r.machine.nom }}</div>
+                    <div class="resa-carte__quand">
+                        {{ r.dateDebut|date('d/m/Y') }} · {{ r.dateDebut|date('H\\hi') }} → {{ r.dateFin|date('H\\hi') }}
+                        · {{ r.nbPersonnesPrevues }} pers.
+                    </div>
+                </div>
+                {% set varianteStatut = {
+                    'planifiee': 'info', 'effectuee': 'succes',
+                    'annulee': 'danger', 'reportee': 'neutre'
+                } %}
+                {{ include('components/badge.html.twig', {
+                    variante: varianteStatut[r.statut.value]|default('neutre'),
+                    label: r.statut.libelle
+                }) }}
+                {% if r.statut.value == 'planifiee' %}
+                    <div class="resa-carte__actions">
+                        <form method="post" action="{{ path('reservation_reporter', {id: r.id}) }}" class="inline-form report-form">
+                            <input type="hidden" name="_token" value="{{ csrf_token('reporter' ~ r.id) }}">
+                            <input type="datetime-local" name="nouvelle_date" required aria-label="Nouvelle date pour ce créneau">
+                            <button type="submit" class="btn btn--sm">Reporter</button>
+                        </form>
                         <form method="post" action="{{ path('reservation_annuler', {id: r.id}) }}"
-                              data-controller="confirm" data-confirm-message-value="Ce créneau de réservation sera annulé." data-confirm-titre-value="Annuler ce créneau ?" data-confirm-variante-value="danger" data-confirm-libelle-value="Annuler le créneau" class="inline-form">
+                              data-controller="confirm" data-confirm-message-value="Ce créneau de réservation sera annulé."
+                              data-confirm-titre-value="Annuler ce créneau ?" data-confirm-variante-value="danger"
+                              data-confirm-libelle-value="Annuler le créneau" class="inline-form">
                             <input type="hidden" name="_token" value="{{ csrf_token('annuler' ~ r.id) }}">
                             <button type="submit" class="btn btn--sm btn--danger">Annuler</button>
                         </form>
-                        <form method="post" action="{{ path('reservation_reporter', {id: r.id}) }}" class="inline-form report-form">
-                            <input type="hidden" name="_token" value="{{ csrf_token('reporter' ~ r.id) }}">
-                            <input type="datetime-local" name="nouvelle_date" required
-                                   aria-label="Nouvelle date pour ce créneau">
-                            <button type="submit" class="btn btn--sm">Reporter</button>
-                        </form>
                     </div>
-                    {% endif %}
-                </td>
-            </tr>
+                {% endif %}
+            </div>
         {% endfor %}
-        </tbody>
-    </table>
+    </div>
 {% endif %}
 {% endblock %}

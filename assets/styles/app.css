@@ -1793,3 +1793,108 @@ form input[type="file"]::file-selector-button:hover {
     font-size: var(--gl-text-sm); font-weight: 600;
 }
 .header-connexion:hover { background: var(--gl-blueprint-dark); }
+
+/* ════════════════════════════════════════════════════════════════
+   Parcours de réservation : fil de progression, étape de vérification,
+   synthèse et cartes de créneaux sur la page projet (DEC-096).
+   ════════════════════════════════════════════════════════════════ */
+
+/* Alerte informative (étape de vérification, notes neutres). */
+.alert--info { background: var(--gl-blue-soft); color: var(--gl-blueprint-dark); }
+
+/* ── Fil de progression (stepper) ── */
+.resa-stepper {
+    display: flex; align-items: center; gap: var(--gl-space-2);
+    list-style: none; margin: 0 0 var(--gl-space-6); padding: 0;
+}
+.resa-stepper__etape {
+    display: flex; align-items: center; gap: var(--gl-space-2);
+    flex: 0 0 auto; font-size: var(--gl-text-sm);
+}
+.resa-stepper__etape:not(:last-child)::after {
+    content: ""; display: block; width: 32px; height: 1px;
+    background: var(--gl-line); margin-left: var(--gl-space-2);
+}
+.resa-stepper__puce {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: var(--gl-text-sm); font-weight: 600; flex-shrink: 0;
+    background: var(--gl-bg); color: var(--gl-ink-soft);
+    border: 1px solid var(--gl-line);
+}
+.resa-stepper__puce svg { width: 15px; height: 15px; }
+.resa-stepper__etape--courante .resa-stepper__puce {
+    background: var(--gl-blueprint); color: #fff; border-color: var(--gl-blueprint);
+}
+.resa-stepper__etape--courante .resa-stepper__libelle { color: var(--gl-ink); font-weight: 600; }
+.resa-stepper__etape--faite .resa-stepper__puce {
+    background: var(--gl-green); color: #fff; border-color: var(--gl-green);
+}
+.resa-stepper__etape--faite .resa-stepper__libelle { color: var(--gl-ink-soft); }
+.resa-stepper__etape--avenir .resa-stepper__libelle { color: var(--gl-ink-soft); }
+@media (max-width: 560px) {
+    .resa-stepper__etape--avenir .resa-stepper__libelle,
+    .resa-stepper__etape--faite .resa-stepper__libelle { display: none; }
+    .resa-stepper__etape--courante .resa-stepper__libelle { display: inline; }
+}
+
+/* ── Étape de vérification ── */
+.resa-revue { max-width: 560px; }
+.resa-revue__carte {
+    border: 1px solid var(--gl-line); border-radius: var(--gl-radius);
+    padding: var(--gl-space-4); margin-bottom: var(--gl-space-3);
+    background: var(--gl-surface);
+}
+.resa-revue__quand { font-size: var(--gl-text-base); font-weight: 600; margin-bottom: var(--gl-space-2); }
+.resa-revue__machines, .resa-revue__pers { font-size: var(--gl-text-sm); color: var(--gl-ink-soft); margin-top: 2px; }
+.resa-revue__quand svg, .resa-revue__machines svg, .resa-revue__pers svg {
+    width: 16px; height: 16px; vertical-align: -3px; margin-right: 6px;
+}
+.resa-revue__note { margin-top: var(--gl-space-4); }
+.resa-revue__actions {
+    display: flex; gap: var(--gl-space-3); margin-top: var(--gl-space-6);
+    align-items: center;
+}
+.resa-revue__actions .btn--primary { flex: 1; justify-content: center; }
+
+/* ── Synthèse (cartes de stats) sur la page projet ── */
+.resa-synthese {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gl-space-3);
+    margin: var(--gl-space-6) 0;
+}
+.resa-stat {
+    background: var(--gl-surface); border: 1px solid var(--gl-line);
+    border-radius: var(--gl-radius); padding: var(--gl-space-4);
+}
+.resa-stat__label { display: block; font-size: var(--gl-text-xs); color: var(--gl-ink-soft); margin-bottom: var(--gl-space-1); }
+.resa-stat__valeur { font-size: var(--gl-text-2xl); font-weight: 600; color: var(--gl-ink); }
+.resa-stat__valeur small { font-size: var(--gl-text-sm); font-weight: 400; color: var(--gl-ink-soft); }
+.resa-stat__valeur--date { font-size: var(--gl-text-lg); line-height: 1.3; }
+.resa-stat__valeur--date small { display: block; }
+@media (max-width: 560px) { .resa-synthese { grid-template-columns: 1fr; } }
+
+/* ── Liste des créneaux en cartes ── */
+.resa-liste-tete { display: flex; align-items: center; justify-content: space-between; gap: var(--gl-space-3); margin-bottom: var(--gl-space-3); }
+.resa-liste-ajout { font-size: var(--gl-text-sm); color: var(--gl-blueprint); text-decoration: none; }
+.resa-liste-ajout:hover { text-decoration: underline; }
+.resa-cartes { display: flex; flex-direction: column; gap: var(--gl-space-2); }
+.resa-carte {
+    display: flex; align-items: center; gap: var(--gl-space-4);
+    background: var(--gl-surface); border: 1px solid var(--gl-line);
+    border-radius: var(--gl-radius); padding: var(--gl-space-3) var(--gl-space-4);
+}
+.resa-carte__icone {
+    width: 38px; height: 38px; border-radius: var(--gl-radius-sm);
+    background: var(--gl-blue-soft); color: var(--gl-blueprint);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.resa-carte__icone svg { width: 20px; height: 20px; }
+.resa-carte__corps { flex: 1; min-width: 0; }
+.resa-carte__machine { font-size: var(--gl-text-base); font-weight: 600; }
+.resa-carte__quand { font-size: var(--gl-text-sm); color: var(--gl-ink-soft); }
+.resa-carte__actions { display: flex; gap: var(--gl-space-2); flex-shrink: 0; flex-wrap: wrap; }
+.resa-carte--annulee, .resa-carte--reportee { opacity: .6; }
+@media (max-width: 640px) {
+    .resa-carte { flex-wrap: wrap; }
+    .resa-carte__actions { width: 100%; }
+}

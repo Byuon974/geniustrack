@@ -10,6 +10,8 @@
         <span class="cat">{{ projet.titre }}</span>
     </div>
 
+    {{ include('reservation/_stepper.html.twig', {courante: 1}) }}
+
     <div class="reservation__corps">
         {# ── Composer un créneau ── #}
         <section class="resa-composer">
@@ -98,10 +100,7 @@
                     </div>
                 {% endfor %}
 
-                <form method="post" action="{{ path('reservation_confirmer', {id: projet.id}) }}">
-                    <input type="hidden" name="_token" value="{{ csrf_token('reservation_confirmer') }}">
-                    <button type="submit" class="btn btn--primary resa-confirmer resa-confirmer--inline">Confirmer la réservation</button>
-                </form>
+                <a href="{{ path('reservation_verifier', {id: projet.id}) }}" class="btn btn--primary resa-confirmer resa-confirmer--inline">Vérifier et confirmer</a>
             {% endif %}
         </section>
     </div>
@@ -116,10 +115,7 @@
                 <strong>{{ panier.creneaux|length }} créneau{{ panier.creneaux|length > 1 ? 'x' : '' }}</strong>
                 <span>{{ projet.titre }}</span>
             </div>
-            <form method="post" action="{{ path('reservation_confirmer', {id: projet.id}) }}">
-                <input type="hidden" name="_token" value="{{ csrf_token('reservation_confirmer') }}">
-                <button type="submit" class="btn btn--primary">Confirmer</button>
-            </form>
+            <a href="{{ path('reservation_verifier', {id: projet.id}) }}" class="btn btn--primary">Vérifier</a>
         </div>
     {% endif %}
 </div>

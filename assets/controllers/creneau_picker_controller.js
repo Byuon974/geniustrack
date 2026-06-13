@@ -45,6 +45,9 @@ export default class extends Controller {
             const reponse = await fetch(`${this.urlValue}?${params.toString()}`, {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
             });
+            if (!reponse.ok) {
+                throw new Error(`HTTP ${reponse.status}`);
+            }
             this.zoneCreneauxTarget.innerHTML = await reponse.text();
         } catch (e) {
             this.zoneCreneauxTarget.innerHTML = '<p class="cat">Impossible de charger les creneaux. Reessayez.</p>';
@@ -85,10 +88,14 @@ export default class extends Controller {
             const reponse = await fetch(`${this.urlValue}?${params.toString()}`, {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
             });
+            if (!reponse.ok) {
+                throw new Error(`HTTP ${reponse.status}`);
+            }
             this.zoneMachinesTarget.innerHTML = await reponse.text();
             this.boutonAjouterTarget.hidden = false;
         } catch (e) {
             this.zoneMachinesTarget.innerHTML = '<p class="cat">Impossible de charger les machines. Reessayez.</p>';
+            this.boutonAjouterTarget.hidden = true;
         } finally {
             this.zoneMachinesTarget.removeAttribute('aria-busy');
         }

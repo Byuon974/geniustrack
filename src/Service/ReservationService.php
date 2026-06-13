@@ -48,19 +48,84 @@ class ReservationService
         int $nbPersonnes,
         ?int $dureeMinutes = null,
     ): Reservation {
+        // Transaction atomique unitaire : une seule session. Toutes les règles
+        // métier (statut projet, machine réservable, quota, verrou capacité)
+        // sont portées par persisterSessionVerrouillee, partagé avec le lot.
+        $this->em->getConnection()->beginTransaction();
+        try {
+            $reservation = $this->persisterSessionVerrouillee(
+                $projet, $machine, $type, $debut, $nbPersonnes, $dureeMinutes
+            );
+            $this->em->flush();
+            $this->em->getConnection()->commit();
+
+            return $reservation;
+        } catch (\Throwable $e) {
+            $this->em->getConnection()->rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Crée plusieurs sessions dans UNE seule transaction atomique. Soit toutes
+     * les réservations du lot sont créées, soit aucune : si une machine est
+     * indisponible ou la capacité dépassée en cours de lot, tout est annulé.
+     *
+     * Cela évite l'écueil du lot partiellement créé : sans cette atomicité, un
+     * échec sur la 2e machine laissait la 1re committée, et reconfirmer le panier
+     * recréait des doublons. Ici, l'échec rend la main avec un état propre.
+     *
+     * @param list<array{projet: Projet, machine: Machine, type: ReservationType, debut: \DateTimeImmutable, nbPersonnes: int, duree: int|null}> $sessions
+     * @return list<Reservation>
+     * @throws ReservationImpossibleException
+     */
+    public function creerSessionsLot(array $sessions): array
+    {
+        $this->em->getConnection()->beginTransaction();
+        try {
+            $creees = [];
+            foreach ($sessions as $s) {
+                $creees[] = $this->persisterSessionVerrouillee(
+                    $s['projet'], $s['machine'], $s['type'], $s['debut'], $s['nbPersonnes'], $s['duree']
+                );
+            }
+            $this->em->flush();
+            $this->em->getConnection()->commit();
+
+            return $creees;
+        } catch (\Throwable $e) {
+            $this->em->getConnection()->rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Cœur d'une création de session, SANS gestion de transaction (l'appelant
+     * ouvre et valide la transaction). Applique le verrou pessimiste, vérifie la
+     * disponibilité machine et la capacité, persiste la réservation. Ne flushe
+     * pas : l'appelant flushe une fois pour tout le lot.
+     *
+     * @throws ReservationImpossibleException
+     */
+    private function persisterSessionVerrouillee(
+        Projet $projet,
+        Machine $machine,
+        ReservationType $type,
+        \DateTimeImmutable $debut,
+        int $nbPersonnes,
+        ?int $dureeMinutes,
+    ): Reservation {
         // Règle 0 : on ne réserve que sur un projet validé ou en cours (BF_3.3).
-        // Cette garde est portée ici, dans le service, et non plus seulement dans
-        // le contrôleur : la règle métier doit tenir quel que soit le point
-        // d'entrée (wizard, import, commande, futur appel), pas seulement par
-        // l'écran. Défense en profondeur conforme à la doctrine « le métier vit
-        // dans les services ».
+        // Portée dans le service (pas seulement le contrôleur) : la règle métier
+        // tient quel que soit le point d'entrée. Défense en profondeur conforme
+        // à la doctrine « le métier vit dans les services ».
         if (!\in_array($projet->getStatut(), [ProjetStatut::Valide, ProjetStatut::EnCours], true)) {
             throw new ReservationImpossibleException(
                 'Ce projet doit être validé avant de pouvoir réserver un créneau.'
             );
         }
 
-        // Règle 1 (hors transaction, vérif rapide) : machine réservable.
+        // Règle 1 : machine réservable (ni maintenance ni hors service).
         if (!$machine->estReservable()) {
             throw new ReservationImpossibleException(
                 sprintf('La machine « %s » est %s et ne peut pas être réservée.',
@@ -70,9 +135,11 @@ class ReservationService
             );
         }
 
-        // Règle 2 : quota de sessions de réalisation par projet.
-        // On exclut Annulee ET Reportee : un créneau abandonné ne consomme pas
-        // de session (sinon un report ferait dépasser le quota à tort).
+        // Règle 2 : quota de sessions de réalisation par projet. On exclut
+        // Annulee ET Reportee : un créneau abandonné ne consomme pas de session.
+        // Le filtre porte sur la collection du projet, qui inclut déjà les
+        // réservations ajoutées plus tôt dans le même lot (addReservation les y
+        // rattache avant flush), donc le quota est respecté à l'échelle du lot.
         if ($type === ReservationType::Realisation) {
             $nbRealisations = $projet->getReservations()->filter(
                 fn (Reservation $r) => $r->getType() === ReservationType::Realisation
@@ -93,54 +160,48 @@ class ReservationService
         $duree = $dureeMinutes ?? $machine->getDureeCreneauMinutes();
         $fin = $debut->modify(sprintf('+%d minutes', $duree));
 
-        // Transaction atomique : verrou pessimiste sur la lecture de capacité,
-        // puis insertion. Aucune réservation concurrente ne peut s'intercaler.
-        $this->em->getConnection()->beginTransaction();
-        try {
-            // Verrou de sérialisation : on verrouille la MACHINE (ligne qui
-            // existe toujours) avant de lire la capacité. Sans cela, deux
-            // réservations simultanées sur un créneau VIDE liraient toutes deux
-            // une somme de 0 (le FOR UPDATE sur un agrégat sans ligne ne
-            // verrouille rien) et dépasseraient la capacité. En verrouillant la
-            // machine, les transactions concurrentes sur ce créneau sont mises
-            // en file et évaluent la capacité l'une après l'autre.
-            $this->em->lock($machine, LockMode::PESSIMISTIC_WRITE);
+        // Verrou de sérialisation : on verrouille la MACHINE (ligne qui existe
+        // toujours) avant de lire la capacité. Sans cela, deux réservations
+        // simultanées sur un créneau VIDE liraient toutes deux une somme de 0
+        // (le FOR UPDATE sur un agrégat sans ligne ne verrouille rien) et
+        // dépasseraient la capacité. En verrouillant la machine, les
+        // transactions concurrentes sur ce créneau sont mises en file et
+        // évaluent la capacité l'une après l'autre.
+        $this->em->lock($machine, LockMode::PESSIMISTIC_WRITE);
 
-            // Règle 3 : machine pas déjà occupée sur ce créneau.
-            if ($this->reservations->machineOccupeeSurCreneau($machine, $debut, $fin)) {
-                throw new ReservationImpossibleException(
-                    'Cette machine est déjà réservée sur ce créneau.'
-                );
-            }
-
-            // Règle 4 : capacité 15 personnes (BF_3.9), lecture VERROUILLÉE.
-            $dejaPresents = $this->reservations->sommePersonnesSurCreneau($debut, $fin, verrouiller: true);
-            if ($dejaPresents + $nbPersonnes > Reservation::CAPACITE_MAX_FABLAB) {
-                $restant = max(0, Reservation::CAPACITE_MAX_FABLAB - $dejaPresents);
-                throw new ReservationImpossibleException(sprintf(
-                    'Capacité dépassée : %d place(s) restante(s) sur ce créneau (max %d).',
-                    $restant,
-                    Reservation::CAPACITE_MAX_FABLAB
-                ));
-            }
-
-            $reservation = (new Reservation())
-                ->setProjet($projet)
-                ->setMachine($machine)
-                ->setType($type)
-                ->definirCreneau($debut, $duree)
-                ->setNbPersonnesPrevues($nbPersonnes)
-                ->setStatut(ReservationStatut::Planifiee);
-
-            $this->em->persist($reservation);
-            $this->em->flush();
-            $this->em->getConnection()->commit();
-
-            return $reservation;
-        } catch (\Throwable $e) {
-            $this->em->getConnection()->rollBack();
-            throw $e;
+        // Règle 3 : machine pas déjà occupée sur ce créneau.
+        if ($this->reservations->machineOccupeeSurCreneau($machine, $debut, $fin)) {
+            throw new ReservationImpossibleException(
+                sprintf('La machine « %s » est déjà réservée sur ce créneau.', $machine->getNom())
+            );
         }
+
+        // Règle 4 : capacité 15 personnes (BF_3.9), lecture VERROUILLÉE.
+        $dejaPresents = $this->reservations->sommePersonnesSurCreneau($debut, $fin, verrouiller: true);
+        if ($dejaPresents + $nbPersonnes > Reservation::CAPACITE_MAX_FABLAB) {
+            $restant = max(0, Reservation::CAPACITE_MAX_FABLAB - $dejaPresents);
+            throw new ReservationImpossibleException(sprintf(
+                'Capacité dépassée : %d place(s) restante(s) sur ce créneau (max %d).',
+                $restant,
+                Reservation::CAPACITE_MAX_FABLAB
+            ));
+        }
+
+        $reservation = (new Reservation())
+            ->setMachine($machine)
+            ->setType($type)
+            ->definirCreneau($debut, $duree)
+            ->setNbPersonnesPrevues($nbPersonnes)
+            ->setStatut(ReservationStatut::Planifiee);
+
+        // addReservation synchronise le côté inverse (collection du projet) et
+        // pose le projet sur la réservation. Indispensable pour que la règle de
+        // quota voie les sessions déjà ajoutées dans le même lot, avant flush.
+        $projet->addReservation($reservation);
+
+        $this->em->persist($reservation);
+
+        return $reservation;
     }
 
     /**

@@ -408,6 +408,19 @@ return function (array $context) {
 PHP
         fi
     fi
+    # Garde-fou AssetMapper : en développement, AssetMapper sert les fichiers à
+    # la volée et NE DOIT JAMAIS trouver un dossier public/assets/ compilé. Sa
+    # présence (résidu d'un asset-map:compile lancé par erreur, ou copié depuis
+    # le kit) fait échouer le service des assets : 404 « Asset with public path
+    # ... not found », ce qui casse d'un coup le CSS ET tout le JavaScript
+    # (aucun contrôleur Stimulus ne démarre). On le supprime systématiquement
+    # ici, pour que l'assemblage soit immunisé contre ce piège, pas seulement
+    # avec --reset. La compilation reste une étape de build de PRODUCTION.
+    if [[ -d "${DEST}/public/assets" ]]; then
+        journaliser WARN "public/assets/ présent (assets compilés) : suppression pour le service à la volée en dev."
+        executer rm -rf "${DEST}/public/assets"
+    fi
+
     ETAPES_OK=$((ETAPES_OK + 1))
 }
 
@@ -519,6 +532,25 @@ etape_verification() {
         journaliser WARN "    Le site ne répond pas encore : il finit peut-être de démarrer."
         journaliser WARN "    Réessayez dans une minute ; sinon : cd ${DEST} && docker compose logs php"
     fi
+
+    # Vérification des assets : on confirme qu'AssetMapper sert bien un fichier
+    # (ici le CSS principal). C'est le test décisif du bon fonctionnement du
+    # front : si cet asset répond, le JavaScript (servi par le même mécanisme)
+    # se chargera aussi, donc les contrôleurs Stimulus (menu, sélecteur de
+    # créneaux) seront actifs. Un échec ici, alors que la page répond, signale le
+    # piège du public/assets/ compilé en dev.
+    if [[ "${ok}" -eq 1 ]]; then
+        local code_asset
+        code_asset=$(curl -k -s -o /dev/null -w '%{http_code}' https://localhost/assets/styles/app.css 2>/dev/null || echo '000')
+        if [[ "${code_asset}" == "200" ]]; then
+            journaliser INFO "    Les assets sont servis (CSS et JavaScript actifs)."
+        else
+            journaliser WARN "    Les assets ne sont pas servis (HTTP ${code_asset} sur /assets/styles/app.css)."
+            journaliser WARN "    Sans eux, le style est incomplet et le JavaScript ne tourne pas (menus, créneaux inactifs)."
+            journaliser WARN "    Correctif : ${DOCKER:-docker} compose --project-directory ${DEST} exec php rm -rf public/assets var/cache && ${DOCKER:-docker} compose --project-directory ${DEST} exec php bin/console cache:clear"
+        fi
+    fi
+
     ETAPES_OK=$((ETAPES_OK + 1))
 }
 

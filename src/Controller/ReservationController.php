@@ -97,6 +97,24 @@ final class ReservationController extends AbstractController
         return $this->redirectToRoute('reservation_creer', ['id' => $projet->getId()]);
     }
 
+    #[Route('/verifier', name: 'reservation_verifier', methods: ['GET'])]
+    public function verifier(Request $request, Projet $projet): Response
+    {
+        $this->garderProjetReservable($projet);
+        $panier = $this->panier($request, $projet);
+
+        // Pas de revue d'un panier vide : on renvoie composer un créneau.
+        if ($panier->estVide()) {
+            return $this->redirectToRoute('reservation_creer', ['id' => $projet->getId()]);
+        }
+
+        return $this->render('reservation/verifier.html.twig', [
+            'projet' => $projet,
+            'panier' => $panier,
+            'machinesDispo' => $this->machines->actives(),
+        ]);
+    }
+
     #[Route('/confirmer', name: 'reservation_confirmer', methods: ['POST'])]
     public function confirmer(Request $request, Projet $projet): Response
     {
@@ -118,8 +136,12 @@ final class ReservationController extends AbstractController
             return $this->redirectToRoute('reservation_creer', ['id' => $projet->getId()]);
         }
 
+        $nbCreneaux = \count($panier->creneaux);
         $this->viderPanier($request, $projet);
-        $this->addFlash('success', 'Vos créneaux ont été réservés.');
+        $this->addFlash('success', sprintf(
+            '%d créneau%s réservé%s. Un récapitulatif vous a été envoyé par e-mail.',
+            $nbCreneaux, $nbCreneaux > 1 ? 'x' : '', $nbCreneaux > 1 ? 's' : ''
+        ));
 
         return $this->redirectToRoute('projet_show', ['id' => $projet->getId()]);
     }
@@ -216,36 +238,50 @@ final class ReservationController extends AbstractController
     }
 
     /**
-     * Cree les reservations du panier. Un creneau a N machines produit N
-     * reservations (une par machine), toutes au meme horaire. Chaque creation
-     * passe par ReservationService (regles metier, verrou).
+     * Cree les reservations du panier en UN SEUL lot atomique. Un creneau a N
+     * machines produit N reservations au meme horaire, mais l'effectif (nombre
+     * de personnes) ne compte QU'UNE FOIS par creneau : le meme groupe utilise
+     * plusieurs machines en parallele, il n'occupe pas N fois la capacite. La
+     * premiere reservation du creneau porte l'effectif reel ; les machines
+     * supplementaires du meme creneau portent 0 (groupe deja compte).
+     *
+     * Tout le panier est cree dans une seule transaction : en cas d'echec sur
+     * une machine, rien n'est cree, et le panier reste reproposable sans risque
+     * de doublon.
      *
      * @throws ReservationImpossibleException
      */
     private function creerDepuisPanier(Projet $projet, PanierReservation $panier): void
     {
+        $sessions = [];
         foreach ($panier->creneaux as $creneau) {
             $debut = \DateTimeImmutable::createFromFormat('Y-m-d\TH:i', (string) $creneau['debut']);
             if (false === $debut) {
                 throw new ReservationImpossibleException('Créneau invalide.');
             }
 
+            $premiere = true;
             foreach ($creneau['machines'] as $machineId) {
                 $machine = $this->machines->find((int) $machineId);
                 if (null === $machine) {
                     throw new ReservationImpossibleException('Machine introuvable.');
                 }
 
-                $this->reservationService->creerSession(
-                    $projet,
-                    $machine,
-                    ReservationType::Realisation,
-                    $debut,
-                    (int) $creneau['personnes'],
-                    (int) $creneau['duree'],
-                );
+                $sessions[] = [
+                    'projet' => $projet,
+                    'machine' => $machine,
+                    'type' => ReservationType::Realisation,
+                    'debut' => $debut,
+                    // Effectif compté une fois par créneau : la 1re machine porte
+                    // l'effectif réel, les suivantes 0 (même groupe, déjà compté).
+                    'nbPersonnes' => $premiere ? (int) $creneau['personnes'] : 0,
+                    'duree' => (int) $creneau['duree'],
+                ];
+                $premiere = false;
             }
         }
+
+        $this->reservationService->creerSessionsLot($sessions);
 
         try {
             $this->workflow->demarrer($projet);

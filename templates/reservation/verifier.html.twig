@@ -1,0 +1,54 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Vérifier la réservation : {{ projet.titre }}{% endblock %}
+{% block fil_ariane %}{{ include("components/fil_ariane.html.twig", {segments: [{libelle: "Mon espace", url: null}, {libelle: "Mes projets", url: path("projet_index")}, {libelle: "Réserver", url: path("reservation_creer", {id: projet.id})}, {libelle: "Vérifier", url: null}]}) }}{% endblock %}
+
+{% block body %}
+<div class="reservation">
+    <div class="reservation__header">
+        <h1>Vérifiez votre réservation</h1>
+        <span class="cat">{{ projet.titre }}</span>
+    </div>
+
+    {{ include('reservation/_stepper.html.twig', {courante: 2}) }}
+
+    <div class="resa-revue">
+        {% for c in panier.creneaux %}
+            {% set debut = c.debut|date('Y-m-d\\TH:i') %}
+            <div class="resa-revue__carte">
+                <div class="resa-revue__quand">
+                    {{ include('components/icon.html.twig', {name: 'calendar'}) }}
+                    {{ c.debut|date('d/m/Y') }} · {{ c.debut|date('H\\hi') }} → {{ debut|date_modify('+' ~ c.duree ~ ' minutes')|date('H\\hi') }}
+                </div>
+                <div class="resa-revue__machines">
+                    {{ include('components/icon.html.twig', {name: 'wrench'}) }}
+                    {% set noms = [] %}
+                    {% for mid in c.machines %}
+                        {% for m in machinesDispo if m.id == mid %}
+                            {% set noms = noms|merge([m.nom]) %}
+                        {% endfor %}
+                    {% endfor %}
+                    {{ noms|join(', ') }}
+                </div>
+                <div class="resa-revue__pers">
+                    {{ include('components/icon.html.twig', {name: 'user'}) }}
+                    {{ c.personnes }} personne{{ c.personnes > 1 ? 's' : '' }}
+                </div>
+            </div>
+        {% endfor %}
+
+        <div class="alert alert--info resa-revue__note">
+            {{ panier.creneaux|length }} créneau{{ panier.creneaux|length > 1 ? 'x' : '' }} ·
+            les machines occupées sont déjà exclues, aucune place n'est facturée.
+        </div>
+
+        <div class="resa-revue__actions">
+            <a href="{{ path('reservation_creer', {id: projet.id}) }}" class="btn btn--ghost">{{ include('components/icon.html.twig', {name: 'arrowLeft'}) }} Modifier</a>
+            <form method="post" action="{{ path('reservation_confirmer', {id: projet.id}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('reservation_confirmer') }}">
+                <button type="submit" class="btn btn--primary">Confirmer la réservation</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

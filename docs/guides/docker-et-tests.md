@@ -66,6 +66,48 @@ Le Dockerfile officiel installe Xdebug dans l'étage **dev uniquement**, en mode
 standard : présent mais inactif, sans coût quand on ne l'utilise pas. On garde tel
 quel : c'est le réglage de référence, pas un ajout maison.
 
+## Dépannage
+
+### Symptôme : 404 « Asset with public path "/assets/styles/app.css" not found »
+
+La page s'affiche sans style complet (la coque est stylée, mais la grille, les
+champs et les composants récents manquent) et le JavaScript ne s'exécute pas
+(les créneaux de réservation ne se chargent jamais, les menus ne s'ouvrent pas).
+En ouvrant directement `https://localhost/assets/styles/app.css`, Symfony renvoie
+une exception 404 levée par `AssetMapperDevServerSubscriber`.
+
+Cause : en développement, AssetMapper sert les fichiers à la volée et **ne doit
+jamais** trouver un dossier `public/assets/` compilé. Lancer `asset-map:compile`
+(commande de production) crée ce dossier ; le supprimer ensuite laisse un cache de
+mapping incohérent dans `var/`. Le subscriber calcule alors des chemins publics
+qui ne correspondent plus aux `<link>` non versionnés du gabarit, d'où le 404 sur
+tous les assets, CSS comme JS. Comme le JS passe par le même mécanisme, plus aucun
+contrôleur Stimulus ne démarre : c'est pourquoi le style ET l'interactivité tombent
+ensemble.
+
+Action corrective :
+
+```bash
+docker compose exec php rm -rf public/assets var/cache
+docker compose exec php bin/console cache:clear
+# puis recharger https://localhost en vidant le cache navigateur (Ctrl+Shift+R)
+```
+
+Si le 404 persiste, le cache du conteneur (volume `var/` anonyme) est incohérent :
+repartir d'un état propre en réassemblant.
+
+```bash
+cd /chemin/vers/kit
+./assembler-geniuslab.sh --kit . --reset
+```
+
+Vérification : `https://localhost/assets/styles/app.css` renvoie le CSS (pas
+l'exception), et `bin/console debug:asset-map | grep styles` liste les deux feuilles.
+
+> Règle : **ne jamais lancer `asset-map:compile` en dev.** C'est une étape de build
+> de production. En dev, le service à la volée suffit, et `public/assets/` doit
+> rester absent (il est d'ailleurs ignoré par `.gitignore`).
+
 ## Référence
 
 Le dossier `docs/symfony-docker-ref/` contient les docs originales du projet

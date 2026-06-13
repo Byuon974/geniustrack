@@ -1,0 +1,27 @@
+###> symfony/framework-bundle ###
+/.env.local
+/.env.local.php
+/.env.*.local
+/config/secrets/prod/prod.decrypt.private.php
+/public/bundles/
+/var/
+/vendor/
+###< symfony/framework-bundle ###
+
+###> phpunit/phpunit ###
+/phpunit.xml
+/.phpunit.cache/
+###< phpunit/phpunit ###
+
+###> symfony/asset-mapper ###
+# Ne jamais versionner les assets compilés : en dev, leur présence empêche
+# AssetMapper de servir les fichiers à la volée (404 sur /assets/...).
+# La compilation (asset-map:compile) est une étape de build de PROD uniquement.
+/public/assets/
+/assets/vendor/
+###< symfony/asset-mapper ###
+
+# Artefacts de travail à ne jamais committer dans le dépôt du kit.
+*.zip
+*.bak
+.DS_Store
