@@ -1,0 +1,56 @@
+{% extends 'base.html.twig' %}
+{% block title %}Règles d'utilisation{% endblock %}
+{% block body %}
+{{ include('components/page_header.html.twig', {
+    titre: 'Règles d\'utilisation',
+    soustitre: 'Le cadre qui permet à chacun de prototyper et d\'apprendre dans de bonnes conditions.'
+}) }}
+<div class="legal">
+    <p class="legal-intro">Le GeniusLab est un atelier d'apprentissage et de prototypage.
+       On y vient pour concevoir, tester et apprendre, par l'expérimentation et l'itération.
+       Ces quelques règles garantissent un accès équitable aux machines et leur bon état
+       pour tous.</p>
+
+    <section>
+        <h2>Un atelier de prototypage</h2>
+        <p>Les machines du FabLab sont pensées pour donner forme à des idées, valider des
+           concepts et réaliser des pièces uniques ou en très petite série. Chaque projet
+           est l'occasion d'apprendre une technique et de progresser, l'erreur faisant
+           partie du processus.</p>
+        <p>L'accès aux machines passe par un projet et un nombre limité de sessions de
+           réalisation : ce cadre privilégie la diversité des projets et l'apprentissage
+           du plus grand nombre, plutôt que l'occupation prolongée d'une machine par une
+           même fabrication.</p>
+    </section>
+
+    <section>
+        <h2>Réservation et créneaux</h2>
+        <p>Chaque machine se réserve par créneau, d'une durée adaptée à son usage. Un
+           rendez-vous de préparation précède les sessions de réalisation : il permet de
+           cadrer le projet et de s'assurer que tout est prêt avant de mobiliser la machine.</p>
+        <p>Respectez les créneaux réservés, arrivez à l'heure et libérez la machine en fin
+           de session. Une réservation que vous ne pourrez pas honorer doit être annulée ou
+           reportée à l'avance, pour en faire profiter quelqu'un d'autre.</p>
+    </section>
+
+    <section>
+        <h2>Sécurité et bon usage</h2>
+        <p>Certaines machines exigent des précautions : seuls les matériaux validés par
+           l'équipe sont autorisés, en particulier sur la graveuse laser et l'imprimante
+           résine. En cas de doute sur un matériau ou un réglage, demandez avant de lancer.</p>
+        <p>Laissez le poste propre après usage et signalez tout dysfonctionnement. Une
+           machine en maintenance n'est pas réservable tant qu'elle n'a pas été remise en
+           état : c'est la condition pour qu'elle reste fiable pour tous.</p>
+    </section>
+
+    <section>
+        <h2>Respect du lieu et des autres</h2>
+        <p>Le FabLab est un espace partagé. Le matériel, les consommables et l'attention de
+           l'équipe sont des ressources communes : on les ménage. Le non respect répété des
+           règles peut conduire à une restriction d'accès.</p>
+    </section>
+
+    <p class="legal-note">Ces règles complètent le règlement intérieur de l'établissement.
+       En cas de question, l'équipe du FabLab est là pour vous accompagner.</p>
+</div>
+{% endblock %}

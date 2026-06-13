@@ -1,0 +1,67 @@
+security:
+    # Hachage des mots de passe : algorithme automatique recommandé (bcrypt/argon).
+    password_hashers:
+        Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
+
+    # Provider : nos utilisateurs sont chargés depuis l'entité User via l'email.
+    providers:
+        app_user_provider:
+            entity:
+                class: App\Entity\User
+                property: email
+
+    firewalls:
+        dev:
+            pattern: ^/(_(profiler|wdt)|css|images|js)/
+            security: false
+
+        main:
+            lazy: true
+            provider: app_user_provider
+            # form_login natif (standard Symfony 7.x) — pas d'authenticator custom :
+            # un login email/mot de passe classique n'en a pas besoin.
+            form_login:
+                login_path: app_login
+                check_path: app_login
+                enable_csrf: true
+                default_target_path: app_home
+            # Protection anti brute-force (BNF_3.3) : limite les tentatives de
+            # connexion échouées. Combine un plafond par couple identifiant+IP et
+            # un plafond plus large par IP seule (source : doc Symfony Rate Limiter).
+            login_throttling:
+                max_attempts: 5          # par minute et par identifiant+IP
+                interval: '1 minute'
+            logout:
+                path: app_logout
+                target: app_home
+            # Vérifie l'état du compte à la connexion (BF_6.2 : compte sanctionné).
+            user_checker: App\Security\UserChecker
+
+    # Hiérarchie des rôles : un admin a tout, etc.
+    # Reflète l'organisation GeniusLab (étudiant < formateur/BDE < admin).
+    role_hierarchy:
+        ROLE_FORMATEUR: ROLE_ETUDIANT
+        ROLE_BDE: ROLE_ETUDIANT
+        ROLE_ADMIN: [ROLE_FORMATEUR, ROLE_BDE]
+
+    # Contrôle d'accès par zone (BF_6.3 : vues différenciées par rôle).
+    access_control:
+        # Flux iCal public au sens session (protégé par jeton dans l'URL, BF_3.1).
+        - { path: ^/calendrier, roles: PUBLIC_ACCESS }
+        # Tableau de bord de pilotage : ouvert aux rôles qui pilotent (admin,
+        # formateur, BDE). Le contenu est différencié par rôle dans le contrôleur.
+        - { path: ^/pilotage, roles: [ROLE_ADMIN, ROLE_FORMATEUR, ROLE_BDE] }
+        - { path: ^/admin, roles: ROLE_ADMIN }
+        - { path: ^/demandes, roles: [ROLE_FORMATEUR, ROLE_BDE] }
+        - { path: ^/projets, roles: ROLE_ETUDIANT }
+        # La Vitrine (/) et le login restent publics.
+
+when@test:
+    security:
+        password_hashers:
+            # Hachage allégé en test pour accélérer la suite.
+            Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface:
+                algorithm: auto
+                cost: 4
+                time_cost: 3
+                memory_cost: 10

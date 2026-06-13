@@ -1,0 +1,11 @@
+{% extends 'base.html.twig' %}
+{% block title %}Modifier {{ article.nom }}{% endblock %}
+{% block fil_ariane %}{{ include('components/fil_ariane.html.twig', {segments: [
+    {libelle: 'Ressources', url: null},
+    {libelle: 'Stock', url: path('admin_stock_index')},
+    {libelle: 'Modifier', url: null}
+]}) }}{% endblock %}
+{% block body %}
+{{ include('components/page_header.html.twig', {titre: 'Modifier « ' ~ article.nom ~ ' »'}) }}
+{{ include('admin/stock/_form.html.twig', {submit_label: 'Enregistrer'}) }}
+{% endblock %}

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette : formulaire inventaire</title>
+<style>
+  :root {
+    --gl-blueprint: #1d4e6f;
+    --gl-blueprint-dark: #143a54;
+    --gl-ink: #14181c;
+    --gl-ink-soft: #5c6670;
+    --gl-surface: #fbfaf8;
+    --gl-bg: #f3f1ec;
+    --gl-amber: #c9821a;
+    --gl-amber-soft: #fbeed5;
+    --gl-radius: 8px;
+    --gl-radius-lg: 10px;
+    --gl-radius-sm: 5px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--gl-bg);
+    color: var(--gl-ink);
+    margin: 0;
+    padding: 1.25rem;
+    line-height: 1.45;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; }
+
+  .topbar {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;
+  }
+  .topbar h1 { font-size: 1.25rem; margin: 0; }
+  .topbar .ariane { font-size: 0.8125rem; color: var(--gl-ink-soft); }
+
+  .synthese {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.6rem 1rem; background: var(--gl-amber-soft);
+    border: 1px solid var(--gl-amber); border-radius: var(--gl-radius);
+    margin-bottom: 1.25rem; font-size: 0.875rem;
+  }
+  .synthese .badge {
+    font-weight: 600; color: #fff; background: var(--gl-amber);
+    padding: 0.15rem 0.5rem; border-radius: 100px; font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  .grille {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+  }
+  @media (max-width: 680px) { .grille { grid-template-columns: 1fr; } }
+
+  .bloc {
+    border: 1px solid rgba(0,0,0,.1); border-radius: var(--gl-radius-lg);
+    padding: 0; margin: 0; background: var(--gl-surface); overflow: hidden;
+  }
+  .bloc.pleine { grid-column: 1 / -1; }
+  .bloc__titre {
+    font-weight: 600; font-size: 0.875rem; color: var(--gl-blueprint);
+    padding: 0.6rem 1.1rem; margin: 0;
+    background: rgba(29,78,111,.05);
+    border-bottom: 1px solid rgba(0,0,0,.08);
+  }
+  .bloc__corps { padding: 1rem 1.1rem 1.1rem; }
+
+  .champ { margin-bottom: 0.75rem; }
+  .champ:last-child { margin-bottom: 0; }
+  .champ label { display: block; font-weight: 600; font-size: 0.8125rem; margin-bottom: 0.25rem; }
+  .champ input, .champ select {
+    width: 100%; padding: 0.5rem 0.7rem; border: 1px solid rgba(0,0,0,.18);
+    border-radius: var(--gl-radius); font-size: 0.9375rem; background: #fff;
+    font-family: inherit;
+  }
+  /* Pas de flèches haut/bas : elles forcent à viser (loi de Fitts) et n'aident
+     pas sur de grandes plages comme un stock. Saisie au clavier uniquement,
+     clavier numérique préservé sur mobile via inputmode. */
+  .champ input[inputmode]::-webkit-outer-spin-button,
+  .champ input[inputmode]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .champ input:focus, .champ select:focus {
+    outline: 2px solid var(--gl-blueprint); outline-offset: 1px; border-color: var(--gl-blueprint);
+  }
+  .champ .aide { display: block; color: var(--gl-ink-soft); font-size: 0.75rem; margin-top: 0.2rem; }
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+  .encart {
+    grid-column: 1 / -1;
+    background: #eef3f7; border-left: 3px solid var(--gl-blueprint);
+    border-radius: 0 var(--gl-radius) var(--gl-radius) 0;
+    padding: 0.6rem 0.85rem; font-size: 0.78rem; color: var(--gl-ink);
+  }
+  .encart strong { color: var(--gl-blueprint); }
+
+  .actions {
+    grid-column: 1 / -1;
+    display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 0.25rem;
+  }
+  .btn {
+    padding: 0.55rem 1.4rem; border-radius: var(--gl-radius); font-size: 0.9375rem;
+    font-weight: 600; cursor: pointer; border: 1px solid transparent; font-family: inherit;
+  }
+  .btn--ghost { background: transparent; border-color: rgba(0,0,0,.2); color: var(--gl-ink); }
+  .btn--primary { background: #b8500f; color: #fff; }
+
+  .note {
+    max-width: 860px; margin: 0 auto 1rem; padding: 0.5rem 0.85rem;
+    background: #fff; border: 1px dashed rgba(0,0,0,.25); border-radius: var(--gl-radius);
+    font-size: 0.78rem; color: var(--gl-ink-soft);
+  }
+  dialog {
+    border: 1px solid rgba(0,0,0,.15); border-radius: var(--gl-radius-lg);
+    padding: 1.25rem; max-width: 360px; width: 90%;
+  }
+  dialog h2 { margin: 0 0 0.75rem; font-size: 1rem; color: var(--gl-blueprint); }
+  dialog::backdrop { background: rgba(0,0,0,.35); }
+</style>
+</head>
+<body>
+
+<div class="note">
+  Maquette de validation. Disposition deux colonnes pour tenir sur une page, champs contraints (plus de texte libre), et catégorie avec création à la volée. Cliquer « + Nouvelle catégorie » ouvre le mini-dialogue.
+</div>
+
+<div class="wrap">
+  <div class="topbar">
+    <h1>Modifier « Bobine PLA rouge brillant »</h1>
+    <span class="ariane">Stocks / Article</span>
+  </div>
+
+  <div class="synthese">
+    <span class="badge">Stock bas</span>
+    <span>1 bobine en stock pour un seuil de 2 : un réapprovisionnement est conseillé.</span>
+  </div>
+
+  <form class="grille">
+    <fieldset class="bloc">
+      <p class="bloc__titre">Identité</p>
+      <div class="bloc__corps">
+      <div class="champ">
+        <label for="nom">Nom de l'article</label>
+        <input type="text" id="nom" value="Bobine PLA rouge brillant">
+      </div>
+      <div class="champ">
+        <label for="categorie">Catégorie</label>
+        <select id="categorie" onchange="if(this.value==='__new__'){this.selectedIndex=0;document.getElementById('dlg-cat').showModal();}">
+          <option value="filament_pla" selected>Filament PLA</option>
+          <option value="filament_petg">Filament PETG</option>
+          <option value="filament_tpu">Filament TPU</option>
+          <option value="resine">Résine UV</option>
+          <option value="pieces_usure">Pièces d'usure</option>
+          <option value="supports_flocage">Supports flocage</option>
+          <option value="consommables_decoupe">Consommables découpe</option>
+          <option value="autre">Autre</option>
+          <option value="__new__">+ Nouvelle catégorie…</option>
+        </select>
+      </div>
+      <div class="champ">
+        <label for="unite">Unité</label>
+        <select id="unite">
+          <option value="bobine" selected>Bobine</option>
+          <option value="litre">Litre</option>
+          <option value="piece">Pièce</option>
+          <option value="metre">Mètre</option>
+          <option value="rouleau">Rouleau</option>
+          <option value="kilogramme">Kilogramme</option>
+        </select>
+        <span class="aide">Choisie dans une liste pour éviter les variantes (Bobine / bobines / BOBINE).</span>
+      </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="bloc">
+      <p class="bloc__titre">Niveau de stock</p>
+      <div class="bloc__corps">
+      <div class="duo">
+        <div class="champ">
+          <label for="quantite">Quantité</label>
+          <input type="text" id="quantite" value="1" inputmode="numeric">
+        </div>
+        <div class="champ">
+          <label for="seuil">Seuil d'alerte</label>
+          <input type="text" id="seuil" value="2" inputmode="numeric">
+        </div>
+      </div>
+      <span class="aide" style="margin-top:.5rem;display:block">Sous le seuil, l'article passe automatiquement en « stock bas ».</span>
+      </div>
+    </fieldset>
+
+    <fieldset class="bloc pleine">
+      <p class="bloc__titre">Réapprovisionnement</p>
+      <div class="bloc__corps">
+      <div class="duo">
+        <div class="champ">
+          <label for="conso">Consommation par mois</label>
+          <input type="text" id="conso" value="0" inputmode="decimal">
+          <span class="aide">0 si inconnu : pas de prédiction de rupture.</span>
+        </div>
+        <div class="champ">
+          <label for="delai">Délai fournisseur (jours)</label>
+          <input type="text" id="delai" value="14" inputmode="numeric">
+          <span class="aide">Du jour de commande à la livraison.</span>
+        </div>
+      </div>
+      <div class="encart" style="margin-top:.75rem">
+        Ces deux valeurs estiment le <strong>point de commande</strong> : le niveau de stock à partir duquel recommander pour ne pas tomber en rupture pendant la livraison.
+      </div>
+      </div>
+    </fieldset>
+
+    <div class="actions">
+      <button type="button" class="btn btn--ghost">Annuler</button>
+      <button type="button" class="btn btn--primary">Enregistrer</button>
+    </div>
+  </form>
+</div>
+
+<dialog id="dlg-cat">
+  <h2>Nouvelle catégorie</h2>
+  <div class="champ">
+    <label for="new-cat">Nom de la catégorie</label>
+    <input type="text" id="new-cat" placeholder="ex. Adhésifs techniques">
+  </div>
+  <div class="actions" style="margin-top:1rem">
+    <button type="button" class="btn btn--ghost" onclick="document.getElementById('dlg-cat').close()">Annuler</button>
+    <button type="button" class="btn btn--primary" onclick="ajouterCat()">Créer</button>
+  </div>
+</dialog>
+
+<script>
+function ajouterCat() {
+  var v = document.getElementById('new-cat').value.trim();
+  if (!v) return;
+  var sel = document.getElementById('categorie');
+  var opt = document.createElement('option');
+  opt.textContent = v; opt.selected = true;
+  sel.insertBefore(opt, sel.options[sel.options.length - 1]);
+  document.getElementById('new-cat').value = '';
+  document.getElementById('dlg-cat').close();
+}
+</script>
+
+</body>
+</html>

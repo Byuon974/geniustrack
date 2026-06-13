@@ -1,0 +1,126 @@
+{% extends 'base.html.twig' %}
+{% block title %}Tableau de bord{% endblock %}
+{% block fil_ariane %}{{ include('components/fil_ariane.html.twig', {segments: [
+    {libelle: 'Pilotage', url: null},
+    {libelle: 'Tableau de bord', url: null}
+]}) }}{% endblock %}
+{% block body %}
+{{ include('components/page_header.html.twig', {
+    titre: 'Tableau de bord',
+    soustitre: "Demandes, stock et activité du FabLab en un coup d'œil.",
+    actions:
+        '<a href="' ~ path('calendrier_vue') ~ '" class="btn btn--ghost">' ~ include('components/icon.html.twig', {name: 'calendar', size: 16}) ~ ' Calendrier</a>' ~
+        '<a href="' ~ path('admin_journal') ~ '" class="btn btn--ghost">' ~ include('components/icon.html.twig', {name: 'shield', size: 16}) ~ ' Journal</a>' ~
+        '<a href="' ~ path('pilotage_export_reservations', {annee: 'now'|date('Y')}) ~ '" class="btn btn--ghost">' ~ include('components/icon.html.twig', {name: 'pkg', size: 16}) ~ ' Exporter ' ~ 'now'|date('Y') ~ '</a>'
+}) }}
+
+{# KPI : cartes de statut, filet de couleur sémantique selon l'état.
+   Quatre cartes (maquette validée) : chacune passe le test « so what ? » et
+   porte un lien d'action. Couleur a seuil : rouge = action requise, ambre = a
+   surveiller, vert = sain, bleu = neutre informatif. #}
+<div class="stat-grid">
+    <div class="stat-carte stat-carte--{{ projetsEnAttente > 0 ? 'rouge' : 'vert' }}">
+        <div class="stat-carte-tete">{{ include('components/icon.html.twig', {name: 'clipboard', size: 18}) }}<span class="stat-label">Demandes en attente</span></div>
+        <span class="stat-value">{{ projetsEnAttente }}</span>
+        <span class="cat">à valider par les formateurs et le BDE</span>
+        <a href="{{ path('demande_index') }}" class="dash-lien">Traiter →</a>
+    </div>
+    <div class="stat-carte stat-carte--{{ articlesSousSeuil|length > 0 ? 'ambre' : 'vert' }}">
+        <div class="stat-carte-tete">{{ include('components/icon.html.twig', {name: 'pkg', size: 18}) }}<span class="stat-label">Stock sous le seuil</span></div>
+        <span class="stat-value">{{ articlesSousSeuil|length }}</span>
+        <span class="cat">article(s) à réapprovisionner</span>
+        <a href="{{ path('admin_stock_index') }}" class="dash-lien">Réapprovisionner →</a>
+    </div>
+    <div class="stat-carte stat-carte--vert">
+        <div class="stat-carte-tete">{{ include('components/icon.html.twig', {name: 'wrench', size: 18}) }}<span class="stat-label">Machines disponibles</span></div>
+        <span class="stat-value">{{ machinesActives|default('0') }}</span>
+        <span class="cat">sur {{ machinesTotal|default('0') }} au parc</span>
+        <a href="{{ path('admin_machine_index') }}" class="dash-lien">Voir le parc →</a>
+    </div>
+    <div class="stat-carte stat-carte--bleu">
+        <div class="stat-carte-tete">{{ include('components/icon.html.twig', {name: 'calendar', size: 18}) }}<span class="stat-label">Créneaux du jour</span></div>
+        <span class="stat-value">{{ creneauxDuJour|default('0') }}</span>
+        <span class="cat">réservation(s) aujourd'hui</span>
+        <a href="{{ path('calendrier_vue') }}" class="dash-lien">Voir le planning →</a>
+    </div>
+</div>
+
+{# Zone de contenu en grille : usage machines + raccourci de validation. #}
+<div class="dash-grille">
+    <div class="dash-bloc">
+        <h2 class="dash-bloc__titre">Utilisation des machines (30 derniers jours)</h2>
+        {% if utilisationMachines is empty %}
+            {{ include('components/empty.html.twig', {message: 'Aucune réservation sur la période.'}) }}
+        {% else %}
+            {% set totaux = utilisationMachines|map(m => m.total) %}
+            {% set maxTotal = totaux|reduce((a, b) => max(a, b), 0) %}
+            {% set minTotal = totaux|reduce((a, b) => min(a, b), maxTotal) %}
+            {#
+              Choix du rendu selon les normes de visualisation (RETEX) :
+              une barre n'a de sens que si les valeurs varient assez pour qu'une
+              comparaison de longueurs soit lisible. Si toutes les machines ont
+              un usage identique (ou presque) ou s'il n'y a qu'une machine, le
+              graphe n'apporte rien : on bascule en table, plus honnête et plus
+              claire. Sinon, barres à échelle ABSOLUE (base zéro, max réel),
+              triées par usage décroissant, accent sur la plus utilisée.
+            #}
+            {% set assezDeVariation = utilisationMachines|length > 1 and maxTotal > minTotal %}
+            {% if assezDeVariation %}
+                <div class="dash-usage" role="img"
+                     aria-label="Réservations par machine sur 30 jours, de {{ minTotal }} à {{ maxTotal }}.">
+                    {% for ligne in utilisationMachines %}
+                        {# Couleur sémantique selon l'intensité d'usage relative au
+                           maximum : forte (≥ 66 %), moyenne (≥ 33 %), faible. #}
+                        {% set ratio = maxTotal > 0 ? (ligne.total / maxTotal) : 0 %}
+                        {% set intensite = ratio >= 0.66 ? 'forte' : (ratio >= 0.33 ? 'moyenne' : 'faible') %}
+                        <div>
+                            <div class="dash-usage__ligne-tete">
+                                <span>{{ ligne.nom }}</span><span class="num">{{ ligne.total }}</span>
+                            </div>
+                            <div class="dash-bar-piste">
+                                <div class="dash-bar-rempli dash-bar-rempli--{{ intensite }}"
+                                     style="width:{{ (ratio * 100)|round }}%;"></div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    <div class="dash-usage__legende" aria-hidden="true">
+                        <span><i class="dash-pip dash-pip--forte"></i> Forte</span>
+                        <span><i class="dash-pip dash-pip--moyenne"></i> Moyenne</span>
+                        <span><i class="dash-pip dash-pip--faible"></i> Faible</span>
+                    </div>
+                </div>
+            {% else %}
+                {# Valeurs trop homogènes : table plutôt que barres trompeuses. #}
+                <table class="dash-usage-table">
+                    <thead>
+                        <tr><th>Machine</th><th class="num">Réservations</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for ligne in utilisationMachines %}
+                            <tr><td>{{ ligne.nom }}</td><td class="num">{{ ligne.total }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <div class="dash-bloc">
+        <h2 class="dash-bloc__titre">Demandes à traiter</h2>
+        {% if demandesATraiter is empty %}
+            {{ include('components/empty.html.twig', {message: 'Aucune demande en attente.'}) }}
+        {% else %}
+            <div class="dash-demandes">
+                {% for projet in demandesATraiter %}
+                    <a href="{{ path('demande_index') }}" class="dash-demande">
+                        <span class="statut-pastille statut-pastille--amber" aria-hidden="true"></span>
+                        <span style="flex:1;">{{ projet.titre }}</span>
+                        <span class="dash-demande__type">{{ projet.type.libelle }}</span>
+                    </a>
+                {% endfor %}
+            </div>
+            <a href="{{ path('demande_index') }}" class="dash-lien">Voir toutes les demandes →</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

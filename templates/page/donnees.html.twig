@@ -1,0 +1,38 @@
+{% extends 'base.html.twig' %}
+{% block title %}Confidentialité{% endblock %}
+{% block body %}
+{{ include('components/page_header.html.twig', {
+    titre: 'Confidentialité',
+    soustitre: 'Traitement des données personnelles conformément au RGPD.'
+}) }}
+<div class="legal">
+    <p class="legal-intro">Conformément au RGPD, GeniusLab traite des données personnelles
+       dans le seul cadre de la gestion des réservations et projets du FabLab.</p>
+
+    <section>
+        <h2>Données collectées</h2>
+        <p>Nom, prénom, adresse e-mail de campus, et données liées aux projets et
+           réservations (créneaux, machines utilisées).</p>
+    </section>
+
+    <section>
+        <h2>Finalité</h2>
+        <p>Gérer les demandes de projet, les réservations de machines et la traçabilité
+           d'usage du FabLab.</p>
+    </section>
+
+    <section>
+        <h2>Vos droits</h2>
+        <p>Vous disposez d'un droit d'accès, de rectification et de suppression de vos
+           données. Pour l'exercer, contactez l'administration du GeniusLab.</p>
+    </section>
+
+    <section>
+        <h2>Conservation</h2>
+        <p>Les données sont conservées le temps de votre cursus, puis archivées ou
+           supprimées selon les règles de l'établissement.</p>
+    </section>
+
+    <p class="legal-note">Document à compléter avec le DPO de l'établissement.</p>
+</div>
+{% endblock %}

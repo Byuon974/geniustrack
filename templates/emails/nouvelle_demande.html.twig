@@ -1,0 +1,8 @@
+{% extends 'emails/base_email.html.twig' %}
+{% block content %}
+    <h2 style="margin-top:0;">Nouvelle demande à valider</h2>
+    <p>Une demande de projet attend votre validation :</p>
+    <p><strong>{{ projet.titre }}</strong> : {{ projet.type.libelle }}<br>
+       Déposée par {{ projet.etudiant.nomComplet }}.</p>
+    <p>Connectez-vous à votre espace GeniusLab pour la traiter.</p>
+{% endblock %}

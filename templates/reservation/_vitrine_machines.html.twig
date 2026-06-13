@@ -1,0 +1,26 @@
+{# Vitrine informative des machines du FabLab : nom, type, description, état.
+   Aide l'utilisateur à choisir en connaissance de cause AVANT de réserver
+   (RETEX FabLab : présenter les caractéristiques des équipements). Purement
+   informatif : la réservation, qui peut mélanger plusieurs machines, se fait
+   dans le wizard. Attend la variable « machinesDispo » (liste de Machine). #}
+<details class="vitrine-machines">
+    <summary class="vitrine-machines__resume">
+        Voir les machines du laboratoire ({{ machinesDispo|default([])|length }})
+    </summary>
+    <div class="vitrine-machines__grille">
+        {% for machine in machinesDispo|default([]) %}
+            <article class="machine-carte">
+                <h3 class="machine-carte__nom">{{ machine.nom }}</h3>
+                <p class="machine-carte__type">{{ machine.type|libelle_type_machine }}</p>
+                {% if machine.description %}
+                    <p class="machine-carte__desc">{{ machine.description }}</p>
+                {% endif %}
+                <span class="machine-carte__etat machine-carte__etat--{{ machine.etat.value }}">
+                    {{ machine.etat.libelle|default(machine.etat.value) }}
+                </span>
+            </article>
+        {% else %}
+            <p class="cat">Aucune machine disponible pour le moment.</p>
+        {% endfor %}
+    </div>
+</details>

@@ -1,0 +1,132 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}GeniusLab, le FabLab du Campus CCI Nord{% endblock %}
+
+{# La bannière porte déjà le grand titre : on n'affiche pas de titre dans le header
+   pour éviter le doublon (RETEX : un élément secondaire ne doit pas répéter le
+   titre principal déjà visible). #}
+
+{% block body %}
+{# ─────────────────────────────────────────────────────────────
+   HERO STATIQUE : un seul message primaire (BF_1.1).
+   ───────────────────────────────────────────────────────────── #}
+<section class="banniere{{ contenus.hero_image is defined and contenus.hero_image.image ? ' banniere--avec-image' : '' }}">
+    <div class="banniere-corps">
+        <p class="banniere-surtitre">Campus CCI Nord, La Réunion</p>
+        <h1 class="banniere-titre">{{ contenus.hero_titre.valeur|default('Concevez, prototypez, fabriquez au GeniusLab') }}</h1>
+        <p class="banniere-accroche">
+            {{ contenus.hero_texte.valeur|default('Impression 3D, découpe laser, gravure, flocage : le FabLab du campus pour vos projets pédagogiques comme pour vos prototypes personnels.') }}
+        </p>
+        {% if app.user %}
+            <a href="#machines" class="btn btn--primary">Découvrir les machines</a>
+        {% else %}
+            <a href="{{ path('app_login') }}" class="btn btn--primary">Se connecter pour réserver</a>
+        {% endif %}
+    </div>
+    {% if contenus.hero_image is defined and contenus.hero_image.image %}
+        <div class="banniere-media">
+            <img src="{{ asset('uploads/vitrine/' ~ contenus.hero_image.image) }}" alt="" loading="lazy">
+        </div>
+    {% endif %}
+</section>
+
+{# ─────────────────────────────────────────────────────────────
+   MACHINES : toujours présentes (le cœur de l'offre du FabLab).
+   ───────────────────────────────────────────────────────────── #}
+<section id="machines" class="section">
+    <h2 class="section-title">Nos machines</h2>
+
+    {% if machines is empty %}
+        {{ include('components/empty.html.twig', {
+            message: 'Les machines seront présentées ici prochainement.'
+        }) }}
+    {% else %}
+        <div class="machine-grid">
+            {% for machine in machines %}
+                <a href="{{ path('app_machine_fiche', {id: machine.id}) }}" class="machine-carte machine-carte--lien">
+                    <div class="machine-carte__media">
+                        {% if machine.photo %}
+                            <img src="{{ asset('uploads/machines/' ~ machine.photo) }}"
+                                 alt="{{ machine.nom }}" loading="lazy">
+                        {% else %}
+                            <div class="machine-carte__vide" aria-hidden="true">
+                                {# icône cube isométrique, cohérente avec le logo #}
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+                                    <path d="M12 2 21 7v10l-9 5-9-5V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+                                    <path d="M12 2v10m0 0 9-5m-9 5-9-5" stroke="currentColor" stroke-width="1.4"/>
+                                </svg>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="machine-carte__corps">
+                        <h3>{{ machine.nom }}</h3>
+                        {% if machine.description %}
+                            <p>{{ machine.description }}</p>
+                        {% endif %}
+                        {% if not machine.estReservable %}
+                            {{ include('components/badge.html.twig', {
+                                couleur: 'amber', label: machine.etat.libelle
+                            }) }}
+                        {% endif %}
+                        <span class="machine-carte__lien">Voir la fiche →</span>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% endif %}
+</section>
+
+{# ─────────────────────────────────────────────────────────────
+   GALERIE DE PROJETS : affichée SEULEMENT si non vide (choix dirigeant).
+   Filtrage par catégorie machine, sans rechargement (Stimulus).
+   ───────────────────────────────────────────────────────────── #}
+{% if projets is not empty %}
+    <section class="section" data-controller="gallery-filter">
+        <h2 class="section-title">Projets réalisés</h2>
+        <p class="section-sub">Une sélection de réalisations des étudiants du campus.</p>
+
+        {% if categories|length > 1 %}
+            <div class="filter-bar" role="group" aria-label="Filtrer par type de machine">
+                <button class="filter-chip is-active"
+                        data-gallery-filter-target="chip"
+                        data-action="gallery-filter#filter"
+                        data-categorie="tous">Tous</button>
+                {% for cat in categories %}
+                    <button class="filter-chip"
+                            data-gallery-filter-target="chip"
+                            data-action="gallery-filter#filter"
+                            data-categorie="{{ cat }}">{{ cat|libelle_type_machine }}</button>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="projet-grille">
+            {% for projet in projets %}
+                {% set cats = projet.machines|map(m => m.type)|join(' ') %}
+                <article class="projet-carte"
+                         data-gallery-filter-target="item"
+                         data-categories="{{ cats }}">
+                    <div class="projet-carte__media" aria-hidden="true">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2 21 7v10l-9 5-9-5V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="projet-carte__corps">
+                        <h3>{{ projet.titre }}</h3>
+                        {% if projet.description %}
+                            <p>{{ projet.description|length > 120 ? projet.description|slice(0, 120) ~ '…' : projet.description }}</p>
+                        {% endif %}
+                        <div class="projet-carte__etiquettes">
+                            {% for machine in projet.machines %}
+                                {{ include('components/badge.html.twig', {
+                                    couleur: 'blue', label: machine.type|libelle_type_machine
+                                }) }}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    </section>
+{% endif %}
+{% endblock %}

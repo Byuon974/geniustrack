@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette wizard v5 — les 3 pages</title>
+<style>
+  :root {
+    --gl-blueprint:#1d4e6f; --gl-filament:#e8702a; --gl-filament-ink:#b34e14; --gl-filament-soft:#fbe9dd;
+    --gl-surface:#fbfaf8; --gl-bg:#f3f1ec; --gl-line:#e3e0d8; --gl-ink:#14181c;
+    --gl-ink-soft:#5c6670; --gl-green:#2f8a5b; --gl-green-soft:#e2f3ea;
+    --gl-amber:#c9821a; --gl-amber-soft:#fbeed5; --gl-red:#c0392b; --gl-red-soft:#f8e1de; --gl-slate:#41576a;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Inter',system-ui,sans-serif; background:var(--gl-bg); color:var(--gl-ink); padding:24px; font-size:14px; }
+  .page-titre { max-width:920px; margin:0 auto 8px; font-family:'Space Grotesk',sans-serif; color:var(--gl-slate); font-size:15px; text-transform:uppercase; letter-spacing:.05em; }
+  .carte { max-width:920px; margin:0 auto 40px; background:var(--gl-surface); border:1px solid var(--gl-line); border-radius:12px; overflow:hidden; }
+  .entete { display:flex; justify-content:space-between; align-items:center; padding:18px 26px; }
+  h1 { font-family:'Space Grotesk',sans-serif; font-size:25px; }
+  .badge { background:var(--gl-filament-soft); color:var(--gl-filament-ink); font-family:monospace; font-size:12px; padding:5px 11px; border-radius:6px; }
+  .stepper { display:flex; align-items:center; padding:12px 26px; border-top:1px solid var(--gl-line); border-bottom:1px solid var(--gl-line); gap:8px; }
+  .step { display:flex; flex-direction:column; align-items:center; gap:3px; }
+  .dot { width:28px; height:28px; border-radius:50%; display:grid; place-items:center; font-weight:600; font-size:13px; background:#dfe3e0; color:var(--gl-ink-soft); }
+  .step.done .dot { background:var(--gl-green); color:#fff; }
+  .step.current .dot { background:var(--gl-blueprint); color:#fff; }
+  .step small { font-size:11px; color:var(--gl-ink-soft); }
+  .step.current small { color:var(--gl-ink); font-weight:600; }
+  .bar { flex:1; height:2px; background:var(--gl-line); }
+  .bar.done { background:var(--gl-green); }
+  .corps { padding:18px 26px; }
+  .intro { color:var(--gl-ink-soft); margin-bottom:14px; line-height:1.5; }
+  .libelle { font-size:12px; font-weight:600; margin-bottom:5px; display:block; color:var(--gl-slate); }
+  .controles { display:flex; gap:14px; margin-bottom:16px; flex-wrap:wrap; }
+  .champ { flex:1; min-width:150px; }
+  select { width:100%; padding:9px 12px; border:1px solid var(--gl-line); border-radius:8px; font:inherit; background:#fff; }
+  /* Créneaux groupés matin / après-midi */
+  .periode { margin-bottom:14px; }
+  .periode-titre { font-size:12px; font-weight:700; color:var(--gl-slate); text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+  .periode-titre::after { content:''; flex:1; height:1px; background:var(--gl-line); }
+  .creneaux-grille { display:grid; grid-template-columns:repeat(6,1fr); gap:8px; }
+  .creneau { border:1px solid var(--gl-line); border-radius:8px; padding:9px 4px; text-align:center; cursor:pointer; background:#fff; transition:.12s; }
+  .creneau .h { font-weight:700; font-size:15px; display:block; font-family:'Space Grotesk',sans-serif; }
+  .creneau .pl { font-size:10px; color:var(--gl-ink-soft); }
+  .creneau.libre:hover { border-color:var(--gl-blueprint); transform:translateY(-1px); }
+  .creneau.choisi { background:var(--gl-blueprint); border-color:var(--gl-blueprint); color:#fff; }
+  .creneau.choisi .pl { color:#dce7ef; }
+  .creneau.complet { background:var(--gl-red-soft); border-color:transparent; color:var(--gl-red); cursor:not-allowed; opacity:.8; }
+  .creneau.occupe { background:var(--gl-amber-soft); border-color:transparent; color:var(--gl-amber); }
+  .machines-bloc { margin-top:8px; padding:14px 16px; background:#fff; border:1px solid var(--gl-line); border-radius:10px; }
+  .machines-bloc h3 { font-size:14px; margin-bottom:3px; }
+  .machines-bloc .sous { font-size:12px; color:var(--gl-ink-soft); margin-bottom:10px; }
+  .machines-liste { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+  .machine-ligne { display:flex; align-items:center; gap:10px; padding:9px 12px; border:1px solid var(--gl-line); border-radius:8px; cursor:pointer; }
+  .machine-ligne:has(input:checked) { border-color:var(--gl-blueprint); background:#f2f7fa; }
+  .machine-ligne input { width:17px; height:17px; accent-color:var(--gl-blueprint); }
+  .machine-nom { font-weight:600; font-size:13px; }
+  .machine-etat { font-size:11px; color:var(--gl-ink-soft); margin-left:auto; }
+  .machine-ligne.indispo { opacity:.45; cursor:not-allowed; background:var(--gl-red-soft); }
+  .pied { display:flex; justify-content:space-between; padding:16px 26px; border-top:1px solid var(--gl-line); gap:12px; }
+  .btn { padding:10px 18px; border-radius:8px; border:1px solid transparent; font:inherit; font-weight:600; cursor:pointer; }
+  .btn-primary { background:var(--gl-filament); color:#fff; }
+  .btn-ghost { background:transparent; border-color:var(--gl-line); color:var(--gl-ink); }
+  .legende { display:flex; gap:14px; font-size:11px; color:var(--gl-ink-soft); margin-top:4px; }
+  .pip { width:11px; height:11px; border-radius:3px; display:inline-block; vertical-align:-1px; margin-right:4px; }
+  /* Récap & panier */
+  .resa-ligne { display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--gl-line); border-radius:9px; margin-bottom:8px; background:#fff; }
+  .resa-ligne .quand { font-weight:600; font-family:'Space Grotesk',sans-serif; }
+  .resa-ligne .machines { font-size:12px; color:var(--gl-ink-soft); }
+  .resa-ligne .retirer { margin-left:auto; color:var(--gl-red); border:1px solid var(--gl-red-soft); background:var(--gl-red-soft); border-radius:6px; padding:5px 10px; font-size:12px; cursor:pointer; }
+  .sect-titre { font-family:'Space Grotesk',sans-serif; font-size:15px; margin:14px 0 8px; }
+  .vignette { display:inline-flex; align-items:center; gap:5px; background:var(--gl-blueprint); color:#fff; font-size:11px; padding:3px 8px; border-radius:20px; margin:2px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ PAGE 1 : PRÉPARATION ═══════════ -->
+<p class="page-titre">Page 1 / 3 — Préparation</p>
+<div class="carte">
+  <div class="entete"><h1>Réservation</h1><span class="badge">[Test] Réservation nominale</span></div>
+  <div class="stepper">
+    <div class="step current"><span class="dot">1</span><small>Préparation</small></div>
+    <div class="bar"></div>
+    <div class="step"><span class="dot">2</span><small>Créneaux</small></div>
+    <div class="bar"></div>
+    <div class="step"><span class="dot">3</span><small>Récapitulatif</small></div>
+  </div>
+  <div class="corps">
+    <p class="intro">Réservez d'abord le rendez-vous de préparation (30 min), obligatoire avant toute réalisation. Choisissez le jour, puis un créneau libre.</p>
+    <div class="controles">
+      <div class="champ"><label class="libelle">Machine</label><select><option>Imprimante 3D Bambu Lab</option></select></div>
+      <div class="champ"><label class="libelle">Jour</label><select><option>vendredi 13/06/2026</option></select></div>
+      <div class="champ"><label class="libelle">Personnes</label><select><option>1</option></select></div>
+    </div>
+    <div class="periode">
+      <p class="periode-titre">Matin</p>
+      <div class="creneaux-grille">
+        <div class="creneau libre"><span class="h">08h00</span><span class="pl">libre</span></div>
+        <div class="creneau libre"><span class="h">08h30</span><span class="pl">libre</span></div>
+        <div class="creneau choisi"><span class="h">09h00</span><span class="pl">choisi</span></div>
+        <div class="creneau occupe"><span class="h">09h30</span><span class="pl">partiel</span></div>
+        <div class="creneau libre"><span class="h">10h00</span><span class="pl">libre</span></div>
+        <div class="creneau libre"><span class="h">10h30</span><span class="pl">libre</span></div>
+        <div class="creneau libre"><span class="h">11h00</span><span class="pl">libre</span></div>
+        <div class="creneau libre"><span class="h">11h30</span><span class="pl">libre</span></div>
+      </div>
+    </div>
+    <div class="periode">
+      <p class="periode-titre">Après-midi</p>
+      <div class="creneaux-grille">
+        <div class="creneau libre"><span class="h">13h00</span><span class="pl">libre</span></div>
+        <div class="creneau libre"><span class="h">13h30</span><span class="pl">libre</span></div>
+        <div class="creneau libre"><span class="h">14h00</span><span class="pl">libre</span></div>
+        <div class="creneau complet"><span class="h">14h30</span><span class="pl">complet</span></div>
+        <div class="creneau libre"><span class="h">15h00</span><span class="pl">libre</span></div>
+        <div class="creneau libre"><span class="h">15h30</span><span class="pl">libre</span></div>
+        <div class="creneau libre"><span class="h">16h00</span><span class="pl">libre</span></div>
+      </div>
+    </div>
+    <div class="legende">
+      <span><span class="pip" style="background:#fff;border:1px solid var(--gl-line)"></span>Libre</span>
+      <span><span class="pip" style="background:var(--gl-amber-soft)"></span>Partiellement occupé</span>
+      <span><span class="pip" style="background:var(--gl-red-soft)"></span>Complet</span>
+    </div>
+  </div>
+  <div class="pied"><span></span><button class="btn btn-primary">Valider la préparation →</button></div>
+</div>
+
+<!-- ═══════════ PAGE 2 : CRÉNEAUX (multi-machines) ═══════════ -->
+<p class="page-titre">Page 2 / 3 — Créneaux de réalisation (plusieurs machines par créneau)</p>
+<div class="carte">
+  <div class="entete"><h1>Réservation</h1><span class="badge">[Test] Réservation nominale</span></div>
+  <div class="stepper">
+    <div class="step done"><span class="dot">✓</span><small>Préparation</small></div>
+    <div class="bar done"></div>
+    <div class="step current"><span class="dot">2</span><small>Créneaux</small></div>
+    <div class="bar"></div>
+    <div class="step"><span class="dot">3</span><small>Récapitulatif</small></div>
+  </div>
+  <div class="corps">
+    <p class="intro">Choisissez un créneau, puis cochez les machines à utiliser en parallèle pendant ce créneau. Ajoutez jusqu'à quatre créneaux.</p>
+
+    <!-- Créneaux déjà ajoutés -->
+    <div class="resa-ligne">
+      <div>
+        <div class="quand">ven. 13/06 · 10h00 → 11h00</div>
+        <div class="machines">Imprimante 3D Bambu Lab, Graveuse laser</div>
+      </div>
+      <button class="retirer">Retirer</button>
+    </div>
+
+    <div class="controles">
+      <div class="champ"><label class="libelle">Jour</label><select><option>vendredi 13/06/2026</option></select></div>
+      <div class="champ"><label class="libelle">Durée</label><select><option>1 h</option></select></div>
+      <div class="champ"><label class="libelle">Personnes</label><select><option>2</option></select></div>
+    </div>
+    <div class="periode">
+      <p class="periode-titre">Après-midi</p>
+      <div class="creneaux-grille">
+        <div class="creneau libre"><span class="h">13h00</span><span class="pl">5 machines</span></div>
+        <div class="creneau choisi"><span class="h">14h00</span><span class="pl">choisi</span></div>
+        <div class="creneau libre"><span class="h">15h00</span><span class="pl">4 machines</span></div>
+        <div class="creneau occupe"><span class="h">16h00</span><span class="pl">2 machines</span></div>
+      </div>
+    </div>
+
+    <div class="machines-bloc">
+      <h3>Machines libres le 13/06 de 14h00 à 15h00</h3>
+      <p class="sous">Cochez une ou plusieurs machines à utiliser pendant ce créneau.</p>
+      <div class="machines-liste">
+        <label class="machine-ligne"><input type="checkbox" checked><span class="machine-nom">Imprimante 3D Bambu Lab</span><span class="machine-etat">libre</span></label>
+        <label class="machine-ligne"><input type="checkbox" checked><span class="machine-nom">Imprimante 3D résine</span><span class="machine-etat">libre</span></label>
+        <label class="machine-ligne"><input type="checkbox"><span class="machine-nom">Scanner 3D</span><span class="machine-etat">libre</span></label>
+        <label class="machine-ligne indispo"><input type="checkbox" disabled><span class="machine-nom">Graveuse laser</span><span class="machine-etat">occupée</span></label>
+      </div>
+    </div>
+  </div>
+  <div class="pied">
+    <button class="btn btn-ghost">← Préparation</button>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-ghost">+ Ajouter ce créneau</button>
+      <button class="btn btn-primary">Récapitulatif →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PAGE 3 : RÉCAPITULATIF ═══════════ -->
+<p class="page-titre">Page 3 / 3 — Récapitulatif</p>
+<div class="carte">
+  <div class="entete"><h1>Réservation</h1><span class="badge">[Test] Réservation nominale</span></div>
+  <div class="stepper">
+    <div class="step done"><span class="dot">✓</span><small>Préparation</small></div>
+    <div class="bar done"></div>
+    <div class="step done"><span class="dot">✓</span><small>Créneaux</small></div>
+    <div class="bar done"></div>
+    <div class="step current"><span class="dot">3</span><small>Récapitulatif</small></div>
+  </div>
+  <div class="corps">
+    <p class="intro">Vérifiez votre réservation avant de confirmer.</p>
+    <p class="sect-titre">Préparation</p>
+    <div class="resa-ligne">
+      <div><div class="quand">ven. 13/06 · 09h00 → 09h30</div><div class="machines">Imprimante 3D Bambu Lab · 1 pers.</div></div>
+    </div>
+    <p class="sect-titre">Créneaux de réalisation</p>
+    <div class="resa-ligne">
+      <div><div class="quand">ven. 13/06 · 10h00 → 11h00</div>
+        <div class="machines"><span class="vignette">Imprimante 3D Bambu Lab</span><span class="vignette">Graveuse laser</span> · 2 pers.</div></div>
+    </div>
+    <div class="resa-ligne">
+      <div><div class="quand">ven. 13/06 · 14h00 → 15h00</div>
+        <div class="machines"><span class="vignette">Imprimante 3D Bambu Lab</span><span class="vignette">Imprimante 3D résine</span> · 2 pers.</div></div>
+    </div>
+  </div>
+  <div class="pied">
+    <button class="btn btn-ghost">← Créneaux</button>
+    <button class="btn btn-primary">Confirmer la réservation</button>
+  </div>
+</div>
+
+</body>
+</html>

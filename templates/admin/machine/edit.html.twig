@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+{% block title %}Modifier {{ machine.nom }}{% endblock %}
+{% block fil_ariane %}{{ include('components/fil_ariane.html.twig', {segments: [
+    {libelle: 'Ressources', url: null},
+    {libelle: 'Machines', url: path('admin_machine_index')},
+    {libelle: 'Modifier', url: null}
+]}) }}{% endblock %}
+{% block body %}
+{{ include('components/page_header.html.twig', {titre: 'Modifier « ' ~ machine.nom ~ ' »'}) }}
+<div class="admin-page">
+    {{ include('admin/machine/_form.html.twig', {submit_label: 'Enregistrer'}) }}
+</div>
+{% endblock %}

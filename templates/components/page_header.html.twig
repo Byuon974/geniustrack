@@ -1,0 +1,30 @@
+{#
+  En-tête de page réutilisable, cohérent sur toutes les pages d'administration
+  et de gestion. Le titre principal de la page vit ici (H1) ; le header global
+  de l'application l'affiche aussi en petit comme repère, mais le H1 sémantique
+  est celui-ci. On ne répète donc PAS un autre <h1> dans le contenu.
+
+  Paramètres :
+    titre    (requis) : titre H1 de la page
+    soustitre (option) : courte phrase de contexte sous le titre
+    actions  (option) : bloc HTML de boutons (déjà rendu) aligné à droite
+
+  Usage :
+    {{ include('components/page_header.html.twig', {
+        titre: 'Stocks',
+        soustitre: 'Niveaux et seuils des consommables du FabLab.'
+    }) }}
+#}
+<div class="page-header">
+    <div class="page-header-text">
+        <h1>{{ titre }}</h1>
+        {% if soustitre is defined and soustitre %}
+            <p class="page-header-sub">{{ soustitre }}</p>
+        {% endif %}
+    </div>
+    {% if actions is defined and actions %}
+        {# actions : markup interne (liens via path(), icônes via include), jamais
+           de donnée utilisateur. |raw est sûr tant que cet invariant tient. #}
+        <div class="page-header-actions">{{ actions|raw }}</div>
+    {% endif %}
+</div>

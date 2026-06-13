@@ -1,0 +1,34 @@
+{% extends 'base.html.twig' %}
+{% block title %}Notifications{% endblock %}
+{% block fil_ariane %}{{ include("components/fil_ariane.html.twig", {segments: [{libelle: "Mon espace", url: null}, {libelle: "Notifications", url: null}]}) }}{% endblock %}
+{% block body %}
+{{ include('components/page_header.html.twig', {
+    titre: 'Notifications',
+    soustitre: 'Vos dernières alertes et mises à jour.'
+}) }}
+
+{% if notifications is empty %}
+    {{ include('components/empty.html.twig', {
+        message: "Vous n'avez aucune notification pour le moment."
+    }) }}
+{% else %}
+    <ul class="notif-liste">
+        {% for notif in notifications %}
+            <li class="notif-item{{ notif.luLe is null ? ' notif-item--non-lue' : '' }}">
+                <span class="notif-puce notif-puce--{{ notif.type }}" aria-hidden="true"></span>
+                <div class="notif-corps">
+                    {% if notif.lien %}
+                        <a href="{{ notif.lien }}" class="notif-message">{{ notif.message }}</a>
+                    {% else %}
+                        <span class="notif-message">{{ notif.message }}</span>
+                    {% endif %}
+                    <span class="notif-date">{{ notif.createdAt|date('d/m/Y à H:i') }}</span>
+                </div>
+                {% if notif.luLe is null %}
+                    <span class="notif-pastille" aria-label="Non lue"></span>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+{% endif %}
+{% endblock %}

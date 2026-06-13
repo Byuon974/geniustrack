@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette : supervision du laboratoire</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --ink:#1f2a33; --ink-soft:#5b6770; --ink-faint:#939ca4;
+  --line:#e7e4dc; --line-soft:#f0ede6; --bg:#f6f4ef; --surface:#ffffff;
+  --accent:#1d4e6f; --accent-soft:#eef2f5; --warm:#b5663a;
+  --green:#5a8266; --amber:#b08a3e; --red:#a8513f;
+}
+html,body { height:100%; }
+body {
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.4; font-size:13px;
+  height:100vh; overflow:hidden;
+}
+.wrap { max-width:1240px; height:100%; margin:0 auto; padding:18px 26px; display:flex; flex-direction:column; }
+
+/* En-tête */
+.tete { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; flex-shrink:0; }
+.tete h1 { font-size:18px; font-weight:700; letter-spacing:-.01em; }
+.tete h1 span { color:var(--ink-faint); font-weight:400; font-size:13px; margin-left:10px; }
+
+/* Barre de filtre temporel + export */
+.barre { display:flex; align-items:center; justify-content:space-between; gap:14px;
+  background:var(--surface); border:1px solid #ddd8cd; border-radius:9px; padding:11px 15px; margin-bottom:14px; flex-shrink:0; box-shadow:0 1px 3px rgba(31,42,51,.05); }
+.filtre { display:flex; align-items:center; gap:9px; }
+.filtre .lbl { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin-right:3px; }
+.seg { display:inline-flex; border:1px solid #cdd5da; border-radius:7px; overflow:hidden; }
+.seg button { font:inherit; font-size:12.5px; padding:5px 13px; border:0; background:#fff; color:var(--ink-soft); cursor:pointer; border-right:1px solid #cdd5da; }
+.seg button:last-child { border-right:0; }
+.seg button.on { background:var(--accent); color:#fff; }
+.sel { font:inherit; font-size:12.5px; padding:6px 11px; border:1px solid #cdd5da; border-radius:7px; background:#fff; color:var(--ink); }
+.exports { display:flex; align-items:center; gap:9px; }
+.btn-exp { font:inherit; font-size:12.5px; font-weight:600; padding:7px 14px; border:1px solid #cdd5da; border-radius:7px; background:#fff; color:var(--accent); cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 1px 2px rgba(31,42,51,.06); }
+.btn-exp:hover { border-color:var(--accent); background:var(--accent-soft); }
+.btn-exp.csv { background:var(--accent); color:#fff; border-color:#173e58; }
+.btn-exp.csv:hover { background:#173e58; }
+.btn-exp.apercu { color:var(--ink-soft); }
+
+/* Grille principale : 2 colonnes équilibrées */
+.grille { flex:1; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:14px; min-height:0; }
+.bloc { background:var(--surface); border:1px solid #ddd8cd; border-radius:9px; padding:15px 18px; display:flex; flex-direction:column; min-height:0; box-shadow:0 1px 3px rgba(31,42,51,.05); }
+.bloc h2 { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-faint); margin-bottom:10px; flex-shrink:0; display:flex; align-items:center; gap:6px; }
+.bloc .corps { flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center; }
+/* Colonne gauche : les deux courbes empilées. Colonne droite : machines puis mouvements. */
+.bloc--reservations { grid-column:1; grid-row:1; }
+.bloc--consommable { grid-column:1; grid-row:2; }
+.bloc--machines { grid-column:2; grid-row:1; }
+.bloc--mouvements { grid-column:2; grid-row:2; }
+
+svg { width:100%; height:auto; display:block; }
+.leg { font-size:11.5px; color:var(--ink-faint); margin-top:9px; }
+
+/* Barres machines */
+.bar { display:flex; align-items:center; gap:11px; margin-bottom:14px; }
+.bar:last-of-type { margin-bottom:0; }
+.bar .nom { width:160px; color:var(--ink-soft); flex-shrink:0; font-size:12.5px; }
+.piste { flex:1; height:9px; background:var(--line-soft); border-radius:99px; overflow:hidden; }
+.fill { height:100%; border-radius:99px; opacity:.9; }
+.fill.sat { background:var(--red); } .fill.haut { background:var(--amber); } .fill.bas { background:var(--green); }
+.bar .val { width:34px; text-align:right; font-size:12.5px; color:var(--ink); font-variant-numeric:tabular-nums; font-weight:600; }
+
+/* Code couleur */
+.code { display:flex; flex-wrap:wrap; gap:14px; margin-top:13px; font-size:11.5px; color:var(--ink-soft); }
+.code span { display:inline-flex; align-items:center; gap:6px; }
+.code i, .pastille { width:10px; height:10px; border-radius:2px; display:inline-block; flex-shrink:0; }
+.i-sat{background:var(--red);} .i-haut{background:var(--amber);} .i-bas{background:var(--green);}
+.i-acc{background:var(--accent);opacity:.9;} .i-warm{background:var(--warm);}
+
+/* Table mouvements */
+.tbl { width:100%; border-collapse:collapse; font-size:12.5px; }
+.tbl th { text-align:left; padding:6px; color:var(--ink-faint); font-weight:600; font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; border-bottom:1px solid var(--line); }
+.tbl td { padding:7px 6px; border-bottom:1px solid var(--line-soft); color:var(--ink-soft); }
+.tbl tr:last-child td { border-bottom:0; }
+.tbl .num { text-align:right; font-variant-numeric:tabular-nums; font-weight:600; }
+.up{color:var(--green);} .down{color:var(--red);}
+
+/* Panneau d'aperçu d'export (révélé par bouton) */
+.apercu-pan { position:fixed; inset:0; background:rgba(31,42,51,.34); display:none; align-items:center; justify-content:center; z-index:10; }
+.apercu-pan.ouvert { display:flex; }
+.apercu-carte { background:var(--surface); border-radius:12px; width:min(720px,92vw); max-height:86vh; overflow:hidden; box-shadow:0 18px 50px rgba(31,42,51,.28); display:flex; flex-direction:column; }
+.apercu-head { padding:16px 20px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; }
+.apercu-head h3 { font-size:15px; font-weight:700; }
+.apercu-head .fermer { border:0; background:none; font-size:20px; color:var(--ink-faint); cursor:pointer; line-height:1; }
+.apercu-onglets { display:flex; gap:4px; padding:12px 20px 0; }
+.apercu-onglets button { font:inherit; font-size:12.5px; padding:7px 14px; border:1px solid var(--line); border-bottom:0; border-radius:7px 7px 0 0; background:var(--bg); color:var(--ink-soft); cursor:pointer; }
+.apercu-onglets button.on { background:var(--surface); color:var(--accent); font-weight:600; }
+.apercu-corps { padding:0 20px 18px; overflow:auto; }
+.feuille { width:100%; border-collapse:collapse; font-size:12px; font-variant-numeric:tabular-nums; }
+.feuille th { background:var(--accent-soft); color:var(--accent); text-align:left; padding:7px 9px; border:1px solid var(--line); font-weight:600; white-space:nowrap; }
+.feuille td { padding:6px 9px; border:1px solid var(--line); color:var(--ink-soft); white-space:nowrap; }
+.feuille tr:nth-child(even) td { background:#faf9f6; }
+.apercu-note { font-size:11.5px; color:var(--ink-faint); padding:12px 20px 0; }
+.apercu-pied { padding:14px 20px; border-top:1px solid var(--line); display:flex; gap:10px; justify-content:flex-end; }
+.apercu-pied .dl { font:inherit; font-size:12.5px; padding:8px 16px; border-radius:7px; border:1px solid var(--accent); background:var(--accent); color:#fff; cursor:pointer; }
+.apercu-pied .dl.sec { background:var(--surface); color:var(--accent); }
+
+.pied { flex-shrink:0; font-size:11px; color:var(--ink-faint); padding-top:11px; margin-top:13px; border-top:1px solid var(--line); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="tete">
+    <h1>Supervision du laboratoire <span>vue analytique de l'évolution</span></h1>
+  </div>
+
+  <!-- Barre : filtre temporel + accès export -->
+  <div class="barre">
+    <div class="filtre">
+      <span class="lbl">Période</span>
+      <select class="sel"><option>Année 2026</option><option>Année 2025</option><option>Année 2024</option></select>
+      <span class="lbl" style="margin-left:8px;">Granularité</span>
+      <div class="seg">
+        <button>Mois</button><button class="on">Trimestre</button><button>Année</button>
+      </div>
+    </div>
+    <div class="exports">
+      <button class="btn-exp apercu" onclick="document.getElementById('apercu').classList.add('ouvert')">Aperçu de l'export</button>
+      <button class="btn-exp csv">↓ CSV</button>
+      <button class="btn-exp">↓ XLSX</button>
+    </div>
+  </div>
+
+  <div class="grille">
+
+    <!-- Réservations -->
+    <div class="bloc bloc--reservations">
+      <h2><span class="pastille i-acc"></span>Réservations par mois</h2>
+      <div class="corps">
+        <svg viewBox="0 0 360 128" preserveAspectRatio="none" aria-label="Réservations par mois">
+          <line x1="6" y1="100" x2="354" y2="100" stroke="#e7e4dc"/>
+          <polyline fill="none" stroke="#1d4e6f" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"
+            points="12,74 42,66 72,54 102,50 132,34 162,42 192,24 222,33 252,47 282,40 312,52 342,45"/>
+          <circle cx="192" cy="24" r="3.6" fill="#1d4e6f"/>
+          <g font-size="10" fill="#939ca4" text-anchor="middle">
+            <text x="12" y="118">Jan</text><text x="72" y="118">Mar</text><text x="132" y="118">Mai</text>
+            <text x="192" y="118">Juil</text><text x="252" y="118">Sep</text><text x="312" y="118">Nov</text>
+          </g>
+        </svg>
+        <p class="leg">247 réservations sur la période. Pic en juillet, avant les rendus de projets.</p>
+      </div>
+    </div>
+
+    <!-- Machines -->
+    <div class="bloc bloc--machines">
+      <h2>Taux d'utilisation des machines</h2>
+      <div class="corps" style="justify-content:flex-start;">
+        <div class="bar"><span class="nom">Imprimante 3D Bambu Lab</span><span class="piste"><span class="fill sat" style="width:88%"></span></span><span class="val">88%</span></div>
+        <div class="bar"><span class="nom">Graveuse laser</span><span class="piste"><span class="fill haut" style="width:64%"></span></span><span class="val">64%</span></div>
+        <div class="bar"><span class="nom">Imprimante 3D résine</span><span class="piste"><span class="fill haut" style="width:51%"></span></span><span class="val">51%</span></div>
+        <div class="bar"><span class="nom">Plotteur de découpe</span><span class="piste"><span class="fill bas" style="width:33%"></span></span><span class="val">33%</span></div>
+        <div class="bar"><span class="nom">Presse à flocage</span><span class="piste"><span class="fill bas" style="width:27%"></span></span><span class="val">27%</span></div>
+        <div class="bar"><span class="nom">Station IoT</span><span class="piste"><span class="fill bas" style="width:19%"></span></span><span class="val">19%</span></div>
+        <div class="code">
+          <span><i class="i-sat"></i>Saturation (envisager un 2e équipement)</span>
+          <span><i class="i-haut"></i>Usage élevé</span>
+          <span><i class="i-bas"></i>Capacité disponible</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Consommable -->
+    <div class="bloc bloc--consommable">
+      <h2><span class="pastille i-warm"></span>Niveau de consommable dans le temps</h2>
+      <div class="corps">
+        <svg viewBox="0 0 360 128" preserveAspectRatio="none" aria-label="Niveau de stock dans le temps">
+          <line x1="6" y1="100" x2="354" y2="100" stroke="#e7e4dc"/>
+          <polyline fill="none" stroke="#b5663a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"
+            points="12,36 45,50 78,64 111,32 144,46 177,62 210,78 243,40 276,54 309,70 342,48"/>
+          <g font-size="10" fill="#939ca4" text-anchor="middle">
+            <text x="12" y="118">Jan</text><text x="78" y="118">Mar</text><text x="144" y="118">Mai</text>
+            <text x="210" y="118">Juil</text><text x="276" y="118">Sep</text><text x="342" y="118">Nov</text>
+          </g>
+        </svg>
+        <p class="leg">Filament PLA gris : consommations et réassorts. Les creux marquent les passages sous le seuil.</p>
+      </div>
+    </div>
+
+    <!-- Mouvements -->
+    <div class="bloc bloc--mouvements">
+      <h2>Derniers mouvements de stock</h2>
+      <div class="corps" style="justify-content:flex-start;">
+        <table class="tbl">
+          <thead><tr><th>Date</th><th>Article</th><th>Motif</th><th class="num">Var.</th></tr></thead>
+          <tbody>
+            <tr><td>10/06</td><td>Filament PLA gris</td><td>Inventaire</td><td class="num down">−3</td></tr>
+            <tr><td>08/06</td><td>Résine standard</td><td>Réassort</td><td class="num up">+10</td></tr>
+            <tr><td>05/06</td><td>Feuilles flocage</td><td>Inventaire</td><td class="num down">−2</td></tr>
+            <tr><td>02/06</td><td>Filament PETG</td><td>Inventaire</td><td class="num down">−5</td></tr>
+            <tr><td>29/05</td><td>Filament PLA gris</td><td>Réassort</td><td class="num up">+20</td></tr>
+            <tr><td>22/05</td><td>Filament PETG</td><td>Réassort</td><td class="num up">+15</td></tr>
+          </tbody>
+        </table>
+        <div class="code">
+          <span><i class="i-bas"></i>Entrée (réassort)</span>
+          <span><i class="i-sat"></i>Sortie (consommation, perte)</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="pied">Vue distincte du tableau de bord : celui-ci sert l'action immédiate, cette page sert la lecture de l'évolution. Les données filtrées sont exportables en CSV ou XLSX pour analyse hors application.</div>
+
+</div>
+
+<!-- PANNEAU APERÇU D'EXPORT -->
+<div class="apercu-pan" id="apercu">
+  <div class="apercu-carte">
+    <div class="apercu-head">
+      <h3>Aperçu de l'export &mdash; Année 2026</h3>
+      <button class="fermer" onclick="document.getElementById('apercu').classList.remove('ouvert')">×</button>
+    </div>
+    <div class="apercu-onglets">
+      <button class="on">Réservations</button>
+      <button>Taux machines</button>
+      <button>Mouvements stock</button>
+    </div>
+    <div class="apercu-corps">
+      <table class="feuille">
+        <thead><tr><th>Date début</th><th>Date fin</th><th>Machine</th><th>Projet</th><th>Type</th><th>Étudiant</th><th>Pers.</th><th>Statut</th></tr></thead>
+        <tbody>
+          <tr><td>2026-01-08 14:00</td><td>2026-01-08 16:00</td><td>Imprimante 3D Bambu Lab</td><td>Boîtier capteur</td><td>Pédagogique</td><td>Léa Hoarau</td><td>1</td><td>Effectuée</td></tr>
+          <tr><td>2026-01-09 09:00</td><td>2026-01-09 11:00</td><td>Graveuse laser</td><td>Plaque signalétique</td><td>Pédagogique</td><td>Kévin Payet</td><td>2</td><td>Effectuée</td></tr>
+          <tr><td>2026-01-12 10:00</td><td>2026-01-12 12:00</td><td>Imprimante 3D résine</td><td>Figurine projet perso</td><td>Personnel</td><td>Manon Técher</td><td>1</td><td>Planifiée</td></tr>
+          <tr><td>2026-01-13 13:00</td><td>2026-01-13 15:00</td><td>Plotteur de découpe</td><td>Stickers association</td><td>Personnel</td><td>Yanis Grondin</td><td>3</td><td>Annulée</td></tr>
+          <tr><td>2026-01-15 08:00</td><td>2026-01-15 10:00</td><td>Imprimante 3D Bambu Lab</td><td>Support tablette</td><td>Pédagogique</td><td>Léa Hoarau</td><td>1</td><td>Effectuée</td></tr>
+        </tbody>
+      </table>
+      <p class="apercu-note">Aperçu des premières lignes. L'export complet contient toutes les réservations de la période filtrée. Le CSV fournit les données brutes (universel, lisible par tout tableur) ; le XLSX conserve la mise en forme et un onglet par jeu de données.</p>
+    </div>
+    <div class="apercu-pied">
+      <button class="dl sec">Télécharger CSV</button>
+      <button class="dl">Télécharger XLSX</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

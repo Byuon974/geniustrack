@@ -1,0 +1,52 @@
+{% extends 'base.html.twig' %}
+{% block title %}Mes projets{% endblock %}
+{% block fil_ariane %}{{ include("components/fil_ariane.html.twig", {segments: [{libelle: "Mon espace", url: null}, {libelle: "Mes projets", url: null}]}) }}{% endblock %}
+{% block body %}
+{{ include('components/page_header.html.twig', {
+    titre: 'Mes projets',
+    soustitre: 'Vos demandes de projet et leur avancement.',
+    actions: '<a href="' ~ path('projet_new') ~ '" class="btn btn--primary">' ~ include('components/icon.html.twig', {name: 'plus', size: 16}) ~ ' Nouvelle demande</a>'
+}) }}
+
+
+{% if projets is empty %}
+    {{ include('components/empty.html.twig', {
+        message: "Vous n'avez pas encore de projet.",
+        action_label: 'Soumettre une demande',
+        action_path: path('projet_new')
+    }) }}
+{% else %}
+    {% embed 'components/data_table.html.twig' with {
+        recherche_placeholder: 'Rechercher un projet…',
+        recherche_label: 'Rechercher un projet'
+    } %}
+        {% block entetes %}
+            <th class="dt-sortable" data-datatable-target="header" data-sort-key="titre"
+                data-action="datatable#trier">Projet <span class="dt-arrow" aria-hidden="true"></span></th>
+            <th class="dt-sortable" data-datatable-target="header" data-sort-key="type"
+                data-action="datatable#trier">Type <span class="dt-arrow" aria-hidden="true"></span></th>
+            <th class="dt-sortable" data-datatable-target="header" data-sort-key="statut"
+                data-action="datatable#trier">Statut <span class="dt-arrow" aria-hidden="true"></span></th>
+            <th class="dt-sortable" data-datatable-target="header" data-sort-key="date"
+                data-action="datatable#trier">Déposé le <span class="dt-arrow" aria-hidden="true"></span></th>
+            <th class="actions-col"></th>
+        {% endblock %}
+        {% block lignes %}
+            {% for projet in projets %}
+                <tr data-datatable-target="row" class="dt-row--{{ projet.statut.couleur }}"
+                    data-recherche="{{ (projet.titre ~ ' ' ~ projet.type.libelle ~ ' ' ~ projet.statut.libelle)|lower }}"
+                    data-sort-titre="{{ projet.titre|lower }}"
+                    data-sort-type="{{ projet.type.libelle|lower }}"
+                    data-sort-statut="{{ projet.statut.libelle|lower }}"
+                    data-sort-date="{{ projet.createdAt|date('Ymd') }}">
+                    <td><span class="statut-pastille statut-pastille--{{ projet.statut.couleur }}" aria-hidden="true"></span>{{ projet.titre }}</td>
+                    <td>{{ projet.type.libelle }}</td>
+                    <td>{{ include('components/badge.html.twig', {couleur: projet.statut.couleur, label: projet.statut.libelle}) }}</td>
+                    <td>{{ projet.createdAt|date('d/m/Y') }}</td>
+                    <td class="actions-col"><a href="{{ path('projet_show', {id: projet.id}) }}" class="btn btn--sm">Détail</a></td>
+                </tr>
+            {% endfor %}
+        {% endblock %}
+    {% endembed %}
+{% endif %}
+{% endblock %}

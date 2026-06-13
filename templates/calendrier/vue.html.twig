@@ -1,0 +1,111 @@
+{% extends 'base.html.twig' %}
+{% block title %}Calendrier des réservations{% endblock %}
+{% block fil_ariane %}{{ include("components/fil_ariane.html.twig", {segments: [{libelle: "Pilotage", url: null}, {libelle: "Calendrier", url: null}]}) }}{% endblock %}
+{% block body %}
+{{ include('components/page_header.html.twig', {
+    titre: 'Calendrier des réservations',
+    soustitre: portee == 'admin'
+        ? 'Toutes les réservations de machines à venir (BF_3.22).'
+        : (portee == 'staff'
+            ? 'Les réservations des projets que vous validez.'
+            : 'Vos réservations de machines à venir.'),
+    actions: portee == 'etudiant'
+        ? '<a href="' ~ path('projet_index') ~ '" class="btn btn--primary">' ~ include('components/icon.html.twig', {name: 'calendar', size: 16}) ~ ' Réserver un créneau</a>'
+        : null
+}) }}
+
+{# Préparation des bornes du mois affiché et de la grille (6 semaines, lundi en
+   tête). On regroupe les réservations par jour (clé AAAA-MM-JJ) pour un accès
+   direct dans la boucle de grille. #}
+{% set premierDuMois = mois %}
+{% set jourSemaine = premierDuMois|date('N') %}{# 1 = lundi … 7 = dimanche #}
+{% set debutGrille = premierDuMois|date_modify('-' ~ (jourSemaine - 1) ~ ' days') %}
+{% set moisCourant = premierDuMois|date('Y-m') %}
+{% set aujourdhui = "now"|date('Y-m-d') %}
+
+{% set parJour = {} %}
+{% for r in reservations %}
+    {% set cle = r.dateDebut|date('Y-m-d') %}
+    {% set liste = parJour[cle]|default([]) %}
+    {% set parJour = parJour|merge({(cle): liste|merge([r])}) %}
+{% endfor %}
+
+{# Navigation : mois précédent / suivant, en liens serveur (aucun JavaScript). #}
+{% set moisPrec = premierDuMois|date_modify('-1 month')|date('Y-m') %}
+{% set moisSuiv = premierDuMois|date_modify('+1 month')|date('Y-m') %}
+
+{% set moisFr = {1:'janvier', 2:'février', 3:'mars', 4:'avril', 5:'mai', 6:'juin', 7:'juillet', 8:'août', 9:'septembre', 10:'octobre', 11:'novembre', 12:'décembre'} %}
+
+<div class="cal-cadre">
+    <div class="cal-entete">
+        <a href="{{ path('calendrier_vue', {mois: moisPrec}) }}" class="cal-nav" aria-label="Mois précédent" rel="nofollow">‹</a>
+        <div class="cal-titre-mois">{{ moisFr[premierDuMois|date('n')]|capitalize }} {{ premierDuMois|date('Y') }}</div>
+        <a href="{{ path('calendrier_vue', {mois: moisSuiv}) }}" class="cal-nav" aria-label="Mois suivant" rel="nofollow">›</a>
+    </div>
+
+    <div class="cal-jours-entete">
+        {% for j in ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'] %}
+            <div class="cal-jour-nom">{{ j }}</div>
+        {% endfor %}
+    </div>
+
+    <div class="cal-grille">
+        {% for offset in 0..41 %}
+            {% set jour = debutGrille|date_modify('+' ~ offset ~ ' days') %}
+            {% set cleJour = jour|date('Y-m-d') %}
+            {% set horsMois = jour|date('Y-m') != moisCourant %}
+            {% set estAujourdhui = cleJour == aujourdhui %}
+            {% set evenements = parJour[cleJour]|default([]) %}
+            <div class="cal-case{{ horsMois ? ' cal-case--hors' : '' }}{{ estAujourdhui ? ' cal-case--auj' : '' }}">
+                <span class="cal-num">{{ jour|date('j') }}</span>
+                {% if estAujourdhui %}<span class="cal-auj-pastille">auj.</span>{% endif %}
+                {% if evenements is not empty %}
+                    <div class="cal-evts">
+                        {% for r in evenements|slice(0, 2) %}
+                            {% set estPrepa = r.type == constant('App\\Enum\\ReservationType::Preparation') %}
+                            <span class="cal-evt {{ estPrepa ? 'cal-evt--prepa' : 'cal-evt--real' }}"
+                                  title="{{ r.dateDebut|date('H:i') }} {{ r.machine.nom }} : {{ r.projet.titre }}">
+                                {{ r.dateDebut|date('H\\h') }} {{ r.machine.nom }}
+                            </span>
+                        {% endfor %}
+                        {% if evenements|length > 2 %}
+                            <span class="cal-evt-plus">+{{ evenements|length - 2 }} autre{{ evenements|length - 2 > 1 ? 's' : '' }}</span>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="cal-legende">
+        <span><span class="cal-dot" style="background:#1d4e6f;"></span> Préparation</span>
+        <span><span class="cal-dot" style="background:#b34e14;"></span> Réalisation</span>
+    </div>
+</div>
+
+{# Liste d'appoint sous la grille : lecture séquentielle des réservations à
+   venir, utile pour le détail (machine, projet, personnes). #}
+<section class="cal-liste">
+    <h2 class="fiche-section">Réservations à venir</h2>
+    {% if reservations is empty %}
+        {{ include('components/empty.html.twig', {message: 'Aucune réservation planifiée à venir dans votre périmètre.'}) }}
+    {% else %}
+        <table class="data-table">
+            <thead><tr><th>Date</th><th>Horaire</th><th>Machine</th><th>Projet</th><th>Type</th><th class="num">Personnes</th></tr></thead>
+            <tbody>
+            {% for r in reservations %}
+                {% set estPrepa = r.type == constant('App\\Enum\\ReservationType::Preparation') %}
+                <tr>
+                    <td>{{ r.dateDebut|date('d/m/Y') }}</td>
+                    <td>{{ r.dateDebut|date('H:i') }} &ndash; {{ r.dateFin|date('H:i') }}</td>
+                    <td>{{ r.machine.nom }}</td>
+                    <td>{{ r.projet.titre }}</td>
+                    <td><span class="cal-pastille" style="background:{{ estPrepa ? '#1d4e6f' : '#b34e14' }};" aria-hidden="true"></span>{{ r.type.libelle }}</td>
+                    <td class="num">{{ r.nbPersonnesPrevues }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</section>
+{% endblock %}

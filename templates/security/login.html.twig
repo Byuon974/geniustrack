@@ -1,0 +1,43 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Connexion à GeniusLab{% endblock %}
+
+{% block body %}
+<div class="connexion-page">
+    <div class="connexion-carte">
+        <h1>Connexion</h1>
+        <p class="connexion-sous">Accédez à votre espace GeniusLab avec votre adresse de campus.</p>
+
+        {% if error %}
+            <div class="alert alert--error" role="alert">
+                {{ error.messageKey|trans(error.messageData, 'security') }}
+            </div>
+        {% endif %}
+
+        {# form_login natif : le firewall traite le POST sur cette même route.
+           Les champs DOIVENT s'appeler _username, _password, _csrf_token. #}
+        <form method="post">
+            <label for="inputEmail">Adresse e-mail</label>
+            <input type="email" id="inputEmail" name="_username"
+                   value="{{ last_username }}" required autofocus
+                   autocomplete="email" placeholder="prenom.nom@cci.re">
+
+            <label for="inputPassword">Mot de passe</label>
+            <input type="password" id="inputPassword" name="_password"
+                   required autocomplete="current-password">
+
+            <input type="hidden" name="_csrf_token"
+                   value="{{ csrf_token('authenticate') }}">
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn--primary">Se connecter</button>
+            </div>
+        </form>
+
+        <p class="connexion-note">
+            Seules les adresses <strong>@cci.re</strong> sont autorisées. En cas de
+            problème, contactez l'administration du GeniusLab.
+        </p>
+    </div>
+</div>
+{% endblock %}

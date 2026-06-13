@@ -1,0 +1,58 @@
+{% extends 'base.html.twig' %}
+{% block title %}Modifier : {{ utilisateur.nomComplet }}{% endblock %}
+{% block fil_ariane %}{{ include('components/fil_ariane.html.twig', {segments: [
+    {libelle: 'Ressources', url: null},
+    {libelle: 'Utilisateurs', url: path('admin_utilisateur_index')},
+    {libelle: 'Modifier', url: null}
+]}) }}{% endblock %}
+{% block body %}
+<div class="page-header">
+    <div class="page-header-text">
+        <h1>{{ utilisateur.nomComplet }}</h1>
+    </div>
+    <div class="page-header-actions">
+        {{ include('components/badge.html.twig', {variante: utilisateur.estActif ? 'succes' : 'alerte', label: utilisateur.estActif ? 'Actif' : 'Désactivé'}) }}
+    </div>
+</div>
+
+
+{{ form_start(form) }}
+    <div class="form-grille form-grille--dense">
+        <fieldset class="bloc">
+            <p class="bloc__titre">Identité</p>
+            <div class="bloc__corps">
+                {{ form_row(form.prenom) }}
+                {{ form_row(form.nom) }}
+                {{ form_row(form.email) }}
+            </div>
+        </fieldset>
+
+        <div class="form-colonne">
+            <fieldset class="bloc">
+                <p class="bloc__titre">Accès et rôle</p>
+                <div class="bloc__corps">
+                    {{ form_row(form.roles) }}
+                    {{ form_row(form.actif) }}
+                </div>
+            </fieldset>
+
+            {% if utilisateur.nbSanctions > 0 %}
+                <fieldset class="bloc bloc--alerte">
+                    <p class="bloc__titre">Sanctions</p>
+                    <div class="bloc__corps bloc__corps--compact">
+                        <p class="bloc-sanction-texte">{{ utilisateur.nbSanctions }} sanction(s), désactivation automatique à 5.</p>
+                        <form method="post" action="{{ path('admin_utilisateur_lever_sanction', {id: utilisateur.id}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('lever' ~ utilisateur.id) }}">
+                            <button type="submit" class="btn btn--sm btn--ghost">Lever une sanction</button>
+                        </form>
+                    </div>
+                </fieldset>
+            {% endif %}
+        </div>
+    </div>
+    <div class="form-actions">
+        <a href="{{ path('admin_utilisateur_index') }}" class="btn btn--ghost">Annuler</a>
+        <button type="submit" class="btn btn--primary">Enregistrer</button>
+    </div>
+{{ form_end(form) }}
+{% endblock %}

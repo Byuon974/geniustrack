@@ -1,0 +1,125 @@
+{% extends 'base.html.twig' %}
+{% block title %}Utilisateurs{% endblock %}
+{% block fil_ariane %}{{ include("components/fil_ariane.html.twig", {segments: [{libelle: "Ressources", url: null}, {libelle: "Utilisateurs", url: null}]}) }}{% endblock %}
+{% block body %}
+{{ include('components/page_header.html.twig', {
+    titre: 'Utilisateurs',
+    soustitre: 'Comptes, rôles et sanctions des membres du FabLab.',
+    actions:
+        '<a href="' ~ path('admin_utilisateur_import') ~ '" class="btn btn--ghost">' ~ include('components/icon.html.twig', {name: 'archive', size: 16}) ~ ' Importer (CSV/XLSX)</a>' ~
+        '<a href="' ~ path('admin_utilisateur_new') ~ '" class="btn btn--primary">' ~ include('components/icon.html.twig', {name: 'plus', size: 16}) ~ ' Nouveau compte</a>'
+}) }}
+
+
+{# Pagination SERVEUR : à l'échelle de centaines d'étudiants, on ne charge pas
+   toute la table. Recherche, filtre et tri passent par l'URL (rechargement),
+   la base fait le travail. Le rendu reste celui du tableau commun. #}
+<form method="get" class="dt-toolbar" role="search">
+    <div class="dt-search">
+        {{ include('components/icon.html.twig', {name: 'search', size: 16}) }}
+        <input type="search" inputmode="search" name="q" value="{{ recherche }}"
+               placeholder="Rechercher un utilisateur…" aria-label="Rechercher un utilisateur">
+    </div>
+    <div class="dt-chips" role="group" aria-label="Filtrer par rôle">
+        {% set roles = {'': 'Tous', 'ROLE_ETUDIANT': 'Étudiants', 'ROLE_FORMATEUR': 'Formateurs', 'ROLE_BDE': 'BDE', 'ROLE_ADMIN': 'Admins'} %}
+        {% for valeur, libelle in roles %}
+            <button type="submit" name="role" value="{{ valeur }}"
+                    class="filter-chip {{ roleFiltre == valeur ? 'is-active' : '' }}">{{ libelle }}</button>
+        {% endfor %}
+    </div>
+    {# Conserve le tri courant lors d'une recherche. #}
+    <input type="hidden" name="tri" value="{{ tri }}">
+    <input type="hidden" name="sens" value="{{ sens }}">
+</form>
+
+{% if utilisateurs is empty %}
+    {{ include('components/empty.html.twig', {
+        message: recherche or roleFiltre ? 'Aucun utilisateur ne correspond à la recherche.' : 'Aucun compte utilisateur.',
+        action_label: recherche or roleFiltre ? null : 'Créer le premier',
+        action_path: recherche or roleFiltre ? null : path('admin_utilisateur_new')
+    }) }}
+{% else %}
+    {# En-têtes triables : chaque lien recharge en inversant le sens si déjà trié. #}
+    {% macro entete(cle, libelle, triActuel, sensActuel, q, role) %}
+        {% set nouveauSens = (triActuel == cle and sensActuel == 'asc') ? 'desc' : 'asc' %}
+        {% set classe = triActuel == cle ? (sensActuel == 'asc' ? 'is-sorted-asc' : 'is-sorted-desc') : '' %}
+        <th class="dt-sortable {{ classe }}">
+            <a href="{{ path('admin_utilisateur_index', {tri: cle, sens: nouveauSens, q: q, role: role}) }}" class="dt-sort-link">
+                {{ libelle }} <span class="dt-arrow" aria-hidden="true"></span>
+            </a>
+        </th>
+    {% endmacro %}
+
+    <div data-controller="batch-selection">
+        {# Barre d'actions groupées : masquée tant qu'aucune ligne n'est cochée. #}
+        <div class="batch-barre" data-batch-selection-target="barre" hidden>
+            <span class="batch-compteur"><strong data-batch-selection-target="compteur">0</strong> sélectionné(s)</span>
+            <form method="post" action="{{ path('admin_utilisateur_batch') }}" class="batch-actions"
+                  data-controller="confirm" data-confirm-message-value="Appliquer cette action aux comptes sélectionnés ?">
+                <input type="hidden" name="_token" value="{{ csrf_token('batch') }}">
+                <input type="hidden" name="ids" data-batch-selection-target="ids">
+                <button type="submit" name="action_groupee" value="activer" class="btn btn--sm">Activer</button>
+                <button type="submit" name="action_groupee" value="desactiver" class="btn btn--sm btn--danger">Désactiver</button>
+            </form>
+        </div>
+
+        <div class="dt-scroll">
+            <table class="data-table dt-table">
+                <thead>
+                    <tr>
+                        <th class="batch-col">
+                            <input type="checkbox" data-batch-selection-target="toutCocher"
+                                   data-action="batch-selection#basculerTout" aria-label="Tout sélectionner">
+                        </th>
+                        {{ _self.entete('nom', 'Nom', tri, sens, recherche, roleFiltre) }}
+                        {{ _self.entete('email', 'E-mail', tri, sens, recherche, roleFiltre) }}
+                        <th>Rôles</th>
+                        {{ _self.entete('sanctions', 'Sanctions', tri, sens, recherche, roleFiltre) }}
+                        <th>Statut</th>
+                        <th class="actions-col"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for u in utilisateurs %}
+                    <tr>
+                        <td class="batch-col">
+                            <input type="checkbox" value="{{ u.id }}" data-batch-selection-target="case"
+                                   data-action="batch-selection#basculerUn" aria-label="Sélectionner {{ u.nomComplet }}">
+                        </td>
+                        <td><span class="statut-pastille statut-pastille--{{ u.estActif ? 'green' : 'red' }}" aria-hidden="true"></span><a href="{{ path('admin_utilisateur_show', {id: u.id}) }}" class="dt-link">{{ u.nomComplet }}</a></td>
+                        <td>{{ u.email }}</td>
+                        <td>
+                            {% set lib = {'ROLE_ETUDIANT':'Étudiant','ROLE_FORMATEUR':'Formateur','ROLE_BDE':'BDE','ROLE_ADMIN':'Admin'} %}
+                            {% for role in u.roles %}
+                                {% if role in lib|keys %}{{ include('components/badge.html.twig', {variante: 'info', label: lib[role]}) }} {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td class="num">{{ u.nbSanctions }}</td>
+                        <td>{{ include('components/badge.html.twig', {variante: u.estActif ? 'succes' : 'alerte', label: u.estActif ? 'Actif' : 'Désactivé'}) }}</td>
+                        <td class="actions-col"><a href="{{ path('admin_utilisateur_show', {id: u.id}) }}" class="btn btn--sm">Voir</a></td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {# Pagination serveur : liens préservant recherche, filtre et tri. #}
+    <div class="dt-pager">
+        <div class="dt-pager-left">{{ total }} utilisateur(s)</div>
+        <div class="dt-pager-right">
+            {% if page > 1 %}
+                <a class="btn btn--sm" href="{{ path('admin_utilisateur_index', {page: page - 1, q: recherche, role: roleFiltre, tri: tri, sens: sens}) }}">Précédent</a>
+            {% else %}
+                <span class="btn btn--sm is-disabled" aria-disabled="true">Précédent</span>
+            {% endif %}
+            <span>Page {{ page }} / {{ nbPages }}</span>
+            {% if page < nbPages %}
+                <a class="btn btn--sm" href="{{ path('admin_utilisateur_index', {page: page + 1, q: recherche, role: roleFiltre, tri: tri, sens: sens}) }}">Suivant</a>
+            {% else %}
+                <span class="btn btn--sm is-disabled" aria-disabled="true">Suivant</span>
+            {% endif %}
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

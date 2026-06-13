@@ -1,0 +1,65 @@
+{% extends 'base.html.twig' %}
+{% block title %}Site public{% endblock %}
+{% block fil_ariane %}{{ include("components/fil_ariane.html.twig", {segments: [{libelle: "Ressources", url: null}, {libelle: "Vitrine", url: null}]}) }}{% endblock %}
+{% block body %}
+{{ include('components/page_header.html.twig', {
+    titre: 'Site public',
+    soustitre: "Ce que voient les visiteurs : page d'accueil et pages d'information."
+}) }}
+
+
+<section class="apercu-section">
+    <div class="apercu-carte">
+        <div class="apercu-carte__texte">
+            <h2 class="apercu-carte__titre">Cartes « Nos machines »</h2>
+            <p class="apercu-carte__sous">
+                {% if nbMachines > 0 %}
+                    {{ nbMachines }} machine{{ nbMachines > 1 ? 's' : '' }} active{{ nbMachines > 1 ? 's' : '' }} apparaissent sur la page d'accueil.
+                {% else %}
+                    Aucune machine active pour l'instant. Les cartes de l'accueil sont vides.
+                {% endif %}
+                Leur nom, description et photo se gèrent dans la section Machines.
+            </p>
+        </div>
+        <a href="{{ path('admin_machine_index') }}" class="btn btn--primary">
+            {{ include('components/icon.html.twig', {name: 'wrench', size: 16}) }} Gérer les machines
+        </a>
+    </div>
+</section>
+
+<h2 class="apercu-titre-section">Bannière et textes éditoriaux</h2>
+
+{% if blocs is empty %}
+    {{ include('components/empty.html.twig', {message: 'Aucun bloc de contenu. Lancez « app:init-vitrine » pour amorcer.'}) }}
+{% else %}
+    <table class="data-table">
+        <thead><tr><th>Bloc</th><th>Type</th><th>Aperçu</th><th class="actions-col"></th></tr></thead>
+        <tbody>
+        {% for bloc in blocs %}
+            <tr>
+                <td>{{ bloc.libelle }}</td>
+                <td>
+                    {% if bloc.estImage %}
+                        {{ include('components/badge.html.twig', {variante: 'accent', label: 'Image'}) }}
+                    {% else %}
+                        {{ include('components/badge.html.twig', {variante: 'info', label: 'Texte'}) }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if bloc.estImage %}
+                        {% if bloc.image %}
+                            <img src="{{ asset('uploads/vitrine/' ~ bloc.image) }}" alt="" class="cms-thumb">
+                        {% else %}
+                            <span class="cat">Aucune image</span>
+                        {% endif %}
+                    {% else %}
+                        {{ bloc.valeur|length > 80 ? bloc.valeur|slice(0, 80) ~ '…' : bloc.valeur }}
+                    {% endif %}
+                </td>
+                <td class="actions-col"><a href="{{ path('admin_vitrine_edit', {id: bloc.id}) }}" class="btn btn--sm">Modifier</a></td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+{% endblock %}

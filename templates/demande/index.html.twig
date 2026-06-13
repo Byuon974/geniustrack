@@ -1,0 +1,73 @@
+{% extends 'base.html.twig' %}
+{% block title %}Demandes à valider{% endblock %}
+{% block fil_ariane %}{{ include('components/fil_ariane.html.twig', {segments: [
+    {libelle: 'Validation', url: null},
+    {libelle: 'Demandes', url: null}
+]}) }}{% endblock %}
+{% block body %}
+{{ include('components/page_header.html.twig', {
+    titre: 'Demandes à valider',
+    soustitre: 'Demandes relevant de votre rôle, en attente de validation.'
+}) }}
+
+
+{% if projets is empty %}
+    {{ include('components/empty.html.twig', {message: 'Aucune demande en attente pour le moment.'}) }}
+{% else %}
+    <div class="demande-file">
+        {% for projet in projets %}
+            <article class="demande-ligne" data-controller="revealform">
+                <div class="demande-ligne__corps">
+                    <div class="demande-ligne__tete">
+                        <h2 class="demande-ligne__titre">{{ projet.titre }}</h2>
+                        {{ include('components/badge.html.twig', {variante: 'info', label: projet.type.libelle}) }}
+                    </div>
+                    {% if projet.description %}
+                        <p class="demande-ligne__desc">{{ projet.description }}</p>
+                    {% endif %}
+                    <p class="demande-ligne__meta">
+                        {{ projet.etudiant.nomComplet }} &middot; déposé le {{ projet.createdAt|date('d/m/Y') }} &middot;
+                        <span class="demande-ligne__machines">
+                            {% for m in projet.machines %}{{ m.nom }}{% if not loop.last %}, {% endif %}{% endfor %}
+                        </span>
+                    </p>
+
+                    {# Aperçu rapide : présence de plans, et accès à l'examen détaillé. #}
+                    <p class="demande-ligne__apercu">
+                        {% if projet.plans is not empty %}
+                            {{ projet.plans|length }} fichier(s) joint(s) &middot;
+                        {% else %}
+                            Aucun fichier joint &middot;
+                        {% endif %}
+                        <a href="{{ path('demande_show', {id: projet.id}) }}">Examiner la demande</a>
+                    </p>
+
+                    {# Champ motif du refus, masqué jusqu'au clic sur « Refuser ». #}
+                    <form method="post" action="{{ path('demande_refuser', {id: projet.id}) }}"
+                          class="demande-refus" data-revealform-target="zone" hidden>
+                        <input type="hidden" name="_token" value="{{ csrf_token('refuser' ~ projet.id) }}">
+                        <input type="text" name="motif" placeholder="Motif du refus (communiqué à l'étudiant)"
+                               class="demande-refus__motif" required>
+                        <button type="submit" class="btn btn--sm btn--danger">Confirmer le refus</button>
+                        <button type="button" class="btn btn--sm btn--ghost"
+                                data-action="revealform#fermer">Annuler</button>
+                    </form>
+                </div>
+
+                {# Actions : valider (direct, avec confirmation) ou ouvrir le refus. #}
+                <div class="demande-ligne__actions" data-revealform-target="actions">
+                    <form method="post" action="{{ path('demande_valider', {id: projet.id}) }}"
+                          data-controller="confirm"
+                          data-confirm-message-value="Le projet « {{ projet.titre }} » sera validé et l'étudiant en sera informé."
+                          data-confirm-titre-value="Valider ce projet ?"
+                          data-confirm-variante-value="succes" data-confirm-libelle-value="Valider">
+                        <input type="hidden" name="_token" value="{{ csrf_token('valider' ~ projet.id) }}">
+                        <button type="submit" class="btn btn--success">Valider</button>
+                    </form>
+                    <button type="button" class="btn btn--refus" data-action="revealform#ouvrir">Refuser…</button>
+                </div>
+            </article>
+        {% endfor %}
+    </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends 'base.html.twig' %}
+{% block title %}Tableau de bord{% endblock %}
+{% block fil_ariane %}{{ include('components/fil_ariane.html.twig', {segments: [
+    {libelle: 'Pilotage', url: null},
+    {libelle: 'Tableau de bord', url: null}
+]}) }}{% endblock %}
+{% block body %}
+{{ include('components/page_header.html.twig', {
+    titre: 'Tableau de bord',
+    soustitre: 'Vos demandes à valider et les sessions de vos projets, en un coup d\'œil.',
+    actions:
+        '<a href="' ~ path('calendrier_vue') ~ '" class="btn btn--ghost">' ~ include('components/icon.html.twig', {name: 'calendar', size: 16}) ~ ' Calendrier</a>'
+}) }}
+
+{# Cartes de statut : filet de couleur sémantique selon l'état, vocabulaire du projet. #}
+<div class="stat-grid">
+    <div class="stat-carte stat-carte--{{ mesDemandesEnAttente > 0 ? 'ambre' : 'vert' }}">
+        <div class="stat-carte-tete">{{ include('components/icon.html.twig', {name: 'clipboard', size: 18}) }}<span class="stat-label">Demandes à valider</span></div>
+        <span class="stat-value">{{ mesDemandesEnAttente }}</span>
+        <span class="cat">projet(s) {{ typeValideLibelle|lower }} en attente</span>
+    </div>
+    <div class="stat-carte stat-carte--bleu">
+        <div class="stat-carte-tete">{{ include('components/icon.html.twig', {name: 'calendar', size: 18}) }}<span class="stat-label">Prochaines sessions</span></div>
+        <span class="stat-value">{{ prochainesSessions|length }}</span>
+        <span class="cat">créneau(x) à venir sur vos projets</span>
+    </div>
+</div>
+
+{# Zone de contenu en grille : demandes à examiner + prochaines sessions. #}
+<div class="dash-grille">
+    <div class="dash-bloc">
+        <h2 class="dash-bloc__titre">Demandes à examiner</h2>
+        {% if demandesATraiter is empty %}
+            {{ include('components/empty.html.twig', {message: 'Aucune demande en attente.'}) }}
+        {% else %}
+            <div class="dash-demandes">
+                {% for projet in demandesATraiter %}
+                    <a href="{{ path('demande_index') }}" class="dash-demande">
+                        <span class="statut-pastille statut-pastille--amber" aria-hidden="true"></span>
+                        <span style="flex:1;">{{ projet.titre }}</span>
+                        <span class="dash-demande__type">{{ projet.type.libelle }}</span>
+                    </a>
+                {% endfor %}
+            </div>
+            <a href="{{ path('demande_index') }}" class="dash-lien">Voir toutes les demandes →</a>
+        {% endif %}
+    </div>
+
+    <div class="dash-bloc">
+        <h2 class="dash-bloc__titre">Prochaines sessions de vos projets</h2>
+        {% if prochainesSessions is empty %}
+            {{ include('components/empty.html.twig', {message: 'Aucune session planifiée.'}) }}
+        {% else %}
+            <div class="dash-demandes">
+                {% for reservation in prochainesSessions|slice(0, 6) %}
+                    <a href="{{ path('calendrier_vue') }}" class="dash-demande">
+                        <span style="flex:1;">{{ reservation.machine.nom }}</span>
+                        <span class="dash-demande__type">{{ reservation.dateDebut|date('d/m H\\hi') }}</span>
+                    </a>
+                {% endfor %}
+            </div>
+            <a href="{{ path('calendrier_vue') }}" class="dash-lien">Voir le calendrier →</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette — réservation page unique (multi-machines)</title>
+<style>
+  :root {
+    --gl-blueprint:#1d4e6f; --gl-filament:#e8702a; --gl-filament-ink:#b34e14; --gl-filament-soft:#fbe9dd;
+    --gl-surface:#fbfaf8; --gl-bg:#f3f1ec; --gl-line:#e3e0d8; --gl-ink:#14181c;
+    --gl-ink-soft:#5c6670; --gl-green:#2f8a5b; --gl-green-soft:#e2f3ea;
+    --gl-amber:#c9821a; --gl-amber-soft:#fbeed5; --gl-red:#c0392b; --gl-red-soft:#f8e1de; --gl-slate:#41576a;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Inter',system-ui,sans-serif; background:var(--gl-bg); color:var(--gl-ink); padding:24px; font-size:14px; }
+  .page-titre { max-width:980px; margin:0 auto 8px; font-family:'Space Grotesk',sans-serif; color:var(--gl-slate); font-size:14px; text-transform:uppercase; letter-spacing:.05em; }
+  .carte { max-width:980px; margin:0 auto 36px; background:var(--gl-surface); border:1px solid var(--gl-line); border-radius:12px; overflow:hidden; }
+  .entete { display:flex; justify-content:space-between; align-items:center; padding:18px 26px; border-bottom:1px solid var(--gl-line); }
+  h1 { font-family:'Space Grotesk',sans-serif; font-size:25px; }
+  .badge { background:var(--gl-filament-soft); color:var(--gl-filament-ink); font-family:monospace; font-size:12px; padding:5px 11px; border-radius:6px; }
+  /* 2 colonnes : sélection à gauche, panier à droite */
+  .grille { display:grid; grid-template-columns:1.6fr 1fr; }
+  .col-gauche { padding:20px 26px; border-right:1px solid var(--gl-line); }
+  .col-droite { padding:20px 26px; background:#fff; }
+  .intro { color:var(--gl-ink-soft); margin-bottom:16px; line-height:1.5; }
+  .libelle { font-size:12px; font-weight:600; margin-bottom:5px; display:block; color:var(--gl-slate); }
+  .controles { display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+  .champ { flex:1; min-width:120px; }
+  select { width:100%; padding:9px 12px; border:1px solid var(--gl-line); border-radius:8px; font:inherit; background:#fff; }
+  .periode { margin-bottom:14px; }
+  .periode-titre { font-size:12px; font-weight:700; color:var(--gl-slate); text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+  .periode-titre::after { content:''; flex:1; height:1px; background:var(--gl-line); }
+  .creneaux-grille { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .creneau { border:1px solid var(--gl-line); border-radius:8px; padding:9px 4px; text-align:center; cursor:pointer; background:#fff; transition:.12s; }
+  .creneau .h { font-weight:700; font-size:15px; display:block; font-family:'Space Grotesk',sans-serif; }
+  .creneau .pl { font-size:10px; color:var(--gl-ink-soft); }
+  .creneau.libre:hover { border-color:var(--gl-blueprint); transform:translateY(-1px); }
+  .creneau.choisi { background:var(--gl-blueprint); border-color:var(--gl-blueprint); color:#fff; }
+  .creneau.choisi .pl { color:#dce7ef; }
+  .creneau.complet { background:var(--gl-red-soft); border-color:transparent; color:var(--gl-red); cursor:not-allowed; opacity:.8; }
+  .creneau.occupe { background:var(--gl-amber-soft); border-color:transparent; color:var(--gl-amber); }
+  .machines-bloc { margin-top:14px; padding:14px 16px; background:#fcfbf9; border:1px solid var(--gl-line); border-radius:10px; }
+  .machines-bloc h3 { font-size:13px; margin-bottom:3px; }
+  .machines-bloc .sous { font-size:12px; color:var(--gl-ink-soft); margin-bottom:10px; }
+  .machines-liste { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+  .machine-ligne { display:flex; align-items:center; gap:9px; padding:8px 11px; border:1px solid var(--gl-line); border-radius:8px; cursor:pointer; }
+  .machine-ligne:has(input:checked) { border-color:var(--gl-blueprint); background:#f2f7fa; }
+  .machine-ligne input { width:16px; height:16px; accent-color:var(--gl-blueprint); }
+  .machine-nom { font-weight:600; font-size:12px; }
+  .machine-etat { font-size:10px; color:var(--gl-ink-soft); margin-left:auto; }
+  .machine-ligne.indispo { opacity:.45; cursor:not-allowed; background:var(--gl-red-soft); }
+  .legende { display:flex; gap:12px; font-size:11px; color:var(--gl-ink-soft); margin-top:10px; }
+  .pip { width:11px; height:11px; border-radius:3px; display:inline-block; vertical-align:-1px; margin-right:4px; }
+  .btn { padding:10px 16px; border-radius:8px; border:1px solid transparent; font:inherit; font-weight:600; cursor:pointer; width:100%; }
+  .btn-primary { background:var(--gl-filament); color:#fff; }
+  .btn-ajouter { background:var(--gl-blueprint); color:#fff; margin-top:12px; }
+  /* Panier */
+  .panier-titre { font-family:'Space Grotesk',sans-serif; font-size:16px; margin-bottom:4px; }
+  .panier-sous { font-size:12px; color:var(--gl-ink-soft); margin-bottom:14px; }
+  .resa-ligne { padding:11px 12px; border:1px solid var(--gl-line); border-radius:9px; margin-bottom:8px; }
+  .resa-ligne .quand { font-weight:600; font-family:'Space Grotesk',sans-serif; font-size:13px; }
+  .resa-ligne .machines { font-size:11px; color:var(--gl-ink-soft); margin-top:3px; }
+  .resa-ligne .retirer { color:var(--gl-red); border:none; background:none; font-size:11px; cursor:pointer; padding:0; margin-top:5px; text-decoration:underline; }
+  .vignette { display:inline-block; background:var(--gl-slate); color:#fff; font-size:10px; padding:2px 7px; border-radius:20px; margin:2px 2px 0 0; }
+  .panier-vide { text-align:center; color:var(--gl-ink-soft); padding:30px 10px; font-size:13px; border:1px dashed var(--gl-line); border-radius:9px; }
+  .total { margin-top:14px; padding-top:12px; border-top:1px solid var(--gl-line); font-size:13px; }
+</style>
+</head>
+<body>
+<p class="page-titre">Réservation — page unique (sans étapes), panier multi-machines</p>
+<div class="carte">
+  <div class="entete"><h1>Réserver des créneaux</h1><span class="badge">[Test] Réservation nominale</span></div>
+  <div class="grille">
+    <!-- Colonne gauche : composer un créneau -->
+    <div class="col-gauche">
+      <p class="intro">Choisissez un créneau, puis cochez les machines à utiliser en parallèle pendant ce créneau. Ajoutez-le au panier, et recommencez autant de fois que nécessaire.</p>
+      <div class="controles">
+        <div class="champ"><label class="libelle">Jour</label><select><option>ven. 13/06/2026</option></select></div>
+        <div class="champ"><label class="libelle">Durée</label><select><option>1 h</option></select></div>
+        <div class="champ"><label class="libelle">Personnes</label><select><option>2</option></select></div>
+      </div>
+      <div class="periode">
+        <p class="periode-titre">Matin</p>
+        <div class="creneaux-grille">
+          <div class="creneau libre"><span class="h">08h00</span><span class="pl">5 machines</span></div>
+          <div class="creneau libre"><span class="h">09h00</span><span class="pl">5 machines</span></div>
+          <div class="creneau libre"><span class="h">10h00</span><span class="pl">4 machines</span></div>
+          <div class="creneau libre"><span class="h">11h00</span><span class="pl">5 machines</span></div>
+        </div>
+      </div>
+      <div class="periode">
+        <p class="periode-titre">Après-midi</p>
+        <div class="creneaux-grille">
+          <div class="creneau choisi"><span class="h">13h00</span><span class="pl">choisi</span></div>
+          <div class="creneau libre"><span class="h">14h00</span><span class="pl">4 machines</span></div>
+          <div class="creneau occupe"><span class="h">15h00</span><span class="pl">2 machines</span></div>
+          <div class="creneau libre"><span class="h">16h00</span><span class="pl">5 machines</span></div>
+        </div>
+      </div>
+      <div class="legende">
+        <span><span class="pip" style="background:#fff;border:1px solid var(--gl-line)"></span>Libre</span>
+        <span><span class="pip" style="background:var(--gl-amber-soft)"></span>Partiel</span>
+        <span><span class="pip" style="background:var(--gl-red-soft)"></span>Complet</span>
+      </div>
+      <div class="machines-bloc">
+        <h3>Machines libres le 13/06 de 13h00 à 14h00</h3>
+        <p class="sous">Cochez une ou plusieurs machines à utiliser en parallèle.</p>
+        <div class="machines-liste">
+          <label class="machine-ligne"><input type="checkbox" checked><span class="machine-nom">Imprimante 3D Bambu Lab</span><span class="machine-etat">libre</span></label>
+          <label class="machine-ligne"><input type="checkbox" checked><span class="machine-nom">Graveuse laser</span><span class="machine-etat">libre</span></label>
+          <label class="machine-ligne"><input type="checkbox"><span class="machine-nom">Imprimante 3D résine</span><span class="machine-etat">libre</span></label>
+          <label class="machine-ligne indispo"><input type="checkbox" disabled><span class="machine-nom">Plotteur</span><span class="machine-etat">occupé</span></label>
+        </div>
+        <button class="btn btn-ajouter">+ Ajouter ce créneau au panier</button>
+      </div>
+    </div>
+    <!-- Colonne droite : panier -->
+    <div class="col-droite">
+      <p class="panier-titre">Votre réservation</p>
+      <p class="panier-sous">Créneaux ajoutés à confirmer.</p>
+      <div class="resa-ligne">
+        <div class="quand">ven. 13/06 · 09h00 → 10h00</div>
+        <div class="machines"><span class="vignette">Imprimante 3D Bambu Lab</span> · 1 pers.</div>
+        <button class="retirer">Retirer</button>
+      </div>
+      <div class="resa-ligne">
+        <div class="quand">ven. 13/06 · 10h00 → 12h00</div>
+        <div class="machines"><span class="vignette">Graveuse laser</span><span class="vignette">Scanner 3D</span> · 2 pers.</div>
+        <button class="retirer">Retirer</button>
+      </div>
+      <div class="total"><strong>2 créneaux</strong>, 3 machines au total</div>
+      <button class="btn btn-primary" style="margin-top:14px">Confirmer la réservation</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

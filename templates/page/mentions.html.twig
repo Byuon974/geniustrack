@@ -1,0 +1,31 @@
+{% extends 'base.html.twig' %}
+{% block title %}Mentions légales{% endblock %}
+{% block body %}
+{{ include('components/page_header.html.twig', {
+    titre: 'Mentions légales',
+    soustitre: 'Informations légales relatives au service GeniusLab.'
+}) }}
+<div class="legal">
+    <p class="legal-intro">GeniusLab est le FabLab pédagogique du Campus CCI Nord (La Réunion),
+       dédié à l'apprentissage et au prototypage.</p>
+
+    <section>
+        <h2>Éditeur</h2>
+        <p>GeniusLab est le FabLab du Campus CCI Nord (La Réunion). Le présent service
+           est édité par l'établissement à des fins pédagogiques et de prototypage.</p>
+    </section>
+
+    <section>
+        <h2>Hébergement</h2>
+        <p>Les modalités d'hébergement sont précisées par l'administration du campus.</p>
+    </section>
+
+    <section>
+        <h2>Propriété intellectuelle</h2>
+        <p>Les contenus et projets présentés restent la propriété de leurs auteurs.
+           Toute réutilisation requiert leur autorisation.</p>
+    </section>
+
+    <p class="legal-note">Document à compléter selon les informations officielles de l'établissement.</p>
+</div>
+{% endblock %}

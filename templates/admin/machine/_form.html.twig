@@ -1,0 +1,44 @@
+{# Formulaire partagé entre new et edit (DRY).
+   Note : form_start ajoute enctype="multipart/form-data" automatiquement
+   dès qu'un champ FileType est présent : pas besoin de le spécifier. #}
+{{ form_start(form) }}
+    <div class="form-grille form-grille--dense">
+        <fieldset class="bloc">
+            <p class="bloc__titre">Identité</p>
+            <div class="bloc__corps">
+                {{ form_row(form.nom) }}
+                {{ form_row(form.type) }}
+                {{ form_row(form.description) }}
+            </div>
+        </fieldset>
+
+        <div class="form-colonne">
+            <fieldset class="bloc">
+                <p class="bloc__titre">Réservation</p>
+                <div class="bloc__corps">
+                    {{ form_row(form.dureeCreneauMinutes) }}
+                    {{ form_row(form.etat) }}
+                </div>
+            </fieldset>
+
+            <fieldset class="bloc">
+                <p class="bloc__titre">Visuel</p>
+                <div class="bloc__corps">
+                    {% if machine is defined and machine.photo %}
+                        <div class="form-photo-current">
+                            <img src="{{ asset('uploads/machines/' ~ machine.photo) }}"
+                                 alt="Photo actuelle de {{ machine.nom }}" width="120">
+                            <span class="cat">Photo actuelle (choisir un fichier la remplacera).</span>
+                        </div>
+                    {% endif %}
+                    {{ form_row(form.photoFile) }}
+                </div>
+            </fieldset>
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <a href="{{ path('admin_machine_index') }}" class="btn btn--ghost">Annuler</a>
+        <button type="submit" class="btn btn--primary">{{ submit_label }}</button>
+    </div>
+{{ form_end(form) }}

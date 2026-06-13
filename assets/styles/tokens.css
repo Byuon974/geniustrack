@@ -1,0 +1,80 @@
+/*
+ * GeniusLab : design tokens (BNF_7.1)
+ * ------------------------------------------------------------------
+ * Univers : FabLab étudiant, fabrication numérique. Le parti pris visuel
+ * s'inspire de l'atelier : surfaces claires type plan de travail, un bleu
+ * « blueprint » comme couleur structurante (plans techniques, gabarits),
+ * et un orange « filament chaud » comme accent d'action (la matière qui sort
+ * de l'imprimante). On évite les défauts génériques (cream+serif, dark+acid).
+ *
+ * Tout est en variables CSS pour qu'un changement de charte se fasse à un
+ * seul endroit. Les composants ne référencent QUE ces variables.
+ */
+
+:root {
+    /* : Couleurs de marque : */
+    --gl-blueprint: #1d4e6f;      /* bleu plan technique : structure, navigation, primaire */
+    --gl-blueprint-dark: #143a54; /* hover/active */
+    --gl-filament: #e8702a;       /* orange filament chaud : accent, surfaces (barres, bordures actives) */
+    --gl-filament-ink: #b34e14;   /* orange assombri conforme AA : texte orange + fond de bouton primaire */
+    --gl-filament-light: #f7b083; /* orange clair conforme AA sur fonds sombres (hero, sidebar) */
+    --gl-filament-soft: #fbe9dd;  /* fond d'accent discret */
+
+    /* : Neutres (plan de travail) : */
+    --gl-surface: #fbfaf8;        /* cartes, tables : blanc réchauffé (moins clinique que #fff) */
+    --gl-bg: #f3f1ec;             /* fond général : neutre sable/pierre, doux pour usage prolongé */
+    --gl-line: #e3e0d8;           /* bordures, séparateurs : neutre chaud discret */
+    --gl-ink: #14181c;            /* texte principal : quasi-noir teinté (pas de noir pur) */
+    --gl-ink-soft: #5c6670;       /* texte secondaire */
+
+    /* : États (pastilles, badges) : */
+    --gl-green: #2f8a5b;
+    --gl-green-soft: #e2f3ea;
+    --gl-amber: #c9821a;
+    --gl-amber-soft: #fbeed5;
+    --gl-red: #c0392b;
+    --gl-red-soft: #f8e1de;
+    --gl-gray: #6b7a86;
+    --gl-gray-soft: #eaeef1;
+    --gl-slate: #41576a;
+    --gl-slate-soft: #e4e9ee;
+    --gl-blue: #2a6da3;
+    --gl-blue-soft: #e1edf6;
+
+    /* : Typographie : */
+    /* Display : Space Grotesk (caractère technique/ingénierie, sans être froid). */
+    /* Body : Inter (lisibilité écran, neutre de qualité). */
+    /* Mono : pour les données chiffrées (quantités, durées). */
+    --gl-font-display: 'Space Grotesk', system-ui, sans-serif;
+    --gl-font-body: 'Inter', system-ui, sans-serif;
+    --gl-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+    /* Échelle typographique */
+    --gl-text-xs: 0.75rem;
+    --gl-text-sm: 0.875rem;
+    --gl-text-base: 1rem;
+    --gl-text-lg: 1.125rem;
+    --gl-text-xl: 1.5rem;
+    --gl-text-2xl: 2rem;
+
+    /* : Espacement (échelle 4px) : */
+    --gl-space-1: 0.25rem;
+    --gl-space-2: 0.5rem;
+    --gl-space-3: 0.75rem;
+    --gl-space-4: 1rem;
+    --gl-space-6: 1.5rem;
+    --gl-space-8: 2rem;
+
+    /* : Rayons & ombres : */
+    --gl-radius: 8px;
+    --gl-radius-lg: 10px;
+    --gl-radius-sm: 5px;
+    --gl-shadow: 0 1px 3px rgba(26, 38, 48, 0.08), 0 1px 2px rgba(26, 38, 48, 0.04);
+    --gl-shadow-lg: 0 4px 16px rgba(26, 38, 48, 0.1);
+}
+
+/* Police dyslexie : BNF_6.3. Activée par data-attr sur <html> via Paramètres. */
+:root[data-police="dyslexie"] {
+    --gl-font-display: 'OpenDyslexic', sans-serif;
+    --gl-font-body: 'OpenDyslexic', sans-serif;
+}

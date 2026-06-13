@@ -1,0 +1,13 @@
+{% extends 'emails/base_email.html.twig' %}
+{% block content %}
+    <h2 style="margin-top:0;">Mise à jour de votre projet</h2>
+    <p>Bonjour {{ projet.etudiant.prenom }},</p>
+    <p>Le statut de votre projet <strong>« {{ projet.titre }} »</strong> est désormais :
+       <strong>{{ projet.statut.libelle }}</strong>.</p>
+    {% if projet.statut.value == 'valide' %}
+        <p>Vous pouvez désormais choisir vos créneaux de réalisation dans votre espace.</p>
+    {% elseif projet.statut.value == 'refuse' and projet.motifRefus %}
+        <p><strong>Motif :</strong> {{ projet.motifRefus }}</p>
+        <p>Vous pouvez corriger et soumettre à nouveau votre demande.</p>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}GeniusLab{% endblock %}</title>
+    {# Favicons : SVG pour les navigateurs modernes, .ico en repli, PNG pour iOS. #}
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32.png') }}">
+    <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
+    <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
+    <meta name="theme-color" content="#1d4e6f">
+    {# PWA : manifeste d'application web et réglages mobiles. #}
+    <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="GeniusLab">
+    {% block stylesheets %}
+        <link rel="stylesheet" href="{{ asset('styles/tokens.css') }}">
+        <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
+    {% endblock %}
+    {% block javascripts %}
+        {{ importmap('app') }}
+    {% endblock %}
+</head>
+<body data-controller="lisibilite shell">
+<div class="app-shell">
+
+    {# ════════ SIDEBAR (navigation principale, desktop) ════════ #}
+    <aside class="sidebar" data-shell-target="sidebar">
+        <div class="sidebar-brand">
+            <span class="logo-mark" aria-hidden="true">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2 21 7v10l-9 5-9-5V7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+                    <path d="M12 2v10m0 0 9-5m-9 5-9-5" stroke="currentColor" stroke-width="1.6"/>
+                </svg>
+            </span>
+            <span class="logo-text">GeniusLab</span>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Navigation principale">
+            {# Lien vers le site public : navigation normale dans le même onglet,
+               comportement attendu et basique. #}
+            <div class="nav-group">
+                <p class="nav-group-label">GeniusLab</p>
+                <a class="nav-item" href="{{ path('app_home') }}">
+                    {{ include('components/icon.html.twig', {name: 'home'}) }}<span>Voir le site public</span>
+                </a>
+            </div>
+
+            {# Étudiant. #}
+            {% if is_granted('ROLE_ETUDIANT') %}
+            <div class="nav-group">
+                <p class="nav-group-label">Mon espace</p>
+                <a class="nav-item {{ app.request.attributes.get('_route') starts with 'projet' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') starts with 'projet' ? ' aria-current="page"' : '' }} href="{{ path('projet_index') }}">
+                    {{ include('components/icon.html.twig', {name: 'clipboard'}) }}<span>Mes projets</span>
+                </a>
+            </div>
+            {% endif %}
+
+            {# Validation : formateur / BDE. #}
+            {% if is_granted('ROLE_FORMATEUR') or is_granted('ROLE_BDE') %}
+            <div class="nav-group">
+                <p class="nav-group-label">Validation</p>
+                <a class="nav-item {{ app.request.attributes.get('_route') starts with 'demande' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') starts with 'demande' ? ' aria-current="page"' : '' }} href="{{ path('demande_index') }}">
+                    {{ include('components/icon.html.twig', {name: 'clipboard'}) }}<span>Demandes</span>
+                </a>
+            </div>
+            {% endif %}
+
+            {# Pilotage : le tableau de bord est ouvert aux rôles qui pilotent. #}
+            {% if is_granted('ROLE_FORMATEUR') or is_granted('ROLE_BDE') %}
+            <div class="nav-group">
+                <p class="nav-group-label">Pilotage</p>
+                <a class="nav-item {{ app.request.attributes.get('_route') == 'pilotage_dashboard' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') == 'pilotage_dashboard' ? ' aria-current="page"' : '' }} href="{{ path('pilotage_dashboard') }}">
+                    {{ include('components/icon.html.twig', {name: 'barChart'}) }}<span>Tableau de bord</span>
+                </a>
+                <a class="nav-item {{ app.request.attributes.get('_route') == 'pilotage_supervision' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') == 'pilotage_supervision' ? ' aria-current="page"' : '' }} href="{{ path('pilotage_supervision') }}">
+                    {{ include('components/icon.html.twig', {name: 'trendingUp'}) }}<span>Supervision</span>
+                </a>
+                {# Le journal d'activité reste réservé à l'administrateur. #}
+                {% if is_granted('ROLE_ADMIN') %}
+                <a class="nav-item {{ app.request.attributes.get('_route') == 'admin_journal' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') == 'admin_journal' ? ' aria-current="page"' : '' }} href="{{ path('admin_journal') }}">
+                    {{ include('components/icon.html.twig', {name: 'shield'}) }}<span>Journal</span>
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {# Ressources : administration du parc, réservée à l'admin. #}
+            {% if is_granted('ROLE_ADMIN') %}
+            <div class="nav-group">
+                <p class="nav-group-label">Ressources</p>
+                <a class="nav-item {{ app.request.attributes.get('_route') starts with 'admin_machine' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') starts with 'admin_machine' ? ' aria-current="page"' : '' }} href="{{ path('admin_machine_index') }}">
+                    {{ include('components/icon.html.twig', {name: 'wrench'}) }}<span>Machines</span>
+                </a>
+                <a class="nav-item {{ app.request.attributes.get('_route') starts with 'admin_stock' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') starts with 'admin_stock' ? ' aria-current="page"' : '' }} href="{{ path('admin_stock_index') }}">
+                    {{ include('components/icon.html.twig', {name: 'pkg'}) }}<span>Stocks</span>
+                </a>
+                <a class="nav-item {{ app.request.attributes.get('_route') starts with 'admin_utilisateur' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') starts with 'admin_utilisateur' ? ' aria-current="page"' : '' }} href="{{ path('admin_utilisateur_index') }}">
+                    {{ include('components/icon.html.twig', {name: 'user'}) }}<span>Utilisateurs</span>
+                </a>
+            </div>
+
+            <div class="nav-group">
+                <p class="nav-group-label">Site public</p>
+                <a class="nav-item {{ app.request.attributes.get('_route') starts with 'admin_vitrine' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') starts with 'admin_vitrine' ? ' aria-current="page"' : '' }} href="{{ path('admin_vitrine_index') }}">
+                    {{ include('components/icon.html.twig', {name: 'layout'}) }}<span>Contenu de la vitrine</span>
+                </a>
+            </div>
+            {% endif %}
+        </nav>
+
+        {# Les actions de compte (connexion, déconnexion) sont toutes en haut à
+           droite, conformément aux conventions. La barre latérale ne porte que
+           la navigation. #}
+    </aside>
+
+    {# Overlay pour fermer la sidebar ouverte en mobile. #}
+    <div class="sidebar-overlay" data-shell-target="overlay" data-action="shell#closeSidebar"></div>
+
+    {# ════════ ZONE PRINCIPALE ════════ #}
+    <div class="app-main-wrap">
+
+        {# Header contextuel (haut) : burger mobile, contexte, accessibilité, user. #}
+        <header class="app-header">
+            <button class="header-burger" data-action="shell#toggleSidebar" aria-label="Replier ou déplier le menu">
+                {{ include('components/icon.html.twig', {name: 'menu'}) }}
+            </button>
+            <div class="header-ctx">
+                {% block fil_ariane %}{% endblock %}
+            </div>
+            <div class="header-actions">
+                {% if app.user %}
+                    {% set nbNonLues = notifications_non_lues() %}
+                    <a class="header-notif" href="{{ path('app_notifications') }}"
+                       aria-label="Notifications{% if nbNonLues > 0 %} ({{ nbNonLues }} non lue{{ nbNonLues > 1 ? 's' : '' }}){% endif %}">
+                        {{ include('components/icon.html.twig', {name: 'bell', size: 18}) }}
+                        {% if nbNonLues > 0 %}
+                            <span class="header-notif__badge" aria-hidden="true">{{ nbNonLues > 9 ? '9+' : nbNonLues }}</span>
+                        {% endif %}
+                    </a>
+                {% endif %}
+                <span class="header-sep" aria-hidden="true"></span>
+                <div class="a11y-menu" data-controller="menu">
+                    <button type="button" class="a11y-menu__bouton" data-action="menu#basculer"
+                            aria-haspopup="true" aria-expanded="false" aria-label="Réglages d'accessibilité">
+                        {{ include('components/icon.html.twig', {name: 'eye', size: 18}) }}
+                    </button>
+                    <div class="a11y-menu__panneau" data-menu-target="panneau" hidden>
+                        <button type="button" aria-pressed="false" data-lisibilite-target="toggleLisible"
+                                data-action="lisibilite#basculerLisible">
+                            {{ include('components/icon.html.twig', {name: 'eye', size: 16}) }} Lisibilité accrue
+                        </button>
+                        <button type="button" aria-pressed="false" data-lisibilite-target="toggleDyslexie"
+                                data-action="lisibilite#basculerDyslexie">Police dyslexie</button>
+                    </div>
+                </div>
+                {% if app.user %}
+                    {# Menu utilisateur en popover, ancré sur l'avatar (standard
+                       moderne : actions de compte regroupées en haut à droite,
+                       RETEX navigation). Réutilise le contrôleur « menu ». #}
+                    <div class="header-user-menu" data-controller="menu">
+                        <button type="button" class="header-user" data-action="menu#basculer"
+                                aria-haspopup="true" aria-expanded="false"
+                                title="{{ app.user.prenom }} {{ app.user.nom }}">
+                            <span class="header-avatar" aria-hidden="true">{{ app.user.prenom|first|upper }}</span>
+                            <span class="header-user__nom">{{ app.user.prenom }}</span>
+                            {{ include('components/icon.html.twig', {name: 'chevron-down', size: 14}) }}
+                        </button>
+                        <div class="header-user-menu__panneau" data-menu-target="panneau" hidden>
+                            <p class="header-user-menu__entete">
+                                <strong>{{ app.user.prenom }} {{ app.user.nom }}</strong>
+                                <span class="cat">{{ app.user.email }}</span>
+                            </p>
+                            <a class="header-user-menu__item header-user-menu__item--danger" href="{{ path('app_logout') }}">
+                                {{ include('components/icon.html.twig', {name: 'logout', size: 16}) }} Déconnexion
+                            </a>
+                        </div>
+                    </div>
+                {% else %}
+                    {# Visiteur non connecté : la connexion est aussi en haut à
+                       droite, pour la cohérence des actions de compte. #}
+                    <a class="header-connexion" href="{{ path('app_login') }}">
+                        {{ include('components/icon.html.twig', {name: 'user', size: 16}) }}
+                        <span>Connexion</span>
+                    </a>
+                {% endif %}
+            </div>
+        </header>
+
+        <main class="app-main">
+            {# Affichage centralisé des messages flash, tous types confondus, pour
+               qu'aucun message (succès comme erreur) ne soit muet selon la page.
+               Le type 'error' est mappé sur la classe d'alerte rouge ; les autres
+               types prennent une classe « alert--{type} » si elle existe. #}
+            {% for type, messages in app.flashes %}
+                {% set classe = type == 'error' ? 'alert--error' : 'alert--' ~ type %}
+                {% for message in messages %}
+                    <div class="alert {{ classe }}">{{ message }}</div>
+                {% endfor %}
+            {% endfor %}
+            {% block body %}{% endblock %}
+        </main>
+
+        <footer class="app-footer">
+            <nav class="app-footer__links" aria-label="Informations légales">
+                <a href="{{ path('page_regles') }}">Règles d'utilisation</a>
+                <a href="{{ path('page_mentions') }}">Mentions légales</a>
+                <a href="{{ path('page_donnees') }}">Confidentialité</a>
+            </nav>
+            <p class="app-footer__mention">GeniusLab, FabLab du Campus CCI Nord, La Réunion.</p>
+        </footer>
+    </div>
+
+    {# ════════ BOTTOM-NAV (mobile uniquement) ════════ #}
+    <nav class="mobile-bnav" aria-label="Navigation mobile">
+        <a class="bnav-item {{ app.request.attributes.get('_route') == 'app_home' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') == 'app_home' ? ' aria-current="page"' : '' }} href="{{ path('app_home') }}">
+            {{ include('components/icon.html.twig', {name: 'home'}) }}<span>Vitrine</span>
+        </a>
+        {% if is_granted('ROLE_ETUDIANT') %}
+        <a class="bnav-item {{ app.request.attributes.get('_route') starts with 'projet' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') starts with 'projet' ? ' aria-current="page"' : '' }} href="{{ path('projet_index') }}">
+            {{ include('components/icon.html.twig', {name: 'clipboard'}) }}<span>Projets</span>
+        </a>
+        {% endif %}
+        {% if is_granted('ROLE_FORMATEUR') or is_granted('ROLE_BDE') %}
+        <a class="bnav-item {{ app.request.attributes.get('_route') starts with 'demande' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') starts with 'demande' ? ' aria-current="page"' : '' }} href="{{ path('demande_index') }}">
+            {{ include('components/icon.html.twig', {name: 'clipboard'}) }}<span>Demandes</span>
+        </a>
+        <a class="bnav-item {{ app.request.attributes.get('_route') == 'pilotage_dashboard' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') == 'pilotage_dashboard' ? ' aria-current="page"' : '' }} href="{{ path('pilotage_dashboard') }}">
+            {{ include('components/icon.html.twig', {name: 'barChart'}) }}<span>Bord</span>
+        </a>
+        {% endif %}
+        {% if is_granted('ROLE_ADMIN') %}
+        <a class="bnav-item {{ app.request.attributes.get('_route') starts with 'admin_stock' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') starts with 'admin_stock' ? ' aria-current="page"' : '' }} href="{{ path('admin_stock_index') }}">
+            {{ include('components/icon.html.twig', {name: 'pkg'}) }}<span>Stocks</span>
+        </a>
+        {% endif %}
+        {% if app.user %}
+        <a class="bnav-item" href="{{ path('app_logout') }}">
+            {{ include('components/icon.html.twig', {name: 'logout'}) }}<span>Sortir</span>
+        </a>
+        {% else %}
+        <a class="bnav-item" href="{{ path('app_login') }}">
+            {{ include('components/icon.html.twig', {name: 'user'}) }}<span>Entrer</span>
+        </a>
+        {% endif %}
+    </nav>
+
+</div>
+{% block body_scripts %}{% endblock %}
+{# PWA : enregistrement du service worker (repli hors ligne, installabilité). #}
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register('{{ asset('sw.js') }}').catch(function () {
+                /* L'échec d'enregistrement n'empêche pas l'application de fonctionner. */
+            });
+        });
+    }
+</script>
+</body>
+</html>

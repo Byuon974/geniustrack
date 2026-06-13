@@ -1,0 +1,47 @@
+{% extends 'base.html.twig' %}
+{% block title %}Nouvelle demande de projet{% endblock %}
+{% block fil_ariane %}{{ include("components/fil_ariane.html.twig", {segments: [{libelle: "Mon espace", url: null}, {libelle: "Mes projets", url: path("projet_index")}, {libelle: "Nouvelle demande", url: null}]}) }}{% endblock %}
+{% block body %}
+{{ include('components/page_header.html.twig', {
+    titre: 'Nouvelle demande de projet',
+    soustitre: 'Décrivez votre projet et sélectionnez la ou les machines nécessaires.'
+}) }}
+
+
+{{ form_start(form) }}
+    <div class="form-grille">
+        <fieldset class="bloc bloc--pleine">
+            <p class="bloc__titre">Votre projet</p>
+            <div class="bloc__corps">
+                {{ form_row(form.titre) }}
+                {{ form_row(form.description) }}
+                {{ form_row(form.type) }}
+            </div>
+        </fieldset>
+
+        <fieldset class="bloc bloc--pleine">
+            <p class="bloc__titre">Matériel nécessaire</p>
+            <div class="bloc__corps">
+                {{ form_row(form.machines) }}
+                {% if form.plansFiles is defined %}{{ form_row(form.plansFiles) }}{% endif %}
+            </div>
+        </fieldset>
+
+        {% if form.quantite is defined or form.support_flocage is defined or form.support_gravure is defined %}
+        <fieldset class="bloc bloc--pleine">
+            <p class="bloc__titre">Détails</p>
+            <div class="bloc__corps">
+                {% if form.quantite is defined %}{{ form_row(form.quantite) }}{% endif %}
+                {% if form.support_flocage is defined %}{{ form_row(form.support_flocage) }}{% endif %}
+                {% if form.support_gravure is defined %}{{ form_row(form.support_gravure) }}{% endif %}
+            </div>
+        </fieldset>
+        {% endif %}
+    </div>
+
+    <div class="form-actions">
+        <a href="{{ path('projet_index') }}" class="btn btn--ghost">Annuler</a>
+        <button type="submit" class="btn btn--primary">Soumettre la demande</button>
+    </div>
+{{ form_end(form) }}
+{% endblock %}

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette : réservation de créneaux (alignée sur le code)</title>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+:root {
+  --ink:#1f2a33; --ink-soft:#5b6770; --ink-faint:#939ca4;
+  --line:#ddd8cd; --line-soft:#f0ede6; --bg:#f6f4ef; --surface:#fff;
+  --accent:#1d4e6f; --accent-soft:#eef2f5; --warm:#b5663a;
+  --green:#5a8266; --green-soft:#eaf1ec; --red:#a8513f; --amber:#c08a3e;
+}
+html,body { min-height:100%; }
+body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--ink); line-height:1.4; font-size:13.5px; }
+.wrap { max-width:760px; margin:0 auto; padding:18px 22px 40px; }
+.bandeau { background:repeating-linear-gradient(135deg,#e3e0d8 0 2px,transparent 2px 11px),#eae7df; border:1px solid #d8d4c8; border-radius:7px; color:#6b6456; font-size:10.5px; letter-spacing:.13em; text-transform:uppercase; text-align:center; padding:6px; font-weight:700; margin-bottom:14px; }
+.entete h1 { font-size:18px; font-weight:700; }
+.cat { color:var(--ink-faint); font-size:12px; letter-spacing:.04em; text-transform:uppercase; }
+.sous { color:var(--ink-soft); font-size:12.5px; margin:4px 0 16px; }
+.corps { display:grid; grid-template-columns:1fr 270px; gap:18px; align-items:start; }
+@media (max-width:680px){ .corps { grid-template-columns:1fr; } }
+.carte { background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px 18px; box-shadow:0 1px 3px rgba(31,42,51,.05); margin-bottom:14px; }
+.tete { display:grid; grid-template-columns:1fr 1fr 1fr; gap:13px; margin-bottom:16px; }
+.champ > label { display:block; font-size:12px; font-weight:600; color:var(--ink-soft); margin-bottom:6px; }
+.sel { width:100%; font:inherit; font-size:13.5px; padding:8px 11px; border:1px solid var(--line); border-radius:7px; background:var(--surface); color:var(--ink); }
+.periode { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); font-weight:700; margin:14px 0 8px; }
+.grille { display:grid; grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:8px; }
+.creneau { display:flex; flex-direction:column; gap:2px; align-items:center; font:inherit; padding:8px 6px; border:1px solid var(--line); border-radius:8px; background:var(--surface); cursor:pointer; }
+.creneau .h { font-size:13.5px; font-weight:600; color:var(--ink); }
+.creneau .e { font-size:11px; color:var(--ink-soft); }
+.creneau--libre:hover { border-color:var(--accent); background:var(--accent-soft); }
+.creneau--occupe { border-color:#e7d3bf; }
+.creneau--occupe .e { color:var(--amber); }
+.creneau--complet { background:var(--line-soft); color:var(--ink-faint); cursor:not-allowed; }
+.creneau--complet .h { color:var(--ink-faint); }
+.creneau--choisi { background:var(--accent); border-color:var(--accent); }
+.creneau--choisi .h, .creneau--choisi .e { color:#fff; }
+.legende { display:flex; gap:16px; margin-top:12px; font-size:11.5px; color:var(--ink-soft); }
+.legende span { display:inline-flex; align-items:center; gap:5px; }
+.dot { width:9px; height:9px; border-radius:50%; display:inline-block; }
+.dot--libre { background:var(--green); } .dot--occupe { background:var(--amber); } .dot--complet { background:var(--ink-faint); }
+.machines-titre { font-size:12.5px; color:var(--ink-soft); margin:16px 0 9px; }
+.puces { display:flex; flex-wrap:wrap; gap:8px; }
+.puce { display:inline-flex; align-items:center; gap:7px; font-size:12.5px; padding:7px 12px; border:1px solid var(--line); border-radius:20px; background:var(--surface); cursor:pointer; }
+.puce input { accent-color:var(--accent); }
+.puce--indispo { color:var(--ink-faint); background:var(--line-soft); text-decoration:line-through; cursor:not-allowed; }
+.ajouter { width:100%; border:1.5px dashed var(--line); background:none; color:var(--accent); font:inherit; font-size:12.5px; font-weight:600; padding:11px; border-radius:9px; cursor:pointer; margin-top:16px; }
+.ajouter:hover { border-color:var(--accent); background:var(--accent-soft); }
+.panier h2 { font-size:14px; font-weight:700; margin-bottom:10px; }
+.ligne { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; padding:11px 0; border-bottom:1px solid var(--line-soft); }
+.ligne:last-of-type { border-bottom:0; }
+.quand { font-size:12.5px; font-weight:600; }
+.mach { font-size:11.5px; color:var(--ink-soft); margin-top:3px; }
+.vignette { display:inline-block; background:var(--accent-soft); color:var(--accent); border-radius:5px; padding:1px 7px; margin-right:4px; font-size:11px; }
+.retirer { font:inherit; font-size:11.5px; color:var(--red); background:none; border:0; cursor:pointer; text-decoration:underline; }
+.vide { color:var(--ink-faint); font-size:12.5px; font-style:italic; padding:8px 0; }
+.btn { width:100%; font:inherit; font-size:13.5px; font-weight:600; padding:11px; border-radius:8px; cursor:pointer; margin-top:14px; }
+.btn--primary { background:var(--accent); border:1px solid #173e58; color:#fff; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bandeau">Maquette de conception · réservation multi-machines, alignée sur le code livré</div>
+  <div class="entete">
+    <span class="cat">[Test] Réservation nominale · pédagogique</span>
+    <h1>Réserver des créneaux</h1>
+  </div>
+  <p class="sous">Choisissez un créneau, cochez les machines à utiliser en parallèle, puis ajoutez au panier. Recommencez autant que nécessaire (4 créneaux maximum).</p>
+  <div class="corps">
+    <div>
+      <div class="carte">
+        <div class="tete">
+          <div class="champ">
+            <label>Jour</label>
+            <select class="sel"><option>lun. 15/06/2026</option><option>mar. 16/06/2026</option><option>mer. 17/06/2026</option></select>
+          </div>
+          <div class="champ">
+            <label>Durée</label>
+            <select class="sel"><option>30 min</option><option>1 h</option><option selected>1 h 30</option><option>2 h</option><option>2 h 30</option><option>3 h</option><option>3 h 30</option><option>4 h</option></select>
+          </div>
+          <div class="champ">
+            <label>Personnes</label>
+            <select class="sel"><option>1</option><option>2</option><option>3</option></select>
+          </div>
+        </div>
+        <p class="periode">Matin</p>
+        <div class="grille">
+          <button class="creneau creneau--libre"><span class="h">08h00</span><span class="e">5 machines</span></button>
+          <button class="creneau creneau--libre"><span class="h">08h30</span><span class="e">5 machines</span></button>
+          <button class="creneau creneau--occupe"><span class="h">09h00</span><span class="e">3 machines</span></button>
+          <button class="creneau creneau--choisi"><span class="h">09h30</span><span class="e">4 machines</span></button>
+          <button class="creneau creneau--occupe"><span class="h">10h00</span><span class="e">2 machines</span></button>
+          <span class="creneau creneau--complet"><span class="h">10h30</span><span class="e">complet</span></span>
+        </div>
+        <p class="periode">Après-midi</p>
+        <div class="grille">
+          <button class="creneau creneau--libre"><span class="h">13h00</span><span class="e">5 machines</span></button>
+          <button class="creneau creneau--libre"><span class="h">13h30</span><span class="e">5 machines</span></button>
+          <button class="creneau creneau--occupe"><span class="h">14h00</span><span class="e">3 machines</span></button>
+          <button class="creneau creneau--libre"><span class="h">14h30</span><span class="e">5 machines</span></button>
+          <button class="creneau creneau--libre"><span class="h">15h00</span><span class="e">4 machines</span></button>
+        </div>
+        <div class="legende">
+          <span><span class="dot dot--libre"></span> Libre</span>
+          <span><span class="dot dot--occupe"></span> Partiellement occupé</span>
+          <span><span class="dot dot--complet"></span> Complet</span>
+        </div>
+        <p class="machines-titre">Machines libres le 15/06 de 09h30 à 11h00</p>
+        <div class="puces">
+          <label class="puce"><input type="checkbox" checked> Imprimante 3D Bambu Lab</label>
+          <label class="puce"><input type="checkbox"> Graveuse laser</label>
+          <label class="puce"><input type="checkbox" checked> Imprimante 3D résine</label>
+          <span class="puce puce--indispo" title="Occupée sur ce créneau">Plotteur de découpe</span>
+        </div>
+        <button class="ajouter">+ Ajouter ce créneau au panier</button>
+      </div>
+    </div>
+    <div>
+      <div class="carte panier">
+        <h2>Votre réservation · 1 créneau</h2>
+        <div class="ligne">
+          <div>
+            <div class="quand">15/06/2026 · 09h30 → 11h00</div>
+            <div class="mach"><span class="vignette">Bambu Lab</span><span class="vignette">Résine</span> · 1 pers.</div>
+          </div>
+          <button class="retirer">Retirer</button>
+        </div>
+        <button class="btn btn--primary">Confirmer la réservation</button>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

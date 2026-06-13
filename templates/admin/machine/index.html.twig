@@ -1,0 +1,74 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion des machines{% endblock %}
+{% block fil_ariane %}{{ include("components/fil_ariane.html.twig", {segments: [{libelle: "Ressources", url: null}, {libelle: "Machines", url: null}]}) }}{% endblock %}
+
+{% block body %}
+<div class="admin-page">
+    {{ include('components/page_header.html.twig', {
+        titre: 'Machines',
+        soustitre: 'Parc machines du FabLab, état et disponibilité à la réservation.',
+        actions: '<a href="' ~ path('admin_machine_new') ~ '" class="btn btn--primary">' ~ include('components/icon.html.twig', {name: 'plus', size: 16}) ~ ' Ajouter une machine</a>'
+    }) }}
+
+
+    {% if machines is empty %}
+        {{ include('components/empty.html.twig', {
+            message: 'Aucune machine enregistrée.',
+            action_label: 'Ajouter la première',
+            action_path: path('admin_machine_new')
+        }) }}
+    {% else %}
+        {% embed 'components/data_table.html.twig' with {
+            recherche_placeholder: 'Rechercher une machine…',
+            recherche_label: 'Rechercher une machine',
+            vide_message: 'Aucune machine ne correspond à la recherche.'
+        } %}
+            {% block entetes %}
+                <th class="dt-sortable" data-datatable-target="header" data-sort-key="nom"
+                    data-action="datatable#trier">Nom <span class="dt-arrow" aria-hidden="true"></span></th>
+                <th class="dt-sortable" data-datatable-target="header" data-sort-key="type"
+                    data-action="datatable#trier">Type <span class="dt-arrow" aria-hidden="true"></span></th>
+                <th class="dt-sortable" data-datatable-target="header" data-sort-key="duree"
+                    data-action="datatable#trier">Durée créneau <span class="dt-arrow" aria-hidden="true"></span></th>
+                <th class="dt-sortable" data-datatable-target="header" data-sort-key="etat"
+                    data-action="datatable#trier">État <span class="dt-arrow" aria-hidden="true"></span></th>
+                <th class="actions-col">Actions</th>
+            {% endblock %}
+            {% block lignes %}
+                {% for machine in machines %}
+                    {% set couleurEtat = machine.etat.value == 'active' ? 'green' : (machine.etat.value == 'maintenance' ? 'amber' : 'red') %}
+                    <tr data-datatable-target="row" class="dt-row--{{ couleurEtat }}"
+                        data-recherche="{{ (machine.nom ~ ' ' ~ (machine.type|libelle_type_machine) ~ ' ' ~ machine.etat.libelle)|lower }}"
+                        data-sort-nom="{{ machine.nom|lower }}"
+                        data-sort-type="{{ (machine.type|libelle_type_machine)|lower }}"
+                        data-sort-duree="{{ machine.dureeCreneauMinutes }}"
+                        data-sort-etat="{{ machine.etat.libelle|lower }}">
+                        <td><span class="statut-pastille statut-pastille--{{ couleurEtat }}" aria-hidden="true"></span>{{ machine.nom }}</td>
+                        <td>{{ machine.type|libelle_type_machine }}</td>
+                        <td>{{ machine.dureeCreneauMinutes }} min</td>
+                        <td>
+                            {{ include('components/badge.html.twig', {
+                                variante: machine.etat.value == 'active' ? 'succes' : (machine.etat.value == 'maintenance' ? 'alerte' : 'danger'),
+                                label: machine.etat.libelle
+                            }) }}
+                        </td>
+                        <td class="actions-col">
+                            <a href="{{ path('admin_machine_edit', {id: machine.id}) }}" class="btn btn--sm btn--ghost">Modifier</a>
+                            <form method="post" action="{{ path('admin_machine_delete', {id: machine.id}) }}"
+                                  data-controller="confirm"
+                                  data-confirm-message-value="La machine « {{ machine.nom }} » sera définitivement supprimée."
+                                  data-confirm-titre-value="Supprimer cette machine ?"
+                                  data-confirm-variante-value="danger" data-confirm-libelle-value="Supprimer"
+                                  class="inline-form">
+                                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ machine.id) }}">
+                                <button type="submit" class="btn btn--sm btn--danger">Supprimer</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% endblock %}
+        {% endembed %}
+    {% endif %}
+</div>
+{% endblock %}

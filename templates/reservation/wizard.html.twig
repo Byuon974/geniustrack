@@ -1,0 +1,126 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Réserver : {{ projet.titre }}{% endblock %}
+{% block fil_ariane %}{{ include("components/fil_ariane.html.twig", {segments: [{libelle: "Mon espace", url: null}, {libelle: "Mes projets", url: path("projet_index")}, {libelle: "Réserver", url: null}]}) }}{% endblock %}
+
+{% block body %}
+<div class="reservation" data-panier="{{ panier.estVide ? 'vide' : 'plein' }}">
+    <div class="reservation__header">
+        <h1>Réserver des créneaux</h1>
+        <span class="cat">{{ projet.titre }}</span>
+    </div>
+
+    <div class="reservation__corps">
+        {# ── Composer un créneau ── #}
+        <section class="resa-composer">
+            <p class="section-sub">Choisissez un créneau, cochez les machines à utiliser en parallèle, puis ajoutez au panier. Recommencez autant que nécessaire.</p>
+
+            <form method="post" action="{{ path('reservation_ajouter', {id: projet.id}) }}"
+                  data-controller="creneau-picker"
+                  data-creneau-picker-url-value="{{ path('reservation_disponibilite') }}"
+                  data-creneau-picker-target="form">
+                <input type="hidden" name="_token" value="{{ csrf_token('reservation_ajouter') }}">
+                <input type="hidden" name="debut" data-creneau-picker-target="champDebut">
+                <input type="hidden" name="duree" data-creneau-picker-target="champDuree">
+
+                <div class="creneau-tete">
+                    <div class="champ">
+                        <label for="resa-jour">Jour</label>
+                        <select id="resa-jour" name="jour"
+                                data-creneau-picker-target="jour"
+                                data-action="change->creneau-picker#rafraichirCreneaux">
+                            {% for i in 0..30 %}
+                                {% set j = "now"|date_modify("+" ~ i ~ " days") %}
+                                <option value="{{ j|date('Y-m-d') }}">{{ j|date('d/m/Y') }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="champ">
+                        <label for="resa-duree">Durée</label>
+                        <select id="resa-duree"
+                                data-creneau-picker-target="duree"
+                                data-action="change->creneau-picker#rafraichirCreneaux">
+                            {% for d in dureesProposees %}
+                                <option value="{{ d }}">{{ (d // 60) > 0 ? (d // 60) ~ ' h ' : '' }}{{ (d % 60) > 0 ? (d % 60) ~ ' min' : '' }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="champ">
+                        <label for="resa-personnes">Personnes</label>
+                        <select id="resa-personnes" name="personnes">
+                            {% for n in 1..15 %}<option value="{{ n }}">{{ n }}</option>{% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                {# Zone des créneaux du jour (chargée par AJAX, clic = choisir). #}
+                <div class="creneau-dispo" data-creneau-picker-target="zoneCreneaux"
+                     data-action="click->creneau-picker#choisirCreneau">
+                    <p class="cat">Choisissez un jour et une durée pour voir les créneaux.</p>
+                </div>
+
+                {# Zone des machines du créneau choisi (chargée par AJAX). #}
+                <div class="machines-bloc" data-creneau-picker-target="zoneMachines" hidden>
+                    <p class="cat">Choisissez un créneau pour voir les machines libres.</p>
+                </div>
+
+                <button type="submit" class="btn btn--primary resa-ajouter" data-creneau-picker-target="boutonAjouter" hidden>
+                    + Ajouter ce créneau au panier
+                </button>
+            </form>
+        </section>
+
+        {# ── Panier des créneaux ── #}
+        <section class="resa-panier">
+            <h2 class="resa-panier__titre">Votre réservation{{ panier.creneaux is not empty ? ' · ' ~ panier.creneaux|length ~ ' créneau' ~ (panier.creneaux|length > 1 ? 'x' : '') : '' }}</h2>
+
+            {% if panier.estVide %}
+                <p class="resa-panier__vide">Aucun créneau pour l'instant. Composez-en un ci-dessus.</p>
+            {% else %}
+                {% for c in panier.creneaux %}
+                    {% set d = c.debut|date('Y-m-d\\TH:i')|date('U') %}
+                    <div class="resa-ligne">
+                        <div>
+                            <div class="resa-ligne__quand">{{ c.debut|date('d/m/Y · H\\hi') }} → {{ c.debut|date('Y-m-d\\TH:i')|date_modify('+' ~ c.duree ~ ' minutes')|date('H\\hi') }}</div>
+                            <div class="resa-ligne__machines">
+                                {% for mid in c.machines %}
+                                    {% for m in machinesDispo %}
+                                        {% if m.id == mid %}<span class="resa-vignette">{{ m.nom }}</span>{% endif %}
+                                    {% endfor %}
+                                {% endfor %}
+                                · {{ c.personnes }} pers.
+                            </div>
+                        </div>
+                        <form method="post" action="{{ path('reservation_retirer', {id: projet.id, index: loop.index0}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('reservation_retirer') }}">
+                            <button type="submit" class="resa-ligne__retirer">Retirer</button>
+                        </form>
+                    </div>
+                {% endfor %}
+
+                <form method="post" action="{{ path('reservation_confirmer', {id: projet.id}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('reservation_confirmer') }}">
+                    <button type="submit" class="btn btn--primary resa-confirmer resa-confirmer--inline">Confirmer la réservation</button>
+                </form>
+            {% endif %}
+        </section>
+    </div>
+
+    {# ── Barre d'action sticky (mobile) ── #}
+    {# Toujours rendue, masquée par CSS tant que le panier est vide ou sur desktop.
+       Garde l'action « Confirmer » à portée du pouce quand le panier, empilé
+       sous la composition, sort de l'écran (RETEX CTA sticky e-commerce). #}
+    {% if not panier.estVide %}
+        <div class="resa-sticky">
+            <div class="resa-sticky__resume">
+                <strong>{{ panier.creneaux|length }} créneau{{ panier.creneaux|length > 1 ? 'x' : '' }}</strong>
+                <span>{{ projet.titre }}</span>
+            </div>
+            <form method="post" action="{{ path('reservation_confirmer', {id: projet.id}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('reservation_confirmer') }}">
+                <button type="submit" class="btn btn--primary">Confirmer</button>
+            </form>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+# Configuration des services de l'application.
+# Symfony autowire/autoconfigure par défaut ; on ne déclare ici que les
+# paramètres et bindings spécifiques.
+
+parameters:
+    # Répertoire public des photos de machines (sous public/).
+    app.repertoire_machines: '%kernel.project_dir%/public/uploads/machines'
+    # Répertoire public des images de la vitrine (sous public/).
+    app.repertoire_vitrine: '%kernel.project_dir%/public/uploads/vitrine'
+    # Répertoire des plans de projet (hors public/ : accès contrôlé souhaitable).
+    app.repertoire_plans: '%kernel.project_dir%/var/uploads/plans'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        bind:
+            # Injecté dans PhotoUploadService::__construct($repertoireMachines).
+            string $repertoireMachines: '%app.repertoire_machines%'
+            string $repertoirePlans: '%app.repertoire_plans%'
+            # Jeton du flux iCal (BF_3.1). Défaut vide = fonctionnalité inactive
+            # (jamais bloquant au boot). À définir en prod pour activer l'abonnement.
+            # La variable est déclarée vide dans .env : %env()% retourne donc une
+            # chaîne vide, sans le processeur default:: qui produirait un null
+            # incompatible avec le type string.
+            string $jetonCalendrier: '%env(CALENDRIER_ICAL_TOKEN)%'
+
+    # Découverte automatique des classes du projet comme services.
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+
+    # NotificationService a un paramètre scalaire avec défaut : on le laisse tel
+    # quel (le défaut de la signature s'applique). Idem expéditeur.

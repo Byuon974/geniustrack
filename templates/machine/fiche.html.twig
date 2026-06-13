@@ -1,0 +1,94 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ machine.nom }}{% endblock %}
+{% block fil_ariane %}{{ include("components/fil_ariane.html.twig", {segments: [{libelle: "Machines", url: null}, {libelle: machine.nom, url: null}]}) }}{% endblock %}
+{% block body %}
+<article class="fiche-machine">
+    {# Hero : nom, accroche, état, retour. #}
+    <div class="fiche-banniere">
+        <a href="{{ path('app_home') }}#machines" class="fiche-retour">
+            {{ include('components/icon.html.twig', {name: 'arrowLeft', size: 16}) }} Toutes les machines
+        </a>
+        <div class="fiche-banniere-grille">
+            <div class="fiche-banniere-media">
+                {% if machine.photo %}
+                    <img src="{{ asset('uploads/machines/' ~ machine.photo) }}" alt="{{ machine.nom }}">
+                {% else %}
+                    <div class="fiche-banniere-vide" aria-hidden="true">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2 21 7v10l-9 5-9-5V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+                            <path d="M12 2v10m0 0 9-5m-9 5-9-5" stroke="currentColor" stroke-width="1.4"/>
+                        </svg>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="fiche-banniere-texte">
+                <h1>{{ machine.nom }}</h1>
+                {% if fiche %}
+                    <p class="fiche-accroche">{{ fiche.accroche }}</p>
+                {% elseif machine.description %}
+                    <p class="fiche-accroche">{{ machine.description }}</p>
+                {% endif %}
+                <div class="fiche-meta">
+                    {% if machine.estReservable %}
+                        {{ include('components/badge.html.twig', {couleur: 'green', label: 'Disponible'}) }}
+                    {% else %}
+                        {{ include('components/badge.html.twig', {couleur: 'amber', label: machine.etat.libelle}) }}
+                    {% endif %}
+                    <span class="fiche-meta-item">
+                        {{ include('components/icon.html.twig', {name: 'clock', size: 15}) }}
+                        Créneau de {{ machine.dureeCreneauMinutes }} min
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if fiche %}
+    <div class="fiche-corps">
+        <section class="fiche-section">
+            <h2>À quoi ça sert</h2>
+            <ul class="fiche-liste">
+                {% for usage in fiche.usages %}
+                    <li>{{ usage }}</li>
+                {% endfor %}
+            </ul>
+        </section>
+
+        <div class="fiche-deux-col">
+            <section class="fiche-section">
+                <h2>Matériaux</h2>
+                <ul class="fiche-liste">
+                    {% for m in fiche.materiaux %}
+                        <li>{{ m }}</li>
+                    {% endfor %}
+                </ul>
+            </section>
+
+            <section class="fiche-section">
+                <h2>Ses atouts</h2>
+                <ul class="fiche-liste fiche-liste--atouts">
+                    {% for a in fiche.atouts %}
+                        <li>{{ a }}</li>
+                    {% endfor %}
+                </ul>
+            </section>
+        </div>
+
+        <aside class="fiche-note">
+            <strong>Bon à savoir</strong>
+            <p>{{ fiche.bon_a_savoir }}</p>
+        </aside>
+    </div>
+    {% endif %}
+
+    {# CTA : orienter vers la réservation (via projet) ou la connexion. #}
+    <div class="fiche-cta">
+        {% if app.user %}
+            <a href="{{ path('projet_index') }}" class="btn btn--primary">Réserver via un projet</a>
+            <span class="fiche-cta-aide">La réservation d'une machine se fait depuis l'un de vos projets validés.</span>
+        {% else %}
+            <a href="{{ path('app_login') }}" class="btn btn--primary">Se connecter pour réserver</a>
+        {% endif %}
+    </div>
+</article>
+{% endblock %}

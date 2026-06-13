@@ -1,0 +1,24 @@
+framework:
+    messenger:
+        # Transport asynchrone : file en base (Doctrine). Simple, fiable, sans
+        # service externe (cohérent avec DEC-007, remplace le Redis/BullMQ du benchmark).
+        transports:
+            async:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    auto_setup: true   # crée la table de file automatiquement
+                retry_strategy:
+                    max_retries: 3
+                    delay: 2000
+                    multiplier: 2
+
+        routing:
+            # Les emails partent dans la file async (réponse utilisateur immédiate).
+            Symfony\Component\Mailer\Messenger\SendEmailMessage: async
+
+when@test:
+    framework:
+        messenger:
+            # En test : tout synchrone, pas de worker à lancer.
+            transports:
+                async: 'sync://'

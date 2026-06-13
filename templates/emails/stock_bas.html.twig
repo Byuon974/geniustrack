@@ -1,0 +1,9 @@
+{% extends 'emails/base_email.html.twig' %}
+{% block content %}
+    <h2 style="margin-top:0;">Alerte stock bas</h2>
+    <p>Les articles suivants sont sous leur seuil d'alerte :</p>
+    <ul>
+        {% for article in articles %}<li>{{ article }}</li>{% endfor %}
+    </ul>
+    <p>Pensez à réapprovisionner.</p>
+{% endblock %}

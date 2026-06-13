@@ -1,0 +1,45 @@
+{% extends 'base.html.twig' %}
+{% block title %}Journal d'activité{% endblock %}
+{% block fil_ariane %}{{ include("components/fil_ariane.html.twig", {segments: [{libelle: "Pilotage", url: null}, {libelle: "Journal", url: null}]}) }}{% endblock %}
+{% block body %}
+{{ include('components/page_header.html.twig', {
+    titre: "Journal d'activité",
+    soustitre: "Traçabilité des actions réalisées dans l'application.",
+    actions: '<a href="' ~ path('pilotage_dashboard') ~ '" class="btn btn--ghost">Tableau de bord</a>'
+}) }}
+
+{% if entrees is empty %}
+    {{ include('components/empty.html.twig', {message: 'Aucune activité enregistrée.'}) }}
+{% else %}
+    {% embed 'components/data_table.html.twig' with {
+        recherche_placeholder: 'Rechercher dans le journal…',
+        recherche_label: 'Rechercher dans le journal',
+        tailles: [20, 50, 100],
+        taille_defaut: 20
+    } %}
+        {% block entetes %}
+            <th class="dt-sortable" data-datatable-target="header" data-sort-key="date"
+                data-action="datatable#trier">Date <span class="dt-arrow" aria-hidden="true"></span></th>
+            <th class="dt-sortable" data-datatable-target="header" data-sort-key="acteur"
+                data-action="datatable#trier">Acteur <span class="dt-arrow" aria-hidden="true"></span></th>
+            <th class="dt-sortable" data-datatable-target="header" data-sort-key="action"
+                data-action="datatable#trier">Action <span class="dt-arrow" aria-hidden="true"></span></th>
+            <th>Cible</th>
+        {% endblock %}
+        {% block lignes %}
+            {% for e in entrees %}
+                <tr data-datatable-target="row"
+                    data-recherche="{{ (e.acteur.nomComplet ~ ' ' ~ e.action ~ ' ' ~ e.cible)|lower }}"
+                    data-sort-date="{{ e.createdAt|date('YmdHi') }}"
+                    data-sort-acteur="{{ e.acteur.nomComplet|lower }}"
+                    data-sort-action="{{ e.action|lower }}">
+                    <td>{{ e.createdAt|date('d/m/Y H:i') }}</td>
+                    <td>{{ e.acteur.nomComplet }}</td>
+                    <td>{{ e.action }}</td>
+                    <td>{{ e.cible }}</td>
+                </tr>
+            {% endfor %}
+        {% endblock %}
+    {% endembed %}
+{% endif %}
+{% endblock %}

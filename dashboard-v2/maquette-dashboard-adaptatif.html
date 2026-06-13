@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette : tableau de bord adaptatif GeniusLab</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f3f1ec; color: #14181c; line-height: 1.5; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 28px 24px 56px; }
+
+/* Bandeau maquette */
+.bandeau { background: repeating-linear-gradient(135deg,#e3e0d8 0 2px,transparent 2px 11px),#eae7df; border:1px solid #d8d4c8; border-radius:8px; color:#6b6456; font-size:11px; letter-spacing:.16em; text-transform:uppercase; text-align:center; padding:8px; font-weight:700; margin-bottom:24px; }
+
+h1 { font-size: 25px; font-weight: 800; letter-spacing: -.01em; margin-bottom: 4px; }
+.sous { color:#6b7280; font-size:14.5px; margin-bottom: 24px; }
+
+/* Sélecteur de rôle (visuel, explique l'adaptatif) */
+.roles { display:flex; gap:8px; margin-bottom:8px; }
+.role-chip { font-size:13px; font-weight:600; padding:7px 16px; border-radius:999px; border:1px solid #d8d4c8; background:#fff; color:#41576a; }
+.role-chip.actif { background:#1d4e6f; color:#fff; border-color:#1d4e6f; }
+.role-leg { font-size:12.5px; color:#8a94a0; margin-bottom:22px; }
+
+.vue { margin-bottom: 40px; }
+.vue-titre { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#41576a; margin-bottom:14px; padding-bottom:8px; border-bottom:2px solid #1d4e6f; display:inline-block; }
+
+/* Rangée d'alertes actionnables (KPI à seuil) */
+.kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px; }
+.kpi { background:#fff; border:1px solid #e3e0d8; border-radius:10px; padding:15px 16px; border-left:4px solid #9aa5b1; box-shadow:0 1px 3px rgba(26,38,48,.07); }
+.kpi.alerte { border-left-color:#c0392b; }
+.kpi.attention { border-left-color:#c9821a; }
+.kpi.ok { border-left-color:#2f8a5b; }
+.kpi .t { font-size:12px; color:#6b7280; display:flex; align-items:center; gap:6px; }
+.kpi .n { font-size:30px; font-weight:800; line-height:1.1; margin:6px 0 2px; }
+.kpi .d { font-size:12px; color:#8a94a0; }
+.kpi .lien { font-size:12px; font-weight:600; color:#e8702a; text-decoration:none; display:inline-block; margin-top:8px; }
+
+/* Deux colonnes : détail + à traiter */
+.cols { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.carte { background:#fff; border:1px solid #e3e0d8; border-radius:10px; padding:18px; box-shadow:0 1px 3px rgba(26,38,48,.07); }
+.carte h2 { font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:#41576a; margin-bottom:14px; }
+.lignes { font-size:13.5px; }
+.l { display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid #f0ede6; }
+.l:last-child { border-bottom:0; }
+.l .nom { color:#14181c; }
+.l .meta { color:#8a94a0; font-size:12.5px; }
+.l .val { font-weight:700; color:#1d4e6f; }
+.pastille { width:7px; height:7px; border-radius:50%; background:#c9821a; display:inline-block; margin-right:8px; }
+.cta { font-size:13px; font-weight:600; color:#e8702a; text-decoration:none; display:inline-block; margin-top:12px; }
+
+/* Barre mini (occupation) */
+.mini { width:90px; height:8px; background:#f0ede6; border-radius:99px; overflow:hidden; display:inline-block; vertical-align:middle; }
+.mini > span { display:block; height:100%; background:#1d4e6f; }
+
+/* Note de conception */
+.note { background:#fff; border:1px solid #e3e0d8; border-left:4px solid #1d4e6f; border-radius:8px; padding:16px 18px; margin-top:14px; }
+.note h3 { font-size:12.5px; text-transform:uppercase; letter-spacing:.06em; color:#1d4e6f; margin-bottom:8px; }
+.note p { font-size:13.5px; color:#41576a; margin-bottom:7px; }
+.note p:last-child { margin-bottom:0; }
+.note b { color:#14181c; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bandeau">Maquette de conception : tableau de bord adaptatif, a valider avant codage</div>
+  <h1>Tableau de bord adaptatif</h1>
+  <p class="sous">Une vue par role, ancree sur les donnees reelles et le RETEX dashboard. Chaque indicateur passe le test « so what ? » : il declenche une action.</p>
+
+  <div class="roles">
+    <span class="role-chip actif">Admin</span>
+    <span class="role-chip">Formateur</span>
+  </div>
+  <p class="role-leg">Le role determine ce qui s'affiche (controle d'acces dynamique) : l'admin pilote l'exploitation, le formateur se concentre sur ce qu'il doit valider et encadrer.</p>
+
+  <!-- ════════ VUE ADMIN ════════ -->
+  <div class="vue">
+    <div class="vue-titre">Vue Admin : piloter l'exploitation</div>
+
+    <div class="kpis">
+      <div class="kpi alerte">
+        <div class="t">Demandes en attente</div>
+        <div class="n">2</div>
+        <div class="d">a valider (formateurs / BDE)</div>
+        <a class="lien" href="#">Traiter &rarr;</a>
+      </div>
+      <div class="kpi attention">
+        <div class="t">Stock sous le seuil</div>
+        <div class="n">3</div>
+        <div class="d">article(s) a reapprovisionner</div>
+        <a class="lien" href="#">Reapprovisionner &rarr;</a>
+      </div>
+      <div class="kpi ok">
+        <div class="t">Machines disponibles</div>
+        <div class="n">6</div>
+        <div class="d">sur 8 actives</div>
+        <a class="lien" href="#">Voir le parc &rarr;</a>
+      </div>
+      <div class="kpi attention">
+        <div class="t">Creneaux du jour</div>
+        <div class="n">9</div>
+        <div class="d">reservations aujourd'hui</div>
+        <a class="lien" href="#">Voir le planning &rarr;</a>
+      </div>
+    </div>
+
+    <div class="cols">
+      <div class="carte">
+        <h2>Utilisation des machines (30 jours)</h2>
+        <div class="lignes">
+          <div class="l"><span class="nom">Imprimante 3D Bambu Lab</span><span><span class="mini"><span style="width:80%"></span></span> <span class="val">12</span></span></div>
+          <div class="l"><span class="nom">Graveuse laser</span><span><span class="mini"><span style="width:60%"></span></span> <span class="val">9</span></span></div>
+          <div class="l"><span class="nom">Imprimante 3D resine</span><span><span class="mini"><span style="width:47%"></span></span> <span class="val">7</span></span></div>
+          <div class="l"><span class="nom">Plotteur de decoupe</span><span><span class="mini"><span style="width:33%"></span></span> <span class="val">5</span></span></div>
+          <div class="l"><span class="nom">Presse a flocage</span><span><span class="mini"><span style="width:27%"></span></span> <span class="val">4</span></span></div>
+        </div>
+      </div>
+      <div class="carte">
+        <h2>Demandes a traiter</h2>
+        <div class="lignes">
+          <div class="l"><span class="nom"><span class="pastille"></span>Boitier capteur temperature</span><span class="meta">Pedagogique</span></div>
+          <div class="l"><span class="nom"><span class="pastille"></span>Support smartphone reglable</span><span class="meta">Personnel</span></div>
+        </div>
+        <a class="cta" href="#">Voir toutes les demandes &rarr;</a>
+      </div>
+    </div>
+
+    <div class="note">
+      <h3>Pourquoi ces indicateurs (vue admin)</h3>
+      <p><b>Cinq blocs, pas davantage.</b> Le RETEX fixe une limite de 5 a 9 elements : au-dela, l'engagement chute (depassement de la memoire de travail). On s'en tient a quatre cartes d'alerte plus deux panneaux.</p>
+      <p><b>Chaque carte passe le test « so what ? ».</b> Demandes en attente, stock sous seuil, machines disponibles, creneaux du jour : chacune repond a « que dois-je faire maintenant » et porte un lien vers l'ecran d'action. Aucun chiffre de vanite (pas de « total projets depuis toujours »).</p>
+      <p><b>Code couleur a seuil.</b> Le filet de gauche passe au rouge (action requise), ambre (a surveiller) ou vert (sain) selon la valeur, pour hierarchiser le regard sans graphique.</p>
+    </div>
+  </div>
+
+  <!-- ════════ VUE FORMATEUR ════════ -->
+  <div class="vue">
+    <div class="vue-titre">Vue Formateur : valider et encadrer</div>
+
+    <div class="kpis" style="grid-template-columns:repeat(3,1fr);">
+      <div class="kpi alerte">
+        <div class="t">Mes demandes a valider</div>
+        <div class="n">4</div>
+        <div class="d">projets pedagogiques en attente</div>
+        <a class="lien" href="#">Examiner &rarr;</a>
+      </div>
+      <div class="kpi attention">
+        <div class="t">Sessions a venir (mes projets)</div>
+        <div class="n">7</div>
+        <div class="d">creneaux planifies cette semaine</div>
+        <a class="lien" href="#">Voir le calendrier &rarr;</a>
+      </div>
+      <div class="kpi ok">
+        <div class="t">Projets que j'encadre</div>
+        <div class="n">12</div>
+        <div class="d">en cours</div>
+        <a class="lien" href="#">Mes projets &rarr;</a>
+      </div>
+    </div>
+
+    <div class="cols">
+      <div class="carte">
+        <h2>Mes demandes en attente</h2>
+        <div class="lignes">
+          <div class="l"><span class="nom"><span class="pastille"></span>Boitier capteur temperature</span><span class="meta">depuis 2 j</span></div>
+          <div class="l"><span class="nom"><span class="pastille"></span>Plaque signaletique salle D</span><span class="meta">depuis 1 j</span></div>
+          <div class="l"><span class="nom"><span class="pastille"></span>Station meteo connectee</span><span class="meta">depuis 4 h</span></div>
+          <div class="l"><span class="nom"><span class="pastille"></span>Prototype maquette</span><span class="meta">depuis 3 h</span></div>
+        </div>
+        <a class="cta" href="#">Tout examiner &rarr;</a>
+      </div>
+      <div class="carte">
+        <h2>Prochaines sessions de mes projets</h2>
+        <div class="lignes">
+          <div class="l"><span class="nom">Imprimante 3D filament</span><span class="meta">demain 09h00</span></div>
+          <div class="l"><span class="nom">Graveuse laser</span><span class="meta">demain 14h00</span></div>
+          <div class="l"><span class="nom">Station IoT</span><span class="meta">jeudi 10h00</span></div>
+        </div>
+        <a class="cta" href="#">Voir le calendrier &rarr;</a>
+      </div>
+    </div>
+
+    <div class="note">
+      <h3>Pourquoi cette vue differe (formateur)</h3>
+      <p><b>Filtrage par perimetre.</b> Le formateur ne voit pas le stock ni le parc machine (qui relevent de l'admin), mais ce qui releve de son role : les demandes <b>dont il est le valideur</b>, les sessions de <b>ses</b> projets, les projets qu'il encadre. Le RETEX nomme cela le controle d'acces dynamique : n'afficher que le pertinent reduit l'encombrement.</p>
+      <p><b>Donnees disponibles.</b> Ces indicateurs s'appuient sur des requetes deja proches de l'existant (reservations a venir par valideur, projets en attente). Une requete « demandes en attente filtrees par valideur » reste a ajouter cote code.</p>
+      <p><b>Meme grammaire visuelle.</b> Memes cartes, memes couleurs a seuil, meme logique d'action : seul le contenu change selon le role, pas le langage de l'interface.</p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

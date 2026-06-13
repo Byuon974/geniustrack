@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette : fiche utilisateur</title>
+<style>
+  :root {
+    --gl-blueprint: #1d4e6f;
+    --gl-blueprint-dark: #143a54;
+    --gl-ink: #14181c;
+    --gl-ink-soft: #5c6670;
+    --gl-surface: #fbfaf8;
+    --gl-bg: #f3f1ec;
+    --gl-amber: #c9821a;
+    --gl-amber-soft: #fbeed5;
+    --gl-vert: #2e7d4f;
+    --gl-vert-soft: #e3f1e8;
+    --gl-rouge: #b3261e;
+    --gl-rouge-soft: #f7e3e1;
+    --gl-radius: 8px;
+    --gl-radius-lg: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--gl-bg); color: var(--gl-ink);
+    margin: 0; padding: 1.5rem; line-height: 1.45;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; }
+  .note {
+    margin-bottom: 1rem; padding: 0.5rem 0.85rem; background: #fff;
+    border: 1px dashed rgba(0,0,0,.25); border-radius: var(--gl-radius);
+    font-size: 0.78rem; color: var(--gl-ink-soft);
+  }
+
+  /* Bandeau d'identité : qui est cette personne, en tête */
+  .identite {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 1.25rem 1.5rem; background: var(--gl-surface);
+    border: 1px solid rgba(0,0,0,.1); border-radius: var(--gl-radius-lg);
+    margin-bottom: 1rem;
+  }
+  .avatar {
+    width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0;
+    background: var(--gl-blueprint); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.25rem; font-weight: 600;
+  }
+  .identite__bloc { flex: 1; min-width: 0; }
+  .identite__nom { font-size: 1.4rem; font-weight: 600; margin: 0; }
+  .identite__mail { color: var(--gl-ink-soft); font-size: 0.9rem; margin: 0.1rem 0 0.4rem; }
+  .identite__badges { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .identite__actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.18rem 0.6rem; border-radius: 100px;
+    font-size: 0.75rem; font-weight: 600;
+  }
+  .badge--info { background: #e4eef5; color: var(--gl-blueprint); }
+  .badge--ok { background: var(--gl-vert-soft); color: var(--gl-vert); }
+  .badge--ko { background: var(--gl-rouge-soft); color: var(--gl-rouge); }
+
+  .btn {
+    padding: 0.5rem 1rem; border-radius: var(--gl-radius); font-size: 0.875rem;
+    font-weight: 600; cursor: pointer; border: 1px solid transparent;
+    font-family: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem;
+  }
+  .btn--ghost { background: transparent; border-color: rgba(0,0,0,.2); color: var(--gl-ink); }
+  .btn--primary { background: #b8500f; color: #fff; }
+  .btn--sm { padding: 0.35rem 0.7rem; font-size: 0.8rem; }
+
+  /* Indicateurs : l'état du compte. Les sanctions ressortent si non nulles. */
+  .indics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+  @media (max-width: 640px) { .indics { grid-template-columns: 1fr; } }
+  .indic {
+    padding: 1rem 1.25rem; background: var(--gl-surface);
+    border: 1px solid rgba(0,0,0,.1); border-radius: var(--gl-radius-lg);
+  }
+  .indic__label {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--gl-ink-soft); margin: 0 0 0.4rem;
+  }
+  .indic__valeur { font-size: 1.6rem; font-weight: 600; margin: 0; line-height: 1; }
+  .indic__sur { font-size: 0.9rem; color: var(--gl-ink-soft); font-weight: 400; }
+  .indic__action { margin-top: 0.6rem; }
+  /* Sanctions : carte d'alerte quand il y en a */
+  .indic--alerte { background: var(--gl-amber-soft); border-color: var(--gl-amber); }
+  .indic--alerte .indic__valeur { color: var(--gl-amber); }
+
+  .section-titre { font-size: 1.1rem; font-weight: 600; margin: 0 0 0.75rem; }
+  .table-vide {
+    padding: 2rem; text-align: center; color: var(--gl-ink-soft);
+    background: var(--gl-surface); border: 1px dashed rgba(0,0,0,.2);
+    border-radius: var(--gl-radius-lg); font-size: 0.9rem;
+  }
+</style>
+</head>
+<body>
+
+<div class="note">
+  Maquette de formatage de la fiche utilisateur. Identité regroupée en tête (avatar, nom, mail, badges au même endroit), indicateurs hiérarchisés (les sanctions ressortent en alerte quand il y en a), puis l'activité.
+</div>
+
+<div class="wrap">
+
+  <div class="identite">
+    <div class="avatar">AG</div>
+    <div class="identite__bloc">
+      <p class="identite__nom">Admin GeniusLab</p>
+      <p class="identite__mail">admin@cci.re</p>
+      <div class="identite__badges">
+        <span class="badge badge--ok">Actif</span>
+        <span class="badge badge--info">Admin</span>
+      </div>
+    </div>
+    <div class="identite__actions">
+      <a href="#" class="btn btn--ghost">Retour à la liste</a>
+      <a href="#" class="btn btn--primary">Modifier</a>
+    </div>
+  </div>
+
+  <div class="indics">
+    <div class="indic indic--alerte">
+      <p class="indic__label">Sanctions</p>
+      <p class="indic__valeur">2 <span class="indic__sur">/ 5</span></p>
+      <div class="indic__action"><button class="btn btn--sm btn--ghost">Lever une sanction</button></div>
+    </div>
+    <div class="indic">
+      <p class="indic__label">Projets déposés</p>
+      <p class="indic__valeur">0</p>
+    </div>
+    <div class="indic">
+      <p class="indic__label">Traçabilité</p>
+      <p class="indic__valeur" style="font-size:1rem;font-weight:400;color:var(--gl-ink-soft)">Les actions sur ce compte (création, modification, désactivation) sont enregistrées au journal.</p>
+      <div class="indic__action"><a href="#" class="btn btn--sm btn--ghost">Voir le journal</a></div>
+    </div>
+  </div>
+
+  <h2 class="section-titre">Projets</h2>
+  <div class="table-vide">Cet utilisateur n'a déposé aucun projet.</div>
+
+</div>
+
+</body>
+</html>

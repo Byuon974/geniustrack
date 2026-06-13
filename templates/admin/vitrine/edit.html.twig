@@ -1,0 +1,26 @@
+{% extends 'base.html.twig' %}
+{% block title %}Modifier : {{ bloc.libelle }}{% endblock %}
+{% block body %}
+{{ include('components/page_header.html.twig', {
+    titre: bloc.libelle,
+    soustitre: bloc.estImage ? "Choisissez une image (JPG, PNG ou WebP, 4 Mo maximum)." : "Modifiez le texte affiché sur la page d'accueil."
+}) }}
+
+{{ form_start(form) }}
+    {% if bloc.estImage %}
+        {% if bloc.image %}
+            <div class="cms-current">
+                <p class="cat">Image actuelle :</p>
+                <img src="{{ asset('uploads/vitrine/' ~ bloc.image) }}" alt="" class="cms-preview">
+            </div>
+        {% endif %}
+        {{ form_row(form.fichier) }}
+    {% else %}
+        {{ form_row(form.valeur) }}
+    {% endif %}
+    <div class="form-actions">
+        <a href="{{ path('admin_vitrine_index') }}" class="btn btn--ghost">Annuler</a>
+        <button type="submit" class="btn btn--primary">Enregistrer</button>
+    </div>
+{{ form_end(form) }}
+{% endblock %}

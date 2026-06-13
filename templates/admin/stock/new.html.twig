@@ -1,0 +1,11 @@
+{% extends 'base.html.twig' %}
+{% block title %}Ajouter un article{% endblock %}
+{% block fil_ariane %}{{ include('components/fil_ariane.html.twig', {segments: [
+    {libelle: 'Ressources', url: null},
+    {libelle: 'Stock', url: path('admin_stock_index')},
+    {libelle: 'Ajouter', url: null}
+]}) }}{% endblock %}
+{% block body %}
+{{ include('components/page_header.html.twig', {titre: 'Ajouter un article au stock'}) }}
+{{ include('admin/stock/_form.html.twig', {submit_label: 'Créer'}) }}
+{% endblock %}

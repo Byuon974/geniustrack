@@ -1,0 +1,22 @@
+{# Machines disponibles sur un créneau précis (début + durée), en pastilles
+   cochables : libres cochables, occupées grisées. Le formulaire d'ajout
+   (creneau-picker) lit les cases cochées « machines[] » à la soumission. #}
+<p class="machines-titre">Machines libres le {{ debut|date('d/m/Y') }} de {{ debut|date('H\\hi') }} à {{ debut|date_modify('+' ~ duree ~ ' minutes')|date('H\\hi') }}</p>
+{% set auMoinsUne = false %}
+<div class="machines-puces">
+    {% for item in machines %}
+        {% if item.libre %}
+            {% set auMoinsUne = true %}
+            <label class="puce">
+                <input type="checkbox" name="machines[]" value="{{ item.machine.id }}">
+                <span class="puce__check" aria-hidden="true"></span>
+                {{ item.machine.nom }}
+            </label>
+        {% else %}
+            <span class="puce puce--indispo" title="Occupée sur ce créneau">{{ item.machine.nom }}</span>
+        {% endif %}
+    {% endfor %}
+</div>
+{% if not auMoinsUne %}
+    <p class="cat">Aucune machine libre sur ce créneau.</p>
+{% endif %}

@@ -1,0 +1,42 @@
+{{ form_start(form) }}
+    <div class="form-grille form-grille--dense">
+        <fieldset class="bloc">
+            <p class="bloc__titre">Identité</p>
+            <div class="bloc__corps">
+                {{ form_row(form.nom) }}
+                <div class="champ-duo">
+                    {{ form_row(form.categorie) }}
+                    {{ form_row(form.unite) }}
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset class="bloc">
+            <p class="bloc__titre">Niveau de stock</p>
+            <div class="bloc__corps">
+                <div class="champ-duo">
+                    {{ form_row(form.quantite) }}
+                    {{ form_row(form.seuilMinimal) }}
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset class="bloc bloc--pleine">
+            <p class="bloc__titre">Réapprovisionnement</p>
+            <div class="bloc__corps">
+                <div class="champ-duo">
+                    {{ form_row(form.consommationMensuelleEstimee) }}
+                    {{ form_row(form.delaiFournisseurJours) }}
+                </div>
+                <p class="encart-calcul">
+                    Ces deux valeurs estiment le <strong>point de commande</strong> : le niveau de stock à partir duquel recommander pour ne pas tomber en rupture pendant la livraison.
+                </p>
+            </div>
+        </fieldset>
+    </div>
+
+    <div class="form-actions">
+        <a href="{{ path('admin_stock_index') }}" class="btn btn--ghost">Annuler</a>
+        <button type="submit" class="btn btn--primary">{{ submit_label }}</button>
+    </div>
+{{ form_end(form) }}

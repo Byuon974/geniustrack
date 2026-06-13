@@ -1,0 +1,71 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Prédictions de rupture de stock{% endblock %}
+{% block fil_ariane %}{{ include("components/fil_ariane.html.twig", {segments: [{libelle: "Ressources", url: null}, {libelle: "Stock", url: path("admin_stock_index")}, {libelle: "Prédictions", url: null}]}) }}{% endblock %}
+
+{% block body %}
+{{ include('components/page_header.html.twig', {
+    titre: 'Prédictions de rupture',
+    soustitre: 'Articles dont le stock risque de tomber à zéro avant réapprovisionnement.',
+    actions: '<a href="' ~ path('admin_stock_index') ~ '" class="btn btn--ghost">Retour aux stocks</a>'
+}) }}
+
+<div class="prevision-carte">
+    <h2>Estimation des ruptures à venir</h2>
+    <p style="color:var(--gl-ink-soft); font-size:var(--gl-text-sm); margin-top:0;">
+        Calcul : quantité ÷ consommation estimée. La pastille passe au rouge quand
+        la rupture surviendrait avant qu'une commande puisse être livrée
+        (délai fournisseur).
+    </p>
+
+    {% if avecPrediction is empty %}
+        {{ include('components/empty.html.twig', {
+            message: "Aucune prédiction pour l'instant. Renseignez la consommation mensuelle des articles pour estimer leurs ruptures."
+        }) }}
+    {% else %}
+        <div class="prevision-liste">
+            {% for article in avecPrediction %}
+                {% set jours = article.joursAvantRupture %}
+                <div class="prevision-ligne">
+                    <div>
+                        <span class="dot dot--{{ article.niveauUrgence }}" aria-hidden="true"></span>
+                        <span class="nom">{{ article.nom }}</span>
+                        <div class="cat">{{ article.categorie|libelle_type_machine }} : {{ article.quantite }} {{ article.unite }} en stock</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <span class="jours">≈ {{ jours }} jour(s)</span>
+                        {% if article.dateRuptureEstimee %}
+                            <div class="cat">Rupture vers le {{ article.dateRuptureEstimee|date('d/m/Y') }}</div>
+                        {% endif %}
+                        {% if article.niveauUrgence == 'rouge' %}
+                            <div class="cat" style="color:var(--gl-red);">À commander maintenant</div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+
+{% if sansConsommation is not empty %}
+    <details class="prevision-repli">
+        <summary class="prevision-repli__tete">
+            <span class="prevision-repli__titre">
+                {{ sansConsommation|length }} article(s) sans consommation renseignée
+            </span>
+            <span class="prevision-repli__indice">Renseigner leur consommation mensuelle active leur prédiction.</span>
+        </summary>
+        <div class="prevision-repli__corps">
+            <ul class="prevision-repli__liste">
+                {% for article in sansConsommation %}
+                    <li>
+                        <span class="nom">{{ article.nom }}</span>
+                        <span class="cat">{{ article.categorie|libelle_type_machine }}</span>
+                        <a href="{{ path('admin_stock_edit', {id: article.id}) }}" class="btn btn--sm">Renseigner</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </details>
+{% endif %}
+{% endblock %}

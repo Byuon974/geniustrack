@@ -1,0 +1,115 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion des stocks{% endblock %}
+{% block fil_ariane %}{{ include("components/fil_ariane.html.twig", {segments: [{libelle: "Ressources", url: null}, {libelle: "Stock", url: null}]}) }}{% endblock %}
+
+{% block body %}
+{{ include('components/page_header.html.twig', {
+    titre: 'Stocks',
+    soustitre: 'Niveaux et seuils des consommables, par espace du FabLab.',
+    actions:
+        '<a href="' ~ path('admin_stock_predictions') ~ '" class="btn btn--ghost">Prédictions de rupture</a>' ~
+        '<a href="' ~ path('admin_stock_new') ~ '" class="btn btn--primary">' ~ include('components/icon.html.twig', {name: 'plus', size: 16}) ~ ' Ajouter un article</a>'
+}) }}
+
+
+{# BF_4.4 : alerte synthétique stock bas en tête. #}
+{% if sousSeuil is not empty %}
+    <div class="alert alert--error" role="status">
+        {{ sousSeuil|length }} article(s) sous le seuil d'alerte :
+        {{ sousSeuil|map(a => a.nom)|join(', ') }}.
+    </div>
+{% endif %}
+
+{% if articles is empty %}
+    {{ include('components/empty.html.twig', {
+        message: 'Aucun article en stock pour le moment.',
+        action_label: 'Ajouter le premier',
+        action_path: path('admin_stock_new')
+    }) }}
+{% else %}
+    {# Chips de filtre par catégorie : passées au composant via le paramètre filtres. #}
+    {% set chips %}
+        <button type="button" class="filter-chip is-active"
+                data-datatable-target="chip" data-categorie=""
+                data-action="datatable#filtrerCategorie">Toutes</button>
+        {% for cat in categories %}
+            <button type="button" class="filter-chip"
+                    data-datatable-target="chip" data-categorie="{{ cat }}"
+                    data-action="datatable#filtrerCategorie">{{ cat|libelle_type_machine }}</button>
+        {% endfor %}
+    {% endset %}
+
+    {% embed 'components/data_table.html.twig' with {
+        recherche_placeholder: 'Rechercher un article…',
+        recherche_label: 'Rechercher un article',
+        vide_message: 'Aucun article ne correspond à la recherche.',
+        filtres: chips
+    } %}
+        {% block entetes %}
+            <th class="dt-sortable" data-datatable-target="header" data-sort-key="nom"
+                data-action="datatable#trier">Article <span class="dt-arrow" aria-hidden="true"></span></th>
+            <th class="dt-sortable" data-datatable-target="header" data-sort-key="categorie"
+                data-action="datatable#trier">Catégorie <span class="dt-arrow" aria-hidden="true"></span></th>
+            <th class="dt-sortable" data-datatable-target="header" data-sort-key="quantite"
+                data-action="datatable#trier">Quantité <span class="dt-arrow" aria-hidden="true"></span></th>
+            <th class="dt-sortable" data-datatable-target="header" data-sort-key="seuil"
+                data-action="datatable#trier">Seuil <span class="dt-arrow" aria-hidden="true"></span></th>
+            <th>État</th>
+            <th class="actions-col">Actions</th>
+        {% endblock %}
+        {% block lignes %}
+            {% for article in articles %}
+                {# Niveau de stock lisible : la barre situe la quantité par
+                   rapport au seuil d'alerte. Le seuil est le repère (100% de la
+                   piste = deux fois le seuil, pour qu'au seuil exact la barre
+                   soit à moitié). Couleur selon la criticité. #}
+                {% set reference = article.seuilMinimal > 0 ? article.seuilMinimal * 2 : max(article.quantite, 1) %}
+                {% set ratio = (article.quantite / reference * 100)|round %}
+                {% set ratio = ratio > 100 ? 100 : ratio %}
+                {% set niveau = article.estSousSeuil ? 'critical' : (article.quantite <= article.seuilMinimal * 1.5 ? 'low' : '') %}
+                {% set couleurNiveau = 'critical' == niveau ? 'red' : ('low' == niveau ? 'amber' : 'green') %}
+                <tr data-datatable-target="row" class="dt-row--{{ couleurNiveau }}"
+                    data-categorie="{{ article.categorie }}"
+                    data-recherche="{{ article.nom }} {{ article.categorie|libelle_type_machine }}"
+                    data-sort-nom="{{ article.nom|lower }}"
+                    data-sort-categorie="{{ (article.categorie|libelle_type_machine)|lower }}"
+                    data-sort-quantite="{{ article.quantite }}"
+                    data-sort-seuil="{{ article.seuilMinimal }}">
+                    <td><span class="statut-pastille statut-pastille--{{ couleurNiveau }}" aria-hidden="true"></span>{{ article.nom }}</td>
+                    <td>{{ article.categorie|libelle_type_machine }}</td>
+                    <td style="min-width:180px;">
+                        <div class="stock-bar-wrap">
+                            <div class="stock-bar-bg" title="Seuil d'alerte : {{ article.seuilMinimal }} {{ article.unite }}">
+                                <div class="stock-bar-fill {{ niveau }}" style="width:{{ ratio }}%;"></div>
+                                <span class="stock-bar-seuil" aria-hidden="true"></span>
+                            </div>
+                            <span class="stock-bar-val">{{ article.quantite }}<span class="stock-bar-sur">/{{ article.seuilMinimal }}</span> {{ article.unite }}</span>
+                        </div>
+                    </td>
+                    <td class="num">{{ article.seuilMinimal }}</td>
+                    <td>
+                        {% if article.estSousSeuil %}
+                            {{ include('components/badge.html.twig', {variante: 'danger', label: 'Stock bas'}) }}
+                        {% else %}
+                            {{ include('components/badge.html.twig', {variante: 'succes', label: 'OK'}) }}
+                        {% endif %}
+                    </td>
+                    <td class="actions-col">
+                        <a href="{{ path('admin_stock_edit', {id: article.id}) }}" class="btn btn--sm btn--ghost">Modifier</a>
+                        <form method="post" action="{{ path('admin_stock_delete', {id: article.id}) }}"
+                              data-controller="confirm"
+                              data-confirm-message-value="L'article « {{ article.nom }} » sera retiré du stock."
+                              data-confirm-titre-value="Supprimer cet article ?"
+                              data-confirm-variante-value="danger" data-confirm-libelle-value="Supprimer"
+                              class="inline-form">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ article.id) }}">
+                            <button type="submit" class="btn btn--sm btn--danger">Supprimer</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+        {% endblock %}
+    {% endembed %}
+{% endif %}
+{% endblock %}

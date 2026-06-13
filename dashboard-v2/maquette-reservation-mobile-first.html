@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette — réservation mobile-first</title>
+<style>
+  :root {
+    --gl-blueprint:#1d4e6f; --gl-filament:#e8702a; --gl-filament-ink:#b34e14; --gl-filament-soft:#fbe9dd;
+    --gl-surface:#fbfaf8; --gl-bg:#f3f1ec; --gl-line:#e3e0d8; --gl-ink:#14181c;
+    --gl-ink-soft:#5c6670; --gl-green:#2f8a5b; --gl-amber:#c9821a; --gl-amber-soft:#fbeed5;
+    --gl-red:#c0392b; --gl-red-soft:#f8e1de; --gl-slate:#41576a;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Inter',system-ui,sans-serif; background:var(--gl-bg); color:var(--gl-ink); padding:24px; font-size:14px; }
+  .legende-haut { max-width:1100px; margin:0 auto 14px; font-size:13px; color:var(--gl-slate); }
+  .cadres { max-width:1100px; margin:0 auto; display:flex; gap:30px; align-items:flex-start; flex-wrap:wrap; }
+  .device { background:var(--gl-surface); border:1px solid var(--gl-line); border-radius:12px; overflow:hidden; }
+  .device.desktop { flex:1; min-width:480px; }
+  .device.mobile { width:380px; border:8px solid #222; border-radius:28px; }
+  .titre-cadre { font-family:'Space Grotesk',sans-serif; font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--gl-slate); margin-bottom:8px; }
+  .entete { display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid var(--gl-line); }
+  h1 { font-family:'Space Grotesk',sans-serif; font-size:21px; }
+  .badge { background:var(--gl-filament-soft); color:var(--gl-filament-ink); font-family:monospace; font-size:11px; padding:4px 9px; border-radius:6px; }
+  .corps { padding:16px 20px; }
+  .intro { color:var(--gl-ink-soft); margin-bottom:14px; line-height:1.5; font-size:13px; }
+  .libelle { font-size:12px; font-weight:600; margin-bottom:5px; display:block; color:var(--gl-slate); }
+  .controles { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+  .champ { flex:1; min-width:90px; }
+  select { width:100%; padding:9px 10px; border:1px solid var(--gl-line); border-radius:8px; font:inherit; background:#fff; font-size:13px; }
+  .periode-titre { font-size:11px; font-weight:700; color:var(--gl-slate); text-transform:uppercase; letter-spacing:.04em; margin:10px 0 7px; display:flex; align-items:center; gap:8px; }
+  .periode-titre::after { content:''; flex:1; height:1px; background:var(--gl-line); }
+  .creneaux-grille { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; }
+  .creneau { border:1px solid var(--gl-line); border-radius:8px; padding:8px 2px; text-align:center; cursor:pointer; background:#fff; }
+  .creneau .h { font-weight:700; font-size:14px; display:block; font-family:'Space Grotesk',sans-serif; }
+  .creneau .pl { font-size:9px; color:var(--gl-ink-soft); }
+  .creneau.choisi { background:var(--gl-blueprint); border-color:var(--gl-blueprint); color:#fff; }
+  .creneau.choisi .pl { color:#dce7ef; }
+  .creneau.occupe { background:var(--gl-amber-soft); border-color:transparent; color:var(--gl-amber); }
+  /* Machines en PASTILLES compactes cochables (pas une longue liste) */
+  .machines-bloc { margin-top:14px; padding:13px 14px; background:#fcfbf9; border:1px solid var(--gl-line); border-radius:10px; }
+  .machines-bloc h3 { font-size:13px; margin-bottom:8px; }
+  .machines-puces { display:flex; flex-wrap:wrap; gap:7px; }
+  .puce { display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border:1px solid var(--gl-line); border-radius:20px; cursor:pointer; background:#fff; font-size:12px; font-weight:500; user-select:none; }
+  .puce:has(input:checked) { border-color:var(--gl-blueprint); background:var(--gl-blueprint); color:#fff; }
+  .puce input { display:none; }
+  .puce .check { width:14px; height:14px; border:1.5px solid var(--gl-line); border-radius:4px; display:inline-grid; place-items:center; font-size:10px; }
+  .puce:has(input:checked) .check { background:#fff; border-color:#fff; color:var(--gl-blueprint); }
+  .puce.indispo { opacity:.4; cursor:not-allowed; background:var(--gl-red-soft); border-color:transparent; text-decoration:line-through; }
+  .btn { padding:11px 16px; border-radius:8px; border:1px solid transparent; font:inherit; font-weight:600; cursor:pointer; }
+  .btn-ajouter { background:var(--gl-blueprint); color:#fff; width:100%; margin-top:12px; }
+  .btn-primary { background:var(--gl-filament); color:#fff; width:100%; }
+  .legende { display:flex; gap:12px; font-size:11px; color:var(--gl-ink-soft); margin-top:8px; }
+  .pip { width:11px; height:11px; border-radius:3px; display:inline-block; vertical-align:-1px; margin-right:4px; }
+  /* Panier : EMPILÉ sous la composition (mobile-first) */
+  .panier { margin-top:18px; padding-top:16px; border-top:2px solid var(--gl-line); }
+  .panier-titre { font-family:'Space Grotesk',sans-serif; font-size:15px; margin-bottom:10px; }
+  .resa-ligne { padding:10px 12px; border:1px solid var(--gl-line); border-radius:9px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+  .resa-ligne .quand { font-weight:600; font-family:'Space Grotesk',sans-serif; font-size:13px; }
+  .resa-ligne .machines { font-size:11px; color:var(--gl-ink-soft); margin-top:3px; }
+  .resa-ligne .vignette { display:inline-block; background:var(--gl-slate); color:#fff; font-size:10px; padding:2px 7px; border-radius:20px; margin:2px 2px 0 0; }
+  .resa-ligne .retirer { color:var(--gl-red); border:none; background:none; font-size:11px; cursor:pointer; text-decoration:underline; flex-shrink:0; }
+</style>
+</head>
+<body>
+<p class="legende-haut">La même page en desktop et en mobile. Une seule colonne qui s'empile : composition du créneau, puis panier dessous. Machines en pastilles compactes cochables (tient même à 10+ machines).</p>
+<div class="cadres">
+
+  <!-- DESKTOP -->
+  <div style="flex:1;min-width:480px">
+    <p class="titre-cadre">Desktop</p>
+    <div class="device desktop">
+      <div class="entete"><h1>Réserver des créneaux</h1><span class="badge">[Test] Réservation nominale</span></div>
+      <div class="corps">
+        <p class="intro">Choisissez un créneau, cochez les machines à utiliser en parallèle, puis ajoutez au panier. Recommencez autant que nécessaire.</p>
+        <div class="controles">
+          <div class="champ"><label class="libelle">Jour</label><select><option>ven. 13/06/2026</option></select></div>
+          <div class="champ"><label class="libelle">Durée</label><select><option>1 h</option></select></div>
+          <div class="champ"><label class="libelle">Personnes</label><select><option>2</option></select></div>
+        </div>
+        <p class="periode-titre">Après-midi</p>
+        <div class="creneaux-grille">
+          <div class="creneau"><span class="h">13h00</span><span class="pl">5 machines</span></div>
+          <div class="creneau choisi"><span class="h">14h00</span><span class="pl">choisi</span></div>
+          <div class="creneau occupe"><span class="h">15h00</span><span class="pl">2 machines</span></div>
+          <div class="creneau"><span class="h">16h00</span><span class="pl">5 machines</span></div>
+        </div>
+        <div class="legende">
+          <span><span class="pip" style="background:#fff;border:1px solid var(--gl-line)"></span>Libre</span>
+          <span><span class="pip" style="background:var(--gl-amber-soft)"></span>Partiel</span>
+        </div>
+        <div class="machines-bloc">
+          <h3>Machines libres de 14h00 à 15h00</h3>
+          <div class="machines-puces">
+            <label class="puce"><input type="checkbox" checked><span class="check">✓</span>Imprimante 3D Bambu Lab</label>
+            <label class="puce"><input type="checkbox" checked><span class="check">✓</span>Imprimante 3D résine</label>
+            <label class="puce"><input type="checkbox"><span class="check"></span>Graveuse laser</label>
+            <label class="puce"><input type="checkbox"><span class="check"></span>Scanner 3D</label>
+            <label class="puce"><input type="checkbox"><span class="check"></span>Flocage</label>
+            <label class="puce"><input type="checkbox"><span class="check"></span>Plotteur</label>
+            <label class="puce indispo"><input type="checkbox" disabled>Mini-ordinateur</label>
+          </div>
+          <button class="btn btn-ajouter">+ Ajouter ce créneau</button>
+        </div>
+        <div class="panier">
+          <p class="panier-titre">Votre réservation · 1 créneau</p>
+          <div class="resa-ligne">
+            <div><div class="quand">ven. 13/06 · 09h00 → 10h00</div>
+              <div class="machines"><span class="vignette">Imprimante 3D Bambu Lab</span> · 1 pers.</div></div>
+            <button class="retirer">Retirer</button>
+          </div>
+          <button class="btn btn-primary" style="margin-top:8px">Confirmer la réservation</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBILE -->
+  <div>
+    <p class="titre-cadre">Mobile</p>
+    <div class="device mobile">
+      <div class="entete"><h1 style="font-size:18px">Réserver</h1></div>
+      <div class="corps">
+        <p class="intro">Choisissez un créneau, cochez les machines, ajoutez au panier.</p>
+        <div class="controles">
+          <div class="champ"><label class="libelle">Jour</label><select><option>13/06</option></select></div>
+          <div class="champ"><label class="libelle">Durée</label><select><option>1 h</option></select></div>
+          <div class="champ"><label class="libelle">Pers.</label><select><option>2</option></select></div>
+        </div>
+        <p class="periode-titre">Après-midi</p>
+        <div class="creneaux-grille">
+          <div class="creneau"><span class="h">13h</span><span class="pl">5 m.</span></div>
+          <div class="creneau choisi"><span class="h">14h</span><span class="pl">choisi</span></div>
+          <div class="creneau occupe"><span class="h">15h</span><span class="pl">2 m.</span></div>
+          <div class="creneau"><span class="h">16h</span><span class="pl">5 m.</span></div>
+        </div>
+        <div class="machines-bloc">
+          <h3>Machines libres 14h-15h</h3>
+          <div class="machines-puces">
+            <label class="puce"><input type="checkbox" checked><span class="check">✓</span>Impr. 3D Bambu</label>
+            <label class="puce"><input type="checkbox" checked><span class="check">✓</span>Impr. résine</label>
+            <label class="puce"><input type="checkbox"><span class="check"></span>Graveuse laser</label>
+            <label class="puce"><input type="checkbox"><span class="check"></span>Scanner 3D</label>
+            <label class="puce"><input type="checkbox"><span class="check"></span>Flocage</label>
+          </div>
+          <button class="btn btn-ajouter">+ Ajouter</button>
+        </div>
+        <div class="panier">
+          <p class="panier-titre">Réservation · 1 créneau</p>
+          <div class="resa-ligne">
+            <div><div class="quand">13/06 · 09h-10h</div>
+              <div class="machines"><span class="vignette">Impr. 3D Bambu</span> · 1 p.</div></div>
+            <button class="retirer">×</button>
+          </div>
+          <button class="btn btn-primary" style="margin-top:8px">Confirmer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,17 @@
+# Durcissement de la session : attributs de sécurité explicites sur le cookie.
+#
+# Rendre ces valeurs explicites plutôt que de dépendre des défauts évite toute
+# dérive selon la version ou l'environnement, et documente l'intention sécurité.
+#
+#  - cookie_httponly : le cookie de session n'est pas lisible en JavaScript,
+#    ce qui limite le vol de session via une éventuelle faille XSS.
+#  - cookie_secure: auto : le cookie n'est transmis qu'en HTTPS dès que la
+#    requête est sécurisée (et reste utilisable en HTTP pour le dev local).
+#  - cookie_samesite: lax : le cookie n'accompagne pas les requêtes cross-site
+#    de type POST, ce qui ajoute une couche anti-CSRF sans casser la navigation
+#    normale (les liens entrants continuent de fonctionner).
+framework:
+    session:
+        cookie_httponly: true
+        cookie_secure: auto
+        cookie_samesite: lax

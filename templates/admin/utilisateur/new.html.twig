@@ -1,0 +1,35 @@
+{% extends 'base.html.twig' %}
+{% block title %}Nouveau compte{% endblock %}
+{% block fil_ariane %}{{ include('components/fil_ariane.html.twig', {segments: [
+    {libelle: 'Ressources', url: null},
+    {libelle: 'Utilisateurs', url: path('admin_utilisateur_index')},
+    {libelle: 'Nouveau compte', url: null}
+]}) }}{% endblock %}
+{% block body %}
+{{ include('components/page_header.html.twig', {titre: 'Nouveau compte'}) }}
+{{ form_start(form) }}
+    <div class="form-grille form-grille--dense">
+        <fieldset class="bloc">
+            <p class="bloc__titre">Identité</p>
+            <div class="bloc__corps">
+                {{ form_row(form.prenom) }}
+                {{ form_row(form.nom) }}
+                {{ form_row(form.email) }}
+            </div>
+        </fieldset>
+
+        <fieldset class="bloc">
+            <p class="bloc__titre">Accès et rôle</p>
+            <div class="bloc__corps">
+                {{ form_row(form.roles) }}
+                {{ form_row(form.actif) }}
+                {{ form_row(form.motDePasse) }}
+            </div>
+        </fieldset>
+    </div>
+    <div class="form-actions">
+        <a href="{{ path('admin_utilisateur_index') }}" class="btn btn--ghost">Annuler</a>
+        <button type="submit" class="btn btn--primary">Créer le compte</button>
+    </div>
+{{ form_end(form) }}
+{% endblock %}

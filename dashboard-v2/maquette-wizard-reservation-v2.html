@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maquette : wizard réservation corrigé</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --gl-blueprint:#1d4e6f; --gl-blueprint-dark:#143a54;
+  --gl-filament:#e8702a; --gl-filament-ink:#b34e14; --gl-filament-soft:#fbe9dd;
+  --gl-surface:#fbfaf8; --gl-bg:#f3f1ec; --gl-line:#e3e0d8;
+  --gl-ink:#14181c; --gl-ink-soft:#5c6670;
+  --gl-green:#2f8a5b; --gl-green-soft:#e2f3ea;
+  --gl-amber:#c9821a; --gl-amber-soft:#fbeed5;
+  --gl-red:#c0392b; --gl-red-soft:#f8e1de;
+  --gl-font-display:'Space Grotesk',system-ui,sans-serif;
+  --gl-font-body:'Inter',system-ui,sans-serif;
+  --gl-font-mono:'JetBrains Mono',ui-monospace,monospace;
+  --gl-text-xs:.75rem; --gl-text-sm:.875rem; --gl-text-base:1rem;
+  --gl-text-lg:1.125rem; --gl-text-xl:1.5rem;
+  --gl-space-1:.25rem; --gl-space-2:.5rem; --gl-space-3:.75rem;
+  --gl-space-4:1rem; --gl-space-6:1.5rem; --gl-space-8:2rem;
+  --gl-radius:8px; --gl-radius-lg:10px; --gl-radius-sm:5px;
+  --gl-shadow:0 1px 2px rgba(20,24,28,.06),0 1px 3px rgba(20,24,28,.08);
+}
+*,*::before,*::after{box-sizing:border-box;}
+body{margin:0;font-family:var(--gl-font-body);font-size:var(--gl-text-base);
+  color:var(--gl-ink);background:var(--gl-bg);line-height:1.5;padding:var(--gl-space-8);}
+h1{font-family:var(--gl-font-display);font-size:var(--gl-text-xl);margin:0;}
+.note{max-width:760px;margin:0 auto var(--gl-space-8);color:var(--gl-ink-soft);
+  font-size:var(--gl-text-sm);background:var(--gl-amber-soft);
+  border-left:3px solid var(--gl-amber);padding:var(--gl-space-3) var(--gl-space-4);border-radius:var(--gl-radius-sm);}
+
+/* ─── Carte wizard ─── */
+.wizard{max-width:760px;margin:0 auto var(--gl-space-8);background:var(--gl-surface);
+  border:1px solid var(--gl-line);border-radius:var(--gl-radius-lg);box-shadow:var(--gl-shadow);
+  overflow:hidden;}
+.wizard__header{padding:var(--gl-space-6) var(--gl-space-6) var(--gl-space-4);
+  display:flex;align-items:baseline;justify-content:space-between;gap:var(--gl-space-4);
+  border-bottom:1px solid var(--gl-line);}
+.wizard__header .cat{font-family:var(--gl-font-mono);font-size:var(--gl-text-sm);
+  color:var(--gl-filament-ink);background:var(--gl-filament-soft);
+  padding:var(--gl-space-1) var(--gl-space-3);border-radius:999px;white-space:nowrap;}
+
+/* ─── Stepper ─── */
+.stepper{display:flex;list-style:none;margin:0;padding:var(--gl-space-4) var(--gl-space-6);
+  gap:var(--gl-space-2);border-bottom:1px solid var(--gl-line);background:#fff;}
+.stepper__item{flex:1;display:flex;flex-direction:column;align-items:center;gap:var(--gl-space-2);
+  position:relative;color:var(--gl-ink-soft);font-size:var(--gl-text-sm);}
+.stepper__item:not(:last-child)::after{content:"";position:absolute;top:14px;left:60%;right:-40%;
+  height:2px;background:var(--gl-line);}
+.stepper__item.is-done:not(:last-child)::after{background:var(--gl-green);}
+.stepper__dot{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;
+  background:var(--gl-line);color:var(--gl-ink-soft);font-weight:600;font-size:var(--gl-text-sm);
+  position:relative;z-index:1;}
+.stepper__item.is-current .stepper__dot{background:var(--gl-blueprint);color:#fff;}
+.stepper__item.is-current .stepper__label{color:var(--gl-ink);font-weight:600;}
+.stepper__item.is-done .stepper__dot{background:var(--gl-green);color:#fff;}
+
+/* ─── Corps d'étape ─── */
+.wizard__body{padding:var(--gl-space-6);}
+.section-sub{margin:0 0 var(--gl-space-4);color:var(--gl-ink-soft);font-size:var(--gl-text-sm);}
+
+.bloc{border:1px solid var(--gl-line);border-radius:var(--gl-radius);background:#fff;
+  margin-bottom:var(--gl-space-4);}
+.bloc__titre{margin:0;padding:var(--gl-space-3) var(--gl-space-4);
+  font-family:var(--gl-font-display);font-size:var(--gl-text-sm);font-weight:600;
+  color:var(--gl-blueprint);border-bottom:1px solid var(--gl-line);background:var(--gl-bg);}
+.bloc__corps{padding:var(--gl-space-4);display:grid;gap:var(--gl-space-4);}
+
+.champ{display:grid;gap:var(--gl-space-1);}
+.champ label{font-size:var(--gl-text-sm);font-weight:500;color:var(--gl-ink);}
+.champ .aide{font-size:var(--gl-text-xs);color:var(--gl-ink-soft);}
+.champ input,.champ select{width:100%;padding:var(--gl-space-2) var(--gl-space-3);
+  border:1px solid var(--gl-line);border-radius:var(--gl-radius-sm);font:inherit;
+  background:var(--gl-surface);color:var(--gl-ink);}
+.champ input:focus,.champ select:focus{outline:2px solid var(--gl-filament);outline-offset:1px;border-color:var(--gl-filament);}
+.champ--inline{display:grid;grid-template-columns:1fr 1fr;gap:var(--gl-space-4);}
+
+/* ─── Récap (lecture seule) ─── */
+.recap-ligne{display:flex;justify-content:space-between;gap:var(--gl-space-4);
+  padding:var(--gl-space-3) 0;border-bottom:1px dashed var(--gl-line);font-size:var(--gl-text-sm);}
+.recap-ligne:last-child{border-bottom:0;}
+.recap-ligne .val{font-weight:600;font-family:var(--gl-font-mono);}
+
+/* ─── Actions ─── */
+.form-actions{display:flex;justify-content:space-between;gap:var(--gl-space-3);
+  padding:var(--gl-space-4) var(--gl-space-6);border-top:1px solid var(--gl-line);background:var(--gl-bg);}
+.btn{font:inherit;font-weight:600;font-size:var(--gl-text-sm);padding:var(--gl-space-2) var(--gl-space-4);
+  border-radius:var(--gl-radius-sm);border:1px solid transparent;cursor:pointer;text-decoration:none;
+  display:inline-flex;align-items:center;gap:var(--gl-space-2);}
+.btn--primary{background:var(--gl-filament-ink);color:#fff;}
+.btn--primary:hover{background:#9a420f;}
+.btn--ghost{background:transparent;border-color:var(--gl-line);color:var(--gl-ink);}
+.btn--ghost:hover{background:#fff;}
+.btn--sm{padding:var(--gl-space-1) var(--gl-space-3);font-size:var(--gl-text-xs);}
+.btn--danger{background:transparent;border-color:var(--gl-red);color:var(--gl-red);}
+
+/* ─── Créneaux (collection) ─── */
+.creneau-item{border:1px solid var(--gl-line);border-radius:var(--gl-radius);background:#fff;
+  padding:var(--gl-space-4);margin-bottom:var(--gl-space-3);}
+.creneau-item__head{display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:var(--gl-space-3);}
+.creneau-item__head strong{font-family:var(--gl-font-display);font-size:var(--gl-text-sm);}
+
+.label-section{font-family:var(--gl-font-display);font-size:var(--gl-text-sm);
+  color:var(--gl-ink-soft);text-transform:uppercase;letter-spacing:.04em;
+  margin:var(--gl-space-8) auto var(--gl-space-3);max-width:760px;font-weight:600;}
+</style>
+</head>
+<body>
+
+<div class="note">
+  Maquette du wizard de réservation corrigé. Trois étapes empilées ici pour validation ;
+  dans l'application, une seule s'affiche à la fois. Anti-patterns corrigés : boutons en
+  français et stylés (Précédent / Suivant / Confirmer), une étape par écran, libellés
+  accentués sans texte orphelin, champ « nombre de personnes » borné à la capacité,
+  tout tient dans la carte sans débordement.
+</div>
+
+<!-- ════════ ÉTAPE 1 : PRÉPARATION ════════ -->
+<div class="label-section">Étape 1 — Préparation</div>
+<div class="wizard">
+  <div class="wizard__header">
+    <h1>Réservation</h1>
+    <span class="cat">[Test] Réservation nominale</span>
+  </div>
+  <ol class="stepper">
+    <li class="stepper__item is-current"><span class="stepper__dot">1</span><span class="stepper__label">Préparation</span></li>
+    <li class="stepper__item"><span class="stepper__dot">2</span><span class="stepper__label">Créneaux</span></li>
+    <li class="stepper__item"><span class="stepper__dot">3</span><span class="stepper__label">Récapitulatif</span></li>
+  </ol>
+  <div class="wizard__body">
+    <p class="section-sub">Réservez d'abord le rendez-vous de préparation, obligatoire avant toute réalisation.</p>
+    <fieldset class="bloc" style="border:0;padding:0;margin:0;">
+      <p class="bloc__titre">Rendez-vous de préparation</p>
+      <div class="bloc__corps">
+        <div class="champ">
+          <label for="m1">Machine pour la préparation</label>
+          <select id="m1"><option>Plotteur de découpe</option><option>Imprimante 3D — Prusa MK4</option></select>
+        </div>
+        <div class="champ--inline">
+          <div class="champ">
+            <label for="d1">Date et heure du rendez-vous</label>
+            <input id="d1" type="datetime-local" value="2026-06-25T11:00">
+          </div>
+          <div class="champ">
+            <label for="n1">Nombre de personnes</label>
+            <input id="n1" type="number" inputmode="numeric" min="1" max="15" value="3">
+            <span class="aide">De 1 à 15 personnes (capacité du laboratoire).</span>
+          </div>
+        </div>
+      </div>
+    </fieldset>
+  </div>
+  <div class="form-actions">
+    <span></span>
+    <button class="btn btn--primary">Suivant</button>
+  </div>
+</div>
+
+<!-- ════════ ÉTAPE 2 : CRÉNEAUX ════════ -->
+<div class="label-section">Étape 2 — Créneaux de réalisation</div>
+<div class="wizard">
+  <div class="wizard__header">
+    <h1>Réservation</h1>
+    <span class="cat">[Test] Réservation nominale</span>
+  </div>
+  <ol class="stepper">
+    <li class="stepper__item is-done"><span class="stepper__dot">✓</span><span class="stepper__label">Préparation</span></li>
+    <li class="stepper__item is-current"><span class="stepper__dot">2</span><span class="stepper__label">Créneaux</span></li>
+    <li class="stepper__item"><span class="stepper__dot">3</span><span class="stepper__label">Récapitulatif</span></li>
+  </ol>
+  <div class="wizard__body">
+    <p class="section-sub">Ajoutez de 1 à 4 créneaux de réalisation.</p>
+
+    <div class="creneau-item">
+      <div class="creneau-item__head">
+        <strong>Créneau 1</strong>
+        <button class="btn btn--sm btn--danger">Retirer</button>
+      </div>
+      <div class="bloc__corps" style="padding:0;">
+        <div class="champ">
+          <label>Machine</label>
+          <select><option>Imprimante 3D — Prusa MK4</option><option>Plotteur de découpe</option></select>
+        </div>
+        <div class="champ--inline">
+          <div class="champ">
+            <label>Date et heure</label>
+            <input type="datetime-local" value="2026-06-26T14:00">
+          </div>
+          <div class="champ">
+            <label>Durée</label>
+            <select><option>30 min</option><option>1 h</option><option selected>1 h 30</option><option>2 h</option><option>3 h</option><option>4 h</option></select>
+          </div>
+        </div>
+        <div class="champ">
+          <label>Nombre de personnes</label>
+          <input type="number" inputmode="numeric" min="1" max="15" value="3">
+          <span class="aide">De 1 à 15 personnes.</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn--ghost">+ Ajouter un créneau</button>
+  </div>
+  <div class="form-actions">
+    <button class="btn btn--ghost">Précédent</button>
+    <button class="btn btn--primary">Suivant</button>
+  </div>
+</div>
+
+<!-- ════════ ÉTAPE 3 : RÉCAPITULATIF ════════ -->
+<div class="label-section">Étape 3 — Récapitulatif</div>
+<div class="wizard">
+  <div class="wizard__header">
+    <h1>Réservation</h1>
+    <span class="cat">[Test] Réservation nominale</span>
+  </div>
+  <ol class="stepper">
+    <li class="stepper__item is-done"><span class="stepper__dot">✓</span><span class="stepper__label">Préparation</span></li>
+    <li class="stepper__item is-done"><span class="stepper__dot">✓</span><span class="stepper__label">Créneaux</span></li>
+    <li class="stepper__item is-current"><span class="stepper__dot">3</span><span class="stepper__label">Récapitulatif</span></li>
+  </ol>
+  <div class="wizard__body">
+    <p class="section-sub">Vérifiez votre réservation avant de confirmer. En confirmant, le projet passe « en cours ».</p>
+    <fieldset class="bloc" style="border:0;padding:0;margin:0;">
+      <p class="bloc__titre">Récapitulatif</p>
+      <div class="bloc__corps" style="gap:0;">
+        <div class="recap-ligne"><span>Préparation</span><span class="val">25/06 à 11h00 · Plotteur de découpe · 3 pers.</span></div>
+        <div class="recap-ligne"><span>Créneau 1</span><span class="val">26/06 à 14h00 · Prusa MK4 · 1 h 30 · 3 pers.</span></div>
+      </div>
+    </fieldset>
+  </div>
+  <div class="form-actions">
+    <button class="btn btn--ghost">Précédent</button>
+    <button class="btn btn--primary">Confirmer la réservation</button>
+  </div>
+</div>
+
+</body>
+</html>

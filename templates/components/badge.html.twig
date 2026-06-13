@@ -1,0 +1,28 @@
+{#
+  Composant badge unifié.
+
+  Deux façons de l'appeler, par ordre de préférence :
+
+  1. Par VARIANTE SÉMANTIQUE (recommandé) : on déclare le SENS, la couleur suit.
+     {{ include('components/badge.html.twig', {variante: 'succes', label: 'Actif'}) }}
+     Variantes : succes, alerte, danger, info, neutre, accent.
+
+  2. Par COULEUR directe (rétrocompatibilité) : on impose la teinte.
+     {{ include('components/badge.html.twig', {couleur: 'green', label: 'OK'}) }}
+
+  La logique « quel sens donne quelle couleur » vit ICI, à un seul endroit, au
+  lieu d'être dupliquée dans chaque template. C'est le pattern de bibliothèque
+  de composants : un sens, une variante, jamais de décision de couleur dispersée.
+
+  Voir docs/COMPOSANTS-UI.md pour le catalogue complet des composants.
+#}
+{% set mapping = {
+    'succes': 'green',
+    'alerte': 'amber',
+    'danger': 'red',
+    'info':   'blue',
+    'neutre': 'gray',
+    'accent': 'slate'
+} %}
+{% set couleurFinale = variante is defined ? (mapping[variante]|default('gray')) : (couleur|default('gray')) %}
+<span class="badge badge--{{ couleurFinale }}">{{ label }}</span>

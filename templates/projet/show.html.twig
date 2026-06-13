@@ -1,0 +1,80 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ projet.titre }}{% endblock %}
+{% block fil_ariane %}{{ include('components/fil_ariane.html.twig', {segments: [
+    {libelle: 'Mon espace', url: null},
+    {libelle: 'Mes projets', url: path('projet_index')},
+    {libelle: projet.titre, url: null}
+]}) }}{% endblock %}
+{% block body %}
+<div class="page-header">
+    <h1>{{ projet.titre }}</h1>
+    {{ include('components/badge.html.twig', {couleur: projet.statut.couleur, label: projet.statut.libelle}) }}
+</div>
+
+
+<div class="prevision-carte">
+    <p>{{ projet.description }}</p>
+    <p class="cat">{{ projet.type.libelle }}, machines :
+       {% for m in projet.machines %}{{ include('components/badge.html.twig', {couleur: 'blue', label: m.nom}) }} {% endfor %}
+    </p>
+
+    {% if projet.plans is not empty %}
+        <div class="plans-list">
+            <strong>Plans importés :</strong>
+            <ul>
+                {% for plan in projet.plans %}
+                    <li><a href="{{ path('plan_telecharger', {id: plan.id}) }}">{{ plan.nomOriginal }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    {% if projet.statut.value == 'refuse' %}
+        <div class="alert alert--error">
+            <strong>Projet refusé.</strong> {{ projet.motifRefus }}
+        </div>
+        <form method="post" action="{{ path('projet_resoumettre', {id: projet.id}) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('resoumettre' ~ projet.id) }}">
+            <button type="submit" class="btn btn--primary">Corriger et resoumettre</button>
+        </form>
+    {% endif %}
+
+    {% if projet.statut.value == 'valide' %}
+        <a href="{{ path('reservation_creer', {id: projet.id}) }}" class="btn btn--primary">Réserver un créneau</a>
+    {% endif %}
+</div>
+
+{% if projet.reservations is not empty %}
+    <h2 class="section-title">Mes créneaux</h2>
+    <table class="data-table">
+        <thead><tr><th>Type</th><th>Machine</th><th>Début</th><th>Statut</th><th></th></tr></thead>
+        <tbody>
+        {% for r in projet.reservations %}
+            <tr>
+                <td>{{ r.type.libelle }}</td>
+                <td>{{ r.machine.nom }}</td>
+                <td>{{ r.dateDebut|date('d/m/Y H:i') }}</td>
+                <td>{{ r.statut.libelle }}</td>
+                <td class="actions-col">
+                    {% if r.statut.value == 'planifiee' %}
+                    <div class="reservation-actions">
+                        <form method="post" action="{{ path('reservation_annuler', {id: r.id}) }}"
+                              data-controller="confirm" data-confirm-message-value="Ce créneau de réservation sera annulé." data-confirm-titre-value="Annuler ce créneau ?" data-confirm-variante-value="danger" data-confirm-libelle-value="Annuler le créneau" class="inline-form">
+                            <input type="hidden" name="_token" value="{{ csrf_token('annuler' ~ r.id) }}">
+                            <button type="submit" class="btn btn--sm btn--danger">Annuler</button>
+                        </form>
+                        <form method="post" action="{{ path('reservation_reporter', {id: r.id}) }}" class="inline-form report-form">
+                            <input type="hidden" name="_token" value="{{ csrf_token('reporter' ~ r.id) }}">
+                            <input type="datetime-local" name="nouvelle_date" required
+                                   aria-label="Nouvelle date pour ce créneau">
+                            <button type="submit" class="btn btn--sm">Reporter</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+{% endblock %}

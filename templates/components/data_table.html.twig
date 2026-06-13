@@ -1,0 +1,81 @@
+{#
+  Composant data_table : coquille unique pour toutes les listes du logiciel.
+
+  Encapsule la barre d'outils (recherche + filtres optionnels), le conteneur à
+  ascenseur interne avec en-tete fige, l'etat « aucun resultat » et la
+  pagination. La page n'a plus a repeter ce balisage : elle fournit seulement
+  ses colonnes et ses lignes via deux blocs Twig (entetes et lignes).
+
+  S'utilise avec « embed » (pas include), car il faut passer du balisage en
+  blocs. Voir un exemple complet dans n'importe quelle liste migree, par
+  exemple templates/admin/machine/index.html.twig, et le catalogue dans
+  docs/COMPOSANTS-UI.md.
+
+  Parametres :
+    recherche_placeholder (requis) : texte d'invite du champ de recherche
+    recherche_label       (requis) : libelle accessible du champ
+    vide_message          (option) : texte si le filtre ne renvoie rien
+    tailles               (option) : tailles de page proposees (defaut 10, 20, 50)
+    taille_defaut         (option) : taille selectionnee par defaut (defaut 20)
+    filtres               (option) : balisage de chips de filtre (deja rendu)
+
+  Blocs a fournir par la page :
+    entetes (requis) : les cellules d'en-tete (th)
+    lignes  (requis) : les lignes du corps (tr), chacune avec
+                       data-datatable-target="row"
+
+  Le tri, la recherche, le filtrage et la pagination sont pris en charge par le
+  controleur Stimulus « datatable » : aucune logique a dupliquer.
+#}
+{% set tailles = tailles|default([10, 20, 50]) %}
+{% set taille_defaut = taille_defaut|default(20) %}
+{% set vide_message = vide_message|default('Aucun résultat ne correspond à la recherche.') %}
+<div data-controller="datatable">
+    <div class="dt-toolbar">
+        <div class="dt-search">
+            {{ include('components/icon.html.twig', {name: 'search', size: 16}) }}
+            <input type="search" inputmode="search" placeholder="{{ recherche_placeholder }}"
+                   data-datatable-target="search"
+                   data-action="input->datatable#rechercher"
+                   aria-label="{{ recherche_label }}">
+        </div>
+        {% if filtres is defined and filtres %}
+            {# filtres et action : markup interne (chips, liens), jamais de donnée
+               utilisateur brute. |raw sûr tant que cet invariant tient. #}
+            <div class="dt-chips" role="group" aria-label="Filtrer">{{ filtres|raw }}</div>
+        {% endif %}
+        {% if action is defined and action %}
+            <div class="dt-toolbar-action">{{ action|raw }}</div>
+        {% endif %}
+    </div>
+
+    <div class="dt-scroll">
+        <table class="data-table dt-table">
+            <thead>
+                <tr>{% block entetes %}{% endblock %}</tr>
+            </thead>
+            <tbody>
+                {% block lignes %}{% endblock %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="dt-empty" data-datatable-target="empty" style="display:none;">
+        {{ vide_message }}
+    </div>
+
+    <div class="dt-pager" data-datatable-target="pager">
+        <div class="dt-pager-right">
+            <label>Par page
+                <select data-datatable-target="pageSize" data-action="datatable#changerTaille">
+                    {% for t in tailles %}
+                        <option value="{{ t }}"{{ t == taille_defaut ? ' selected' : '' }}>{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button type="button" class="btn btn--sm" data-action="datatable#pagePrecedente">Précédent</button>
+            <span data-datatable-target="pageInfo"></span>
+            <button type="button" class="btn btn--sm" data-action="datatable#pageSuivante">Suivant</button>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,116 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ projet.titre }} : demande à valider{% endblock %}
+{% block fil_ariane %}{{ include('components/fil_ariane.html.twig', {segments: [
+    {libelle: 'Validation', url: null},
+    {libelle: 'Demandes', url: path('demande_index')},
+    {libelle: projet.titre, url: null}
+]}) }}{% endblock %}
+{% block body %}
+{{ include('components/page_header.html.twig', {
+    titre: projet.titre,
+    soustitre: 'Examen de la demande avant décision.'
+}) }}
+
+
+<div class="demande-detail">
+
+    {# Identité de la demande : type, auteur, date. Tout ce qu'il faut pour situer. #}
+    <div class="demande-detail__meta">
+        {{ include('components/badge.html.twig', {variante: 'info', label: projet.type.libelle}) }}
+        <span>Déposé par <strong>{{ projet.etudiant.nomComplet }}</strong></span>
+        <span>le {{ projet.createdAt|date('d/m/Y à H\\hi') }}</span>
+        {% if premiereUtilisation %}
+            <span class="badge-premiere">
+                {{ include('components/icon.html.twig', {name: 'user-plus', size: 14}) }}
+                Première utilisation
+            </span>
+        {% endif %}
+    </div>
+
+    {# Signalement de première utilisation : information au valideur, sans
+       prescription. Le marqueur métier vit dans ProjetRepository::estPremierProjet
+       et est tracé au journal à la validation (archive consultable). #}
+    {% if premiereUtilisation %}
+        <div class="encart-premiere">
+            {{ include('components/icon.html.twig', {name: 'user-plus', size: 22}) }}
+            <span>Premier projet de cet étudiant sur GeniusLab.</span>
+        </div>
+    {% endif %}
+
+    {# Description du projet. #}
+    <section class="demande-detail__section">
+        <h2 class="demande-detail__titre-section">Description</h2>
+        {% if projet.description %}
+            <p>{{ projet.description }}</p>
+        {% else %}
+            <p class="demande-detail__vide">Aucune description fournie.</p>
+        {% endif %}
+    </section>
+
+    {# Machines demandées. #}
+    <section class="demande-detail__section">
+        <h2 class="demande-detail__titre-section">Machines demandées</h2>
+        {% if projet.machines is not empty %}
+            <div class="demande-detail__machines">
+                {% for m in projet.machines %}
+                    {{ include('components/badge.html.twig', {variante: 'neutre', label: m.nom}) }}
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="demande-detail__vide">Aucune machine précisée.</p>
+        {% endif %}
+    </section>
+
+    {# Plans et fichiers joints : le cœur de l'examen approfondi. #}
+    <section class="demande-detail__section">
+        <h2 class="demande-detail__titre-section">Plans et fichiers</h2>
+        {% if projet.plans is not empty %}
+            <ul class="demande-detail__plans">
+                {% for plan in projet.plans %}
+                    <li class="demande-detail__plan">
+                        {{ include('components/icon.html.twig', {name: 'clipboard', size: 18}) }}
+                        <a href="{{ path('plan_telecharger', {id: plan.id}) }}">{{ plan.nomOriginal }}</a>
+                        <span class="demande-detail__plan-date">ajouté le {{ plan.createdAt|date('d/m/Y') }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="demande-detail__vide">Aucun plan joint à cette demande.</p>
+        {% endif %}
+    </section>
+
+    {# Actions de décision : seulement si l'utilisateur peut valider ce type. #}
+    {% if peutValider and projet.statut.value == 'en_attente' %}
+        <section class="demande-detail__actions" data-controller="revealform">
+            <div data-revealform-target="actions">
+                <form method="post" action="{{ path('demande_valider', {id: projet.id}) }}"
+                      data-controller="confirm"
+                      data-confirm-message-value="Le projet « {{ projet.titre }} » sera validé et l'étudiant en sera informé."
+                      data-confirm-titre-value="Valider ce projet ?">
+                    <input type="hidden" name="_token" value="{{ csrf_token('valider' ~ projet.id) }}">
+                    <button type="submit" class="btn btn--primary">Valider la demande</button>
+                </form>
+                <button type="button" class="btn btn--refus" data-action="revealform#ouvrir">Refuser…</button>
+            </div>
+
+            <form method="post" action="{{ path('demande_refuser', {id: projet.id}) }}"
+                  class="demande-detail__refus" data-revealform-target="zone" hidden>
+                <input type="hidden" name="_token" value="{{ csrf_token('refuser' ~ projet.id) }}">
+                <label for="motif">Motif du refus (communiqué à l'étudiant)</label>
+                <textarea id="motif" name="motif" rows="3" required
+                          placeholder="Expliquez ce qui doit être corrigé."></textarea>
+                <div class="demande-detail__refus-actions">
+                    <button type="submit" class="btn btn--refus">Confirmer le refus</button>
+                    <button type="button" class="btn btn--ghost" data-action="revealform#fermer">Annuler</button>
+                </div>
+            </form>
+        </section>
+    {% elseif projet.statut.value != 'en_attente' %}
+        <p class="demande-detail__vide">Cette demande n'est plus en attente (statut : {{ projet.statut.libelle }}).</p>
+    {% endif %}
+
+    <p class="demande-detail__retour">
+        <a href="{{ path('demande_index') }}">Retour à la liste des demandes</a>
+    </p>
+</div>
+{% endblock %}

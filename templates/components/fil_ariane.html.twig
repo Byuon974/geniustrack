@@ -1,0 +1,32 @@
+{#
+  Fil d'Ariane : indique où l'on se trouve dans l'arborescence de l'application.
+  Affiché dans le header global, à la place de l'ancien titre dupliqué.
+
+  Paramètre :
+    segments (requis) : liste de segments, chacun ['libelle' => ..., 'url' => ... | null].
+                        Le dernier segment (page courante) a généralement url = null.
+
+  Usage (dans une page, via le bloc fil_ariane) :
+    {% block fil_ariane %}{{ include('components/fil_ariane.html.twig', {segments: [
+        {libelle: 'Ressources', url: null},
+        {libelle: 'Machines', url: path('admin_machine_index')},
+        {libelle: 'Modifier', url: null}
+    ]}) }}{% endblock %}
+#}
+<nav class="fil-ariane" aria-label="Fil d'Ariane">
+    <ol>
+        <li>
+            <a href="{{ path('app_home') }}">FabLab</a>
+        </li>
+        {% for segment in segments %}
+            <li aria-hidden="true" class="fil-ariane__sep">›</li>
+            <li{{ loop.last ? ' aria-current="page"' : '' }}>
+                {% if segment.url is defined and segment.url %}
+                    <a href="{{ segment.url }}">{{ segment.libelle }}</a>
+                {% else %}
+                    <span>{{ segment.libelle }}</span>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ol>
+</nav>

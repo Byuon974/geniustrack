@@ -1,0 +1,27 @@
+{#
+  État vide d'une liste : une invitation à agir, pas un cul-de-sac.
+  Composant présentationnel. À afficher quand une collection est vide.
+
+  Paramètres :
+    message      (requis) : phrase expliquant l'absence de contenu
+    action_label (option) : libellé du bouton d'action principal
+    action_path  (option) : cible du bouton (URL via path())
+
+  Comportement : le bouton n'est rendu que si action_path est fourni. Un état
+  vide sans action est légitime (page en lecture seule).
+
+  Usage :
+    {{ include('components/empty.html.twig', {
+        message: 'Aucun article en stock.',
+        action_label: 'Ajouter le premier',
+        action_path: path('admin_stock_new')
+    }) }}
+
+  Voir docs/COMPOSANTS-UI.md pour le catalogue complet des composants.
+#}
+<div class="empty-state">
+    <p>{{ message }}</p>
+    {% if action_path is defined and action_path %}
+        <a href="{{ action_path }}" class="btn btn--primary">{{ action_label }}</a>
+    {% endif %}
+</div>

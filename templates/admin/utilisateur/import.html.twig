@@ -1,0 +1,87 @@
+{% extends 'base.html.twig' %}
+{% block title %}Importer des utilisateurs{% endblock %}
+{% block fil_ariane %}{{ include("components/fil_ariane.html.twig", {segments: [{libelle: "Ressources", url: null}, {libelle: "Utilisateurs", url: path("admin_utilisateur_index")}, {libelle: "Importer", url: null}]}) }}{% endblock %}
+{% block body %}
+{{ include('components/page_header.html.twig', {
+    titre: 'Importer des utilisateurs',
+    soustitre: 'Créer des comptes en masse depuis un fichier CSV ou XLSX.',
+    actions: '<a href="' ~ path('admin_utilisateur_index') ~ '" class="btn btn--ghost">Retour à la liste</a>'
+}) }}
+
+
+{# Étape 1 : dépôt du fichier. #}
+<form method="post" enctype="multipart/form-data" class="import-form">
+    <p class="import-aide">
+        Le fichier doit comporter une ligne d'en-tête avec les colonnes
+        <code>prenom</code>, <code>nom</code>, <code>email</code> et <code>role</code>.
+        Le rôle accepte : <code>etudiant</code>, <code>formateur</code>, <code>bde</code> ou <code>admin</code>.
+    </p>
+    <div class="import-depose">
+        <input type="file" name="fichier" accept=".csv,.xlsx,.xls" required aria-label="Fichier à importer">
+        <button type="submit" class="btn btn--primary">Analyser le fichier</button>
+    </div>
+</form>
+
+{# Étape 2 : aperçu validé, affiché après analyse. #}
+{% if apercu is not null %}
+    {% if apercu.entetesManquants is not empty %}
+        <div class="alert alert--error" role="status">
+            Colonnes manquantes dans le fichier : {{ apercu.entetesManquants|join(', ') }}.
+            Vérifiez la ligne d'en-tête et recommencez.
+        </div>
+    {% else %}
+        <div class="import-bilan">
+            <span class="import-bilan-ok">{{ apercu.valides }} ligne(s) valide(s)</span>
+            {% if apercu.invalides > 0 %}
+                <span class="import-bilan-ko">{{ apercu.invalides }} ligne(s) à corriger</span>
+            {% endif %}
+        </div>
+
+        <div class="dt-scroll">
+            <table class="data-table dt-table">
+                <thead>
+                    <tr><th>Ligne</th><th>Prénom</th><th>Nom</th><th>E-mail</th><th>Rôle</th><th>État</th></tr>
+                </thead>
+                <tbody>
+                {% for ligne in apercu.lignes %}
+                    <tr class="{{ ligne.valide ? '' : 'import-ligne-ko' }}">
+                        <td class="num">{{ ligne.numero }}</td>
+                        <td>{{ ligne.donnees.prenom }}</td>
+                        <td>{{ ligne.donnees.nom }}</td>
+                        <td>{{ ligne.donnees.email }}</td>
+                        <td>{{ ligne.donnees.role }}</td>
+                        <td>
+                            {% if ligne.valide %}
+                                {{ include('components/badge.html.twig', {variante: 'succes', label: 'OK'}) }}
+                            {% else %}
+                                {{ include('components/badge.html.twig', {variante: 'danger', label: 'Erreur'}) }}
+                                <span class="import-erreurs">{{ ligne.erreurs|join(' ') }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if apercu.valides > 0 %}
+            <form method="post" action="{{ path('admin_utilisateur_import_confirmer') }}" class="import-confirme">
+                <input type="hidden" name="_token" value="{{ csrf_token('import') }}">
+                <input type="hidden" name="jeton" value="{{ jeton }}">
+                <p>
+                    {% if apercu.invalides > 0 %}
+                        Seules les {{ apercu.valides }} ligne(s) valide(s) seront importées ; les lignes en erreur seront ignorées.
+                    {% else %}
+                        Les {{ apercu.valides }} ligne(s) seront importées.
+                    {% endif %}
+                </p>
+                <button type="submit" class="btn btn--primary">Confirmer l'import de {{ apercu.valides }} compte(s)</button>
+            </form>
+        {% else %}
+            <div class="alert alert--error" role="status">
+                Aucune ligne valide à importer. Corrigez le fichier et recommencez.
+            </div>
+        {% endif %}
+    {% endif %}
+{% endif %}
+{% endblock %}

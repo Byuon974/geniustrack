@@ -1,0 +1,39 @@
+# Machine à états du projet — pilotée par le composant Workflow (Symfony 7.4).
+# Les transitions illégales sont automatiquement bloquées : impossible de
+# passer "brouillon" → "terminé" sans suivre le chemin déclaré ici.
+framework:
+    workflows:
+        projet:
+            type: state_machine          # un seul statut à la fois (pas un workflow parallèle)
+            marking_store:
+                type: method
+                property: statut
+            supports:
+                - App\Entity\Projet
+            initial_marking: !php/enum App\Enum\ProjetStatut::Brouillon->value
+            places:
+                - !php/enum App\Enum\ProjetStatut::Brouillon->value
+                - !php/enum App\Enum\ProjetStatut::EnAttente->value
+                - !php/enum App\Enum\ProjetStatut::Valide->value
+                - !php/enum App\Enum\ProjetStatut::Refuse->value
+                - !php/enum App\Enum\ProjetStatut::EnCours->value
+                - !php/enum App\Enum\ProjetStatut::Termine->value
+            transitions:
+                soumettre:               # étudiant soumet sa demande
+                    from: !php/enum App\Enum\ProjetStatut::Brouillon->value
+                    to: !php/enum App\Enum\ProjetStatut::EnAttente->value
+                valider:                 # formateur (pédago) ou BDE (perso)
+                    from: !php/enum App\Enum\ProjetStatut::EnAttente->value
+                    to: !php/enum App\Enum\ProjetStatut::Valide->value
+                refuser:
+                    from: !php/enum App\Enum\ProjetStatut::EnAttente->value
+                    to: !php/enum App\Enum\ProjetStatut::Refuse->value
+                resoumettre:             # après refus, l'étudiant corrige
+                    from: !php/enum App\Enum\ProjetStatut::Refuse->value
+                    to: !php/enum App\Enum\ProjetStatut::Brouillon->value
+                demarrer:                # 1re session de réalisation effectuée
+                    from: !php/enum App\Enum\ProjetStatut::Valide->value
+                    to: !php/enum App\Enum\ProjetStatut::EnCours->value
+                terminer:
+                    from: !php/enum App\Enum\ProjetStatut::EnCours->value
+                    to: !php/enum App\Enum\ProjetStatut::Termine->value

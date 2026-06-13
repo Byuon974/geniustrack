@@ -1,0 +1,46 @@
+{# Créneaux du jour pour une durée donnée, groupés matin / après-midi (RETEX :
+   hiérarchie visuelle claire). Chaque pastille indique le nombre de machines
+   libres. Cliquer un créneau libre charge les machines de ce créneau (contrôleur
+   creneau-picker). Anonyme : aucun détail sur les réservations d'autrui. #}
+{% set matin = [] %}
+{% set aprem = [] %}
+{% for c in creneaux %}
+    {% if c.debut|date('H') < '12' %}
+        {% set matin = matin|merge([c]) %}
+    {% else %}
+        {% set aprem = aprem|merge([c]) %}
+    {% endif %}
+{% endfor %}
+
+{% if creneaux is empty %}
+    <p class="cat">Aucun créneau ce jour pour cette durée.</p>
+{% else %}
+    {% for groupe in [{titre: 'Matin', liste: matin}, {titre: 'Après-midi', liste: aprem}] %}
+        {% if groupe.liste is not empty %}
+            <p class="fb-periode">{{ groupe.titre }}</p>
+            <div class="freebusy__grille">
+                {% for c in groupe.liste %}
+                    {% if c.etat == 'complet' %}
+                        <span class="fb-creneau fb-creneau--complet">
+                            <span class="fb-heure">{{ c.heure }}</span>
+                            <span class="fb-etat">complet</span>
+                        </span>
+                    {% else %}
+                        <button type="button"
+                                class="fb-creneau fb-creneau--{{ c.etat }}"
+                                data-creneau="{{ c.debut|date('Y-m-d\\TH:i') }}"
+                                data-heure="{{ c.heure }}">
+                            <span class="fb-heure">{{ c.heure }}</span>
+                            <span class="fb-etat">{{ c.machinesLibres }} machine{{ c.machinesLibres > 1 ? 's' : '' }}</span>
+                        </button>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endfor %}
+    <div class="freebusy__legende">
+        <span><span class="fb-dot fb-dot--libre"></span> Libre</span>
+        <span><span class="fb-dot fb-dot--occupe"></span> Partiellement occupé</span>
+        <span><span class="fb-dot fb-dot--complet"></span> Complet</span>
+    </div>
+{% endif %}

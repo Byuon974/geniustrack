@@ -1,0 +1,99 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ utilisateur.nomComplet }}{% endblock %}
+{% block fil_ariane %}{{ include("components/fil_ariane.html.twig", {segments: [{libelle: "Ressources", url: null}, {libelle: "Utilisateurs", url: path("admin_utilisateur_index")}, {libelle: utilisateur.nomComplet, url: null}]}) }}{% endblock %}
+{% block body %}
+{% set lib = {'ROLE_ETUDIANT':'Étudiant','ROLE_FORMATEUR':'Formateur','ROLE_BDE':'BDE','ROLE_ADMIN':'Admin'} %}
+
+
+{# Identité compacte en bandeau : avatar, nom, mail, badges, actions sur une ligne. #}
+<div class="user-identite">
+    <span class="user-avatar" aria-hidden="true">{{ (utilisateur.prenom|first ~ utilisateur.nom|first)|upper }}</span>
+    <div class="user-identite__bloc">
+        <h1 class="user-identite__nom">{{ utilisateur.nomComplet }}</h1>
+        <p class="user-identite__mail">{{ utilisateur.email }}</p>
+    </div>
+    <div class="user-identite__badges">
+        {{ include('components/badge.html.twig', {
+            variante: utilisateur.estActif ? 'succes' : 'alerte',
+            label: utilisateur.estActif ? 'Actif' : 'Désactivé'
+        }) }}
+        {% for role in utilisateur.roles %}
+            {% if role in lib|keys %}{{ include('components/badge.html.twig', {variante: 'info', label: lib[role]}) }}{% endif %}
+        {% endfor %}
+    </div>
+    <div class="user-identite__actions">
+        <a href="{{ path('admin_utilisateur_index') }}" class="btn btn--ghost">Retour à la liste</a>
+        <a href="{{ path('admin_utilisateur_edit', {id: utilisateur.id}) }}" class="btn btn--primary">{{ include('components/icon.html.twig', {name: 'settings', size: 16}) }} Modifier</a>
+    </div>
+</div>
+
+{# Indicateurs en ligne : sanctions, projets, dernière action (historique condensé). #}
+<div class="fiche-grid fiche-grid--trois">
+    <div class="fiche-carte{% if utilisateur.nbSanctions > 0 %} fiche-carte--alerte{% endif %}">
+        <p class="fiche-label">Sanctions</p>
+        <p class="fiche-valeur fiche-nombre">{{ utilisateur.nbSanctions }} <span class="fiche-sur">/ 5</span></p>
+        {% if utilisateur.nbSanctions > 0 %}
+            <form method="post" action="{{ path('admin_utilisateur_lever_sanction', {id: utilisateur.id}) }}" class="fiche-action">
+                <input type="hidden" name="_token" value="{{ csrf_token('lever' ~ utilisateur.id) }}">
+                <button type="submit" class="btn btn--sm btn--ghost">Lever une sanction</button>
+            </form>
+        {% endif %}
+    </div>
+
+    <div class="fiche-carte">
+        <p class="fiche-label">Projets déposés</p>
+        <p class="fiche-valeur fiche-nombre">{{ projets|length }}</p>
+    </div>
+
+    <div class="fiche-carte">
+        <p class="fiche-label">Dernière action</p>
+        {% if historique is not empty %}
+            {% set derniere = historique|first %}
+            <p class="fiche-derniere-action">{{ derniere.action }}</p>
+            <p class="fiche-derniere-meta">{{ derniere.createdAt|date('d/m/Y H:i') }}</p>
+            <a href="{{ path('admin_journal') }}" class="fiche-lien-journal">Voir le journal complet</a>
+        {% else %}
+            <p class="fiche-derniere-action fiche-derniere-action--vide">Aucune action enregistrée</p>
+        {% endif %}
+    </div>
+</div>
+
+{# Projets de l'utilisateur : zone à hauteur limitée, défilement interne. #}
+<h2 class="fiche-section">Projets</h2>
+{% if projets is empty %}
+    {{ include('components/empty.html.twig', {message: "Cet utilisateur n'a déposé aucun projet."}) }}
+{% else %}
+    {% embed 'components/data_table.html.twig' with {
+        recherche_placeholder: 'Rechercher un projet…',
+        recherche_label: 'Rechercher un projet de cet utilisateur'
+    } %}
+        {% block entetes %}
+            <th class="dt-sortable" data-datatable-target="header" data-sort-key="titre"
+                data-action="datatable#trier">Projet <span class="dt-arrow" aria-hidden="true"></span></th>
+            <th class="dt-sortable" data-datatable-target="header" data-sort-key="type"
+                data-action="datatable#trier">Type <span class="dt-arrow" aria-hidden="true"></span></th>
+            <th class="dt-sortable" data-datatable-target="header" data-sort-key="statut"
+                data-action="datatable#trier">Statut <span class="dt-arrow" aria-hidden="true"></span></th>
+            <th class="dt-sortable" data-datatable-target="header" data-sort-key="date"
+                data-action="datatable#trier">Déposé le <span class="dt-arrow" aria-hidden="true"></span></th>
+            <th class="actions-col"></th>
+        {% endblock %}
+        {% block lignes %}
+            {% for projet in projets %}
+                <tr data-datatable-target="row"
+                    data-recherche="{{ (projet.titre ~ ' ' ~ projet.type.libelle ~ ' ' ~ projet.statut.libelle)|lower }}"
+                    data-sort-titre="{{ projet.titre|lower }}"
+                    data-sort-type="{{ projet.type.libelle|lower }}"
+                    data-sort-statut="{{ projet.statut.libelle|lower }}"
+                    data-sort-date="{{ projet.createdAt|date('Ymd') }}">
+                    <td>{{ projet.titre }}</td>
+                    <td>{{ projet.type.libelle }}</td>
+                    <td>{{ include('components/badge.html.twig', {couleur: projet.statut.couleur, label: projet.statut.libelle}) }}</td>
+                    <td>{{ projet.createdAt|date('d/m/Y') }}</td>
+                    <td class="actions-col"><a href="{{ path('projet_show', {id: projet.id}) }}" class="btn btn--sm">Détail</a></td>
+                </tr>
+            {% endfor %}
+        {% endblock %}
+    {% endembed %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,170 @@
+{% extends 'base.html.twig' %}
+{% block title %}Supervision du laboratoire{% endblock %}
+{% block fil_ariane %}{{ include('components/fil_ariane.html.twig', {segments: [
+    {libelle: 'Pilotage', url: null},
+    {libelle: 'Supervision', url: null}
+]}) }}{% endblock %}
+{% block body %}
+{{ include('components/page_header.html.twig', {
+    titre: 'Supervision du laboratoire',
+    soustitre: "Vue analytique de l'évolution : réservations, machines, consommables.",
+    actions:
+        '<a href="' ~ path('pilotage_export_reservations', {annee: annee}) ~ '" class="btn btn--ghost">' ~ include('components/icon.html.twig', {name: 'pkg', size: 16}) ~ ' Export CSV</a>' ~
+        '<a href="' ~ path('pilotage_export_supervision_xlsx', {annee: annee}) ~ '" class="btn btn--ghost">' ~ include('components/icon.html.twig', {name: 'fileText', size: 16}) ~ ' Export XLSX</a>'
+}) }}
+
+{# Filtre de période : navigation par année. #}
+<div class="superv-barre">
+    <span class="superv-lbl">Période</span>
+    <div class="superv-annees">
+        {% for a in (annee - 2)..(annee) %}
+            <a href="{{ path('pilotage_supervision', {annee: a}) }}" class="superv-annee {{ a == annee ? 'on' : '' }}">{{ a }}</a>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="superv-grille">
+
+    {# Axe 1 : activité de réservation (courbe sur 12 mois, fidèle à la maquette). #}
+    <section class="superv-bloc superv-bloc--reservations">
+        <h2 class="superv-titre">Réservations par mois</h2>
+        {% if reservationsParMois is empty %}
+            {{ include('components/empty.html.twig', {message: 'Aucune réservation sur cette période.'}) }}
+        {% else %}
+            {# Normalisation : un total par mois (1..12), 0 si le mois est absent. #}
+            {% set totaux = {} %}
+            {% for r in reservationsParMois %}{% set totaux = totaux|merge({(r.mois): r.total}) %}{% endfor %}
+            {% set maxRes = 1 %}
+            {% for m in 1..12 %}{% set maxRes = max(maxRes, totaux[m]|default(0)) %}{% endfor %}
+            {% set total = 0 %}
+            {% for r in reservationsParMois %}{% set total = total + r.total %}{% endfor %}
+
+            {# Génération des points de la courbe : x réparti sur 12 mois, y
+               inversé (SVG : origine en haut). Plage de tracé y ∈ [16, 96]. #}
+            {% set pts = [] %}
+            {% for m in 1..12 %}
+                {% set x = 12 + (m - 1) * 30 %}
+                {% set v = totaux[m]|default(0) %}
+                {% set y = 96 - (v / maxRes * 80) %}
+                {% set pts = pts|merge([x ~ ',' ~ (y|round(1))]) %}
+            {% endfor %}
+
+            <div class="superv-graphe">
+                <svg viewBox="0 0 360 128" preserveAspectRatio="none" aria-label="Réservations par mois">
+                    <line x1="6" y1="96" x2="354" y2="96" stroke="var(--gl-line)"/>
+                    <polyline fill="none" stroke="var(--gl-blueprint)" stroke-width="3"
+                              stroke-linejoin="round" stroke-linecap="round"
+                              points="{{ pts|join(' ') }}"/>
+                    <g font-size="10" fill="var(--gl-gray)" text-anchor="middle">
+                        <text x="12" y="118">Jan</text><text x="72" y="118">Mar</text>
+                        <text x="132" y="118">Mai</text><text x="192" y="118">Juil</text>
+                        <text x="252" y="118">Sep</text><text x="312" y="118">Nov</text>
+                    </g>
+                </svg>
+                <p class="superv-leg">{{ total }} réservation{{ total > 1 ? 's' : '' }} sur la période.</p>
+            </div>
+        {% endif %}
+    </section>
+
+    {# Axe 2 : taux d'utilisation des machines #}
+    <section class="superv-bloc superv-bloc--machines">
+        <h2 class="superv-titre">Taux d'utilisation des machines</h2>
+        {% if tauxMachines is empty %}
+            {{ include('components/empty.html.twig', {message: 'Aucune donnée machine sur cette période.'}) }}
+        {% else %}
+            {% for m in tauxMachines %}
+                <div class="superv-mbar">
+                    <span class="superv-mnom">{{ m.nom }}</span>
+                    <span class="superv-mpiste"><span class="superv-mfill superv-mfill--{{ m.niveau }}" style="width: {{ m.taux }}%"></span></span>
+                    <span class="superv-mval">{{ m.taux }}%</span>
+                </div>
+            {% endfor %}
+            <div class="superv-code">
+                <span><i class="superv-i superv-i--saturation"></i>Saturation</span>
+                <span><i class="superv-i superv-i--eleve"></i>Usage élevé</span>
+                <span><i class="superv-i superv-i--disponible"></i>Disponible</span>
+            </div>
+        {% endif %}
+    </section>
+
+    {# Axe 3 : évolution du niveau de stock global dans le temps (4e bloc,
+       courbe cumulée). RETEX dashboard d'inventaire : suivre le niveau global
+       plutôt qu'un article isolé. Le niveau de chaque mois est le cumul des
+       variations nettes depuis le début de la période. #}
+    <section class="superv-bloc superv-bloc--stock">
+        <h2 class="superv-titre">Niveau de stock dans le temps</h2>
+        {% if stockParMois is empty %}
+            {{ include('components/empty.html.twig', {message: 'Aucun mouvement de stock sur cette période.'}) }}
+        {% else %}
+            {# Cumul progressif du niveau de stock, mois par mois.
+               Pièges Twig évités : (1) « merge » réindexe les clés numériques,
+               donc on empile dans une LISTE (indices 0..11), pas une map par mois ;
+               (2) stockParMois peut ne pas avoir toutes les clés de mois, d'où un
+               accès défensif via « stockParMois[m] is defined ». #}
+            {% set cumul = 0 %}
+            {% set niveaux = [] %}
+            {% set niveauMax = 1 %}
+            {% set niveauMin = 0 %}
+            {% for m in 1..12 %}
+                {% set v = stockParMois[m] is defined ? stockParMois[m] : 0 %}
+                {% set cumul = cumul + v %}
+                {% set niveaux = niveaux|merge([cumul]) %}
+                {% set niveauMax = max(niveauMax, cumul) %}
+                {% set niveauMin = min(niveauMin, cumul) %}
+            {% endfor %}
+            {% set amplitude = (niveauMax - niveauMin) > 0 ? (niveauMax - niveauMin) : 1 %}
+
+            {% set pts = [] %}
+            {% for niveau in niveaux %}
+                {% set x = 12 + loop.index0 * 30 %}
+                {% set y = 96 - ((niveau - niveauMin) / amplitude * 80) %}
+                {% set pts = pts|merge([x ~ ',' ~ (y|round(1))]) %}
+            {% endfor %}
+
+            <div class="superv-graphe">
+                <svg viewBox="0 0 360 128" preserveAspectRatio="none" aria-label="Niveau de stock dans le temps">
+                    <line x1="6" y1="96" x2="354" y2="96" stroke="var(--gl-line)"/>
+                    <polyline fill="none" stroke="var(--gl-filament)" stroke-width="3"
+                              stroke-linejoin="round" stroke-linecap="round"
+                              points="{{ pts|join(' ') }}"/>
+                    <g font-size="10" fill="var(--gl-gray)" text-anchor="middle">
+                        <text x="12" y="118">Jan</text><text x="72" y="118">Mar</text>
+                        <text x="132" y="118">Mai</text><text x="192" y="118">Juil</text>
+                        <text x="252" y="118">Sep</text><text x="312" y="118">Nov</text>
+                    </g>
+                </svg>
+                <p class="superv-leg">Évolution cumulée du stock global : les creux marquent les passages sous le niveau habituel.</p>
+            </div>
+        {% endif %}
+    </section>
+
+    {# Axe 4 : fluctuations de consommables (derniers mouvements) #}
+    <section class="superv-bloc superv-bloc--mouvements">
+        <h2 class="superv-titre">Derniers mouvements de stock</h2>
+        {% if mouvementsRecents is empty %}
+            {{ include('components/empty.html.twig', {message: 'Aucun mouvement enregistré pour le moment.'}) }}
+        {% else %}
+            <table class="superv-tbl">
+                <thead><tr><th>Date</th><th>Article</th><th>Motif</th><th class="num">Var.</th></tr></thead>
+                <tbody>
+                    {% for mv in mouvementsRecents %}
+                        <tr>
+                            <td>{{ mv.effectueLe|date('d/m') }}</td>
+                            <td>{{ mv.consommable.nom }}</td>
+                            <td>{{ mv.motif.libelle }}</td>
+                            <td class="num {{ mv.variation >= 0 ? 'up' : 'down' }}">{{ mv.variation >= 0 ? '+' : '' }}{{ mv.variation }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="superv-code">
+                <span><i class="superv-i superv-i--disponible"></i>Entrée</span>
+                <span><i class="superv-i superv-i--saturation"></i>Sortie</span>
+            </div>
+        {% endif %}
+    </section>
+
+</div>
+
+<p class="superv-note">Vue distincte du tableau de bord : celui-ci sert l'action immédiate, cette page sert la lecture de l'évolution. Les mouvements de stock sont captés automatiquement à chaque ajustement, dans un historique immuable.</p>
+{% endblock %}
