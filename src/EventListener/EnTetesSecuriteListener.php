@@ -49,12 +49,20 @@ final class EnTetesSecuriteListener
 
         // Politique de sécurité du contenu : ressources du même domaine, images
         // et données en data: (icônes, aperçus), pas d'eval, pas de cadrage tiers.
+        //
+        // Note AssetMapper : en dev comme en prod, AssetMapper charge les fichiers
+        // CSS importés via des modules à URL « data: » dans l'importmap (imports
+        // factices documentés par Symfony). Sans « data: » dans script-src, le
+        // navigateur bloque ces modules et TOUT le JavaScript de la page tombe
+        // (menus, créneaux, etc.). On autorise donc data: pour les scripts : une
+        // URL data: de script ne permet pas de charger de code tiers distant, le
+        // risque reste donc faible. Réf. doc Symfony AssetMapper, section CSP.
         if (!$entetes->has('Content-Security-Policy')) {
             $entetes->set('Content-Security-Policy', implode('; ', [
                 "default-src 'self'",
                 "img-src 'self' data:",
                 "style-src 'self' 'unsafe-inline'",
-                "script-src 'self' 'unsafe-inline'",
+                "script-src 'self' 'unsafe-inline' data:",
                 "font-src 'self'",
                 "connect-src 'self'",
                 "frame-ancestors 'none'",
