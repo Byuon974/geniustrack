@@ -1,9 +1,9 @@
 {% extends 'base.html.twig' %}
-{% block title %}Galerie — Projets réalisés{% endblock %}
+{% block title %}Galerie : projets réalisés{% endblock %}
 {% block fil_ariane %}{{ include("components/fil_ariane.html.twig", {segments: [{libelle: "Ressources", url: null}, {libelle: "Vitrine", url: path("admin_vitrine_index")}, {libelle: "Projets réalisés", url: null}]}) }}{% endblock %}
 {% block body %}
 {{ include('components/page_header.html.twig', {
-    titre: 'Galerie — Projets réalisés',
+    titre: 'Galerie : projets réalisés',
     soustitre: 'Choisissez les projets mis en avant sur l\'accueil et l\'image de leur carte.'
 }) }}
 
@@ -26,7 +26,7 @@
                     <div class="vitrine-projet__corps">
                         <p class="vitrine-projet__titre">{{ projet.titre }}</p>
                         <p class="vitrine-projet__meta">
-                            {{ projet.etudiant ? projet.etudiant.nomComplet : '—' }}
+                            {{ projet.etudiant ? projet.etudiant.nomComplet : '-' }}
                             · {{ images|length }} image{{ images|length > 1 ? 's' : '' }} jointe{{ images|length > 1 ? 's' : '' }}
                             · {{ projet.imageVitrine ? 'image définie' : 'placeholder' }}
                         </p>
@@ -50,7 +50,7 @@
 
                 {# Zone de choix d'image, masquée par défaut, ouverte au clic. #}
                 <div class="img-choix" data-revealform-target="zone" hidden>
-                    <p class="img-choix__titre">Image de la carte — {{ projet.titre }}</p>
+                    <p class="img-choix__titre">Image de la carte : {{ projet.titre }}</p>
 
                     {% if images is not empty %}
                         <p class="sep">Réutiliser un fichier-image joint au projet :</p>
@@ -68,7 +68,7 @@
                         <p class="sep">Aucun fichier-image joint à ce projet.</p>
                     {% endif %}
 
-                    <p class="sep">…ou téléverser une image dédiée (JPEG, PNG, WebP — 5 Mo max) :</p>
+                    <p class="sep">…ou téléverser une image dédiée (JPEG, PNG, WebP, 5 Mo max) :</p>
                     <form method="post" action="{{ path('admin_galerie_image_upload', {id: projet.id}) }}" enctype="multipart/form-data" class="img-upload">
                         <input type="hidden" name="_token" value="{{ csrf_token('image_upload' ~ projet.id) }}">
                         <input type="file" name="image" accept="image/*" required>

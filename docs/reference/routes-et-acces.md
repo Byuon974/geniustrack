@@ -47,7 +47,11 @@ Légende : (G) GET, (P) POST, (G/P) les deux sur la même route.
 |---|---|---|
 | `projet_index`, `projet_show` | G | Consulter ses projets |
 | `projet_new` | G/P | Déposer un projet |
+| `projet_soumettre` | P | Soumettre un brouillon à validation |
+| `projet_retracter` | P | Rétracter une demande en attente (retour brouillon) |
+| `projet_supprimer` | P | Supprimer un de ses projets (brouillon ou en attente) |
 | `projet_resoumettre` | P | Re-soumettre un projet refusé |
+| `plan_ajouter`, `plan_supprimer` | P | Ajouter ou retirer un fichier de plan (statuts modifiables) |
 | `reservation_creer` | G | Afficher la page de réservation (calendrier, créneaux, panier) |
 | `reservation_ajouter`, `reservation_retirer` | P | Ajouter un créneau au panier, en retirer un |
 | `reservation_verifier` | G | Page de vérification avant confirmation |
@@ -66,7 +70,7 @@ Légende : (G) GET, (P) POST, (G/P) les deux sur la même route.
 | `demande_index`, `demande_show` | G | Consulter les demandes à valider |
 | `demande_valider`, `demande_refuser` | P | Statuer sur une demande |
 | `pilotage_dashboard` | G | Tableau de bord de pilotage |
-| `pilotage_supervision` | G | Supervision (analyse temporelle) |
+| `pilotage_supervision` | G | Activité (analyse temporelle ; libellé menu « Activité ») |
 
 ### Espace d'administration (ROLE_ADMIN)
 | Route | Méthode | Rôle |
@@ -81,7 +85,14 @@ Légende : (G) GET, (P) POST, (G/P) les deux sur la même route.
 | `admin_utilisateur_new`, `admin_utilisateur_edit` | G/P | Créer ou modifier un compte |
 | `admin_utilisateur_lever_sanction`, `admin_utilisateur_batch` | P | Actions sur les comptes |
 | `admin_utilisateur_import`, `admin_utilisateur_import_confirmer` | G/P, P | Import en masse |
-| `admin_vitrine_index`, `admin_vitrine_edit` | G, G/P | Gérer le contenu de la vitrine |
+| `admin_vitrine_index`, `admin_vitrine_edit` | G, G/P | Gérer la page d'accueil de la vitrine |
+| `admin_galerie_index` | G | Curation de la galerie « projets réalisés » |
+| `admin_galerie_basculer` | P | Mettre en avant ou retirer un projet de la galerie |
+| `admin_galerie_image_plan`, `admin_galerie_image_upload` | P | Définir l'image de carte (plan réutilisé ou téléversé) |
+| `admin_galerie_image_retirer` | P | Retirer l'image de carte (retour au placeholder) |
+| `admin_projet_index` | G | Liste de tous les projets (statut, cycle de vie) |
+| `admin_projet_transition` | P | Faire avancer un projet via une transition légale |
+| `admin_projet_supprimer` | P | Supprimer un projet |
 | `admin_journal` | G | Journal d'audit |
 | `pilotage_export_reservations`, `pilotage_export_supervision_xlsx` | G | Exports CSV et XLSX |
 

@@ -172,7 +172,135 @@ chevron-left, chevron-right, minus, x
 
 ---
 
-## Composer une page
+## stepper
+
+Saisie d'une petite quantité par deux boutons « moins » et « plus » encadrant
+une valeur, sans clavier. Pilote un champ réel (souvent masqué) qui porte la
+valeur soumise. Unifie le comptage de petites valeurs à travers le logiciel
+(quantité d'une demande, nombre de personnes d'un créneau).
+
+```twig
+{{ include('components/stepper.html.twig', {
+    input_html: form_widget(form.quantite),
+    label_moins: 'Une unité de moins',
+    label_plus: 'Une unité de plus',
+    depart: form.quantite.vars.value|default(1)
+}) }}
+```
+
+| Paramètre     | Requis | Rôle |
+|---------------|--------|------|
+| `input_html`  | oui    | Balisage de l'input réel (porte `data-stepper-target="champ"`) |
+| `label_moins` | option | Libellé accessible du bouton « moins » |
+| `label_plus`  | option | Libellé accessible du bouton « plus » |
+| `depart`      | option | Valeur affichée au départ si l'input est vide (défaut 1) |
+
+**Comportement.** Le contrôleur Stimulus `stepper` lit les bornes (`min`, `max`)
+sur l'input réel et reste la source de vérité de la valeur soumise. L'input est
+masqué par CSS mais conservé dans le document. Même classe visuelle que le
+stepper de la réservation : apparence et comportement identiques partout.
+
+---
+
+## upload
+
+Zone de glisser-déposer pour l'import de fichiers, cliquable et accessible au
+clavier, avec liste des fichiers retenus et retrait individuel. Masque l'input
+natif et synchronise la sélection. Utilisé au dépôt d'un projet et à l'ajout de
+plans en modification.
+
+```twig
+{{ include('components/upload.html.twig', {
+    input_html: form_widget(form.plansFiles),
+    label: 'Plans / fichiers (optionnel)',
+    formats: 'STL, OBJ, PDF, SVG, ZIP, JPEG, PNG, WebP · 10 fichiers max, 25 Mo chacun, 80 Mo au total'
+}) }}
+```
+
+| Paramètre    | Requis | Rôle |
+|--------------|--------|------|
+| `input_html` | oui    | Balisage de l'input fichier réel (masqué, conservé) |
+| `label`      | option | Libellé de la zone |
+| `formats`    | option | Rappel des formats et limites acceptés |
+
+**Comportement.** Les limites client (nombre, taille) reflètent les contraintes
+serveur, qui restent la vraie barrière. Un refus est signalé par un message
+agrégé par motif, pas une ligne par fichier.
+
+---
+
+## data_table
+
+Coquille unique pour toutes les listes : barre d'outils (recherche, filtres
+optionnels), conteneur à ascenseur avec en-tête figé, état « aucun résultat »,
+tri par colonne et pagination. S'emploie avec `embed` (pas `include`), car la
+page fournit ses colonnes et lignes via deux blocs.
+
+```twig
+{% embed 'components/data_table.html.twig' with {
+    recherche_placeholder: 'Rechercher un projet…',
+    recherche_label: 'Rechercher un projet',
+    filtres: chips
+} %}
+    {% block entetes %}{# th, certains avec data-sort-key #}{% endblock %}
+    {% block lignes %}{# tr avec data-datatable-target="row" #}{% endblock %}
+{% endembed %}
+```
+
+| Paramètre               | Requis | Rôle |
+|-------------------------|--------|------|
+| `recherche_placeholder` | oui    | Invite du champ de recherche |
+| `recherche_label`       | oui    | Libellé accessible du champ |
+| `vide_message`          | option | Texte si le filtre ne renvoie rien |
+| `filtres`               | option | Balisage des chips de filtre (déjà rendu) |
+
+**Comportement.** Le contrôleur Stimulus `datatable` prend en charge recherche,
+tri, filtre par catégorie et pagination côté client : aucune logique à dupliquer
+dans la page. Adapté au volume modeste d'un FabLab ; pour des centaines de lignes
+on bascule sur un tri et une pagination serveur (voir la liste des membres).
+
+---
+
+## graphe (courbe d'activité)
+
+Courbe d'évolution mensuelle interactive, rendue en SVG par le contrôleur
+Stimulus `graphe`, sans dépendance. Sert les graphiques temporels de la page
+Activité (réservations, niveau de stock). Le partiel `admin/supervision/_courbe.html.twig`
+fournit la coquille ; le contrôleur dessine et gère les interactions.
+
+```twig
+{{ include('admin/supervision/_courbe.html.twig', {
+    series: [{cle: 'actuelle', label: 2026, couleur: '#1d4e6f', data: [...], visible: true}],
+    mois: ['Jan', 'Fév', ...],
+    max: 14,
+    grad: [14, 7, 0],
+    aria: 'Réservations par mois',
+    comparables: {'2025': [...], '2024': [...]}
+}) }}
+```
+
+| Paramètre        | Requis | Rôle |
+|------------------|--------|------|
+| `series`         | oui    | Liste de `{cle, label, couleur, data, visible}` |
+| `mois`           | oui    | Libellés courts de l'axe X |
+| `max`            | oui    | Borne haute de l'axe Y |
+| `grad`           | oui    | Trois repères d'axe Y (haut, milieu, bas) |
+| `aria`           | option | Description accessible du graphe |
+| `comparables`    | option | Dict `année → data` pour le menu « comparer à » |
+| `legende_visible`| option | Affiche la légende cliquable (défaut vrai) |
+
+**Comportement.** Survol croisé (curseur vertical + infobulle unique pour toutes
+les séries visibles), zones de survol larges (toute la colonne du mois) pour une
+visée facile, légende cliquable pour masquer une série. Si `comparables` est
+fourni, un menu « comparer à » permet de choisir librement l'année superposée,
+basculée côté client sans rechargement. Une série sans données (année vide) est
+masquée d'office, série et entrée de légende comprises : on n'affiche jamais une
+courbe plate trompeuse. L'échelle Y doit être fixée d'avance sur le maximum de
+toutes les années comparables pour rester stable quel que soit le choix.
+
+---
+
+
 
 Le pattern de composition, repris de la pratique d'un design system mûr : la
 page assemble des composants et gère l'espacement, elle ne fait pas de

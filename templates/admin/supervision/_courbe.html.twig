@@ -1,52 +1,62 @@
-{# Courbe d'évolution mensuelle, fidèle au RETEX dataviz :
-   - axe Y gradué (3 repères), axe X aux mois écoulés seulement ;
-   - un point par mois, valeur exacte en infobulle native <title> (accessible
-     au survol ET au focus clavier / lecteur d'écran) ;
-   - valeur du dernier point étiquetée en permanence (alternative tactile, ne
-     dépend pas du survol).
-   Paramètres : pts (liste "x,y"), moisLimite, pas, couleur, totaux (map mois→valeur),
-   unite, grad (3 valeurs d'axe Y haut→bas), dernier (valeur du dernier point). #}
-{% set moisCourts = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'] %}
-{% set ptsList = pts %}
-<svg viewBox="0 0 360 128" preserveAspectRatio="none" role="img"
-     aria-label="Courbe sur {{ moisLimite }} mois, dernier point {{ dernier }} {{ unite }}">
-    {# Axes #}
-    <line x1="34" y1="14" x2="34" y2="96" stroke="var(--gl-line)"/>
-    <line x1="34" y1="96" x2="350" y2="96" stroke="var(--gl-line)"/>
-    {# Repère intermédiaire pointillé #}
-    <line x1="34" y1="55" x2="350" y2="55" stroke="var(--gl-line)" stroke-dasharray="2 3" opacity="0.6"/>
-    {# Graduations Y (haut, milieu, bas) #}
-    <g font-size="9" fill="var(--gl-gray)" text-anchor="end">
-        <text x="29" y="17">{{ grad[0] }}</text>
-        <text x="29" y="58">{{ grad[1] }}</text>
-        <text x="29" y="99">{{ grad[2] }}</text>
-    </g>
-    {# Ligne #}
-    <polyline fill="none" stroke="{{ couleur }}" stroke-width="2.5"
-              stroke-linejoin="round" stroke-linecap="round"
-              points="{{ ptsList|join(' ') }}"/>
-    {# Points + infobulle native #}
-    {% for p in ptsList %}
-        {% set xy = p|split(',') %}
-        {% set m = loop.index %}
-        {% set val = totaux[m] is defined ? totaux[m] : 0 %}
-        {% set dernierPt = loop.last %}
-        <circle cx="{{ xy[0] }}" cy="{{ xy[1] }}" r="{{ dernierPt ? 4 : 2.8 }}" fill="{{ couleur }}">
-            <title>{{ moisCourts[m - 1] }} : {{ val }} {{ unite }}</title>
-        </circle>
-    {% endfor %}
-    {# Étiquette permanente du dernier point #}
-    {% set dern = ptsList|last|split(',') %}
-    <text x="{{ dern[0] }}" y="{{ (dern[1] - 6)|round }}" text-anchor="end"
-          font-size="10" font-weight="600" fill="{{ couleur }}">{{ dernier }}</text>
-    {# Libellés X : un mois sur deux si trop serré, sinon tous #}
-    <g font-size="9" fill="var(--gl-gray)" text-anchor="middle">
-        {% for p in ptsList %}
-            {% set xy = p|split(',') %}
-            {% set m = loop.index %}
-            {% if moisLimite <= 7 or loop.index is odd or loop.last %}
-                <text x="{{ xy[0] }}" y="110" {{ loop.last ? 'fill="var(--gl-slate)" font-weight="600"' : '' }}>{{ moisCourts[m - 1] }}</text>
+{# Courbe d'évolution mensuelle interactive, rendue par le contrôleur Stimulus
+   « graphe » (SVG sans dépendance). Le serveur fournit les séries en JSON via
+   des attributs data- ; le contrôleur dessine, gère le survol croisé (curseur
+   vertical + infobulle unique pour toutes les séries), la légende cliquable et
+   le masquage d'une série de comparaison sans données.
+
+   Paramètres :
+     series   : liste de { cle, label, couleur, data (list<number>), visible }
+     mois     : libellés courts de l'axe X (list<string>)
+     max      : borne haute de l'axe Y
+     grad     : 3 repères d'axe Y (haut, milieu, bas)
+     aria     : description accessible du graphe
+#}
+<div class="graphe" data-controller="graphe"
+     data-graphe-series-value="{{ series|json_encode|e('html_attr') }}"
+     data-graphe-mois-value="{{ mois|json_encode|e('html_attr') }}"
+     data-graphe-max-value="{{ max }}"
+     {% if comparables is defined and comparables %}data-graphe-comparables-value="{{ comparables|json_encode|e('html_attr') }}"{% endif %}>
+    {% if (comparables is defined and comparables) or legende_visible|default(true) %}
+        <div class="graphe-controles">
+            {% if comparables is defined and comparables %}
+                <label class="graphe-cmp">Comparer à :
+                    <select data-graphe-target="compareSelect" data-action="graphe#comparer">
+                        <option value="">Aucune</option>
+                        {% for a in comparables|keys %}
+                            <option value="{{ a }}">{{ a }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
             {% endif %}
-        {% endfor %}
-    </g>
-</svg>
+            {% if legende_visible|default(true) %}
+                <div class="graphe-legende" data-graphe-target="legende" role="group" aria-label="Afficher ou masquer une série"></div>
+            {% endif %}
+        </div>
+    {% endif %}
+    <div class="tip" data-graphe-target="tip" aria-hidden="true"></div>
+    <svg viewBox="0 0 360 140" data-graphe-target="svg" role="img"
+         aria-label="{{ aria|default('Courbe d\'évolution mensuelle') }}">
+        {# Axes et repères #}
+        <line x1="34" y1="14" x2="34" y2="104" stroke="var(--gl-line)"/>
+        <line x1="34" y1="104" x2="350" y2="104" stroke="var(--gl-line)"/>
+        <line x1="34" y1="59" x2="350" y2="59" stroke="var(--gl-line)" stroke-dasharray="2 3" opacity="0.6"/>
+        <g font-size="9" fill="var(--gl-gray)" text-anchor="end">
+            <text x="29" y="17">{{ grad[0] }}</text>
+            <text x="29" y="62">{{ grad[1] }}</text>
+            <text x="29" y="107">{{ grad[2] }}</text>
+        </g>
+        {# Curseur vertical (survol), masqué au repos #}
+        <line y1="18" y2="104" data-graphe-target="curseur" class="curseur"/>
+        {# Couches de courbes : remplies par le contrôleur #}
+        <g data-graphe-target="couches"></g>
+        {# Libellés X : un mois sur deux si serré #}
+        <g font-size="9" fill="var(--gl-gray)" text-anchor="middle">
+            {% for m in mois %}
+                {% if mois|length <= 7 or loop.index is odd or loop.last %}
+                    <text x="{{ (34 + (loop.index0) * (mois|length > 1 ? (316 / (mois|length - 1)) : 0))|round(1) }}" y="118"
+                          {{ loop.last ? 'fill="var(--gl-slate)" font-weight="600"' : '' }}>{{ m }}</text>
+                {% endif %}
+            {% endfor %}
+        </g>
+    </svg>
+</div>

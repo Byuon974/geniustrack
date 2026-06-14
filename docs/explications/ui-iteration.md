@@ -329,3 +329,57 @@ Logo cliquable. L'entrée « Voir le site public » de la barre latérale est su
 - Le vocabulaire suit la référence FOSS du domaine, registre FabLab assumé.
 - La Galerie entre dans le menu ; les projets d'administration rejoignent l'Atelier.
 - Le logo de l'en-tête ramène à l'accueil, selon la convention attendue.
+
+## Itération 26 : la page Projets rejoint le composant de liste commun
+
+La page d'administration des projets était la dernière liste à ne pas suivre le modèle des autres. Là où Machines, Consommables et Membres s'appuient sur le composant de tableau commun (recherche, tri, filtres, pagination, en-tête figé, ascenseur interne), la page Projets affichait une table maison sans recherche, sans tri, sans filtre ni pagination. Son fil d'ariane pointait encore vers Pilotage alors que l'entrée a été déplacée dans Atelier.
+
+Décision. La page est migrée sur le composant de tableau commun, comme les autres listes : recherche plein texte, tri sur chaque colonne, et un filtre par statut (chips Tous / Brouillon / En attente / Validé / Refusé / En cours / Terminé), particulièrement utile pour isoler les projets en attente de décision ou les réalisations. Les actions propres aux projets (transitions du cycle de vie, suppression avec confirmation) sont conservées telles quelles dans la colonne d'actions. Le fil d'ariane est corrigé pour refléter la place réelle de la page dans le menu.
+
+Le gain n'est pas qu'esthétique : en passant par le composant partagé, la page hérite automatiquement des évolutions futures du tableau commun, au lieu de figer un balisage divergent qu'il faudrait maintenir à part. Une liste de plus rentre dans le rang ; le coût de maintenance baisse d'autant.
+
+- La page Projets utilise le composant de tableau commun, comme les autres listes.
+- Recherche, tri par colonne, filtre par statut et pagination sont désormais disponibles.
+- Les transitions et la suppression restent inchangées.
+- Le fil d'ariane reflète la place de la page (Atelier).
+
+## Itération 27 : seed enrichi pour juger la curation, et nettoyage typographique
+
+Deux ajustements liés à l'évaluation de la galerie. D'abord la typographie : plusieurs tirets cadratins s'étaient glissés dans les pages galerie, projets et dans la base (titre, libellés, étiquette d'accessibilité), contraires à la règle du projet. Ils sont remplacés par des deux-points ou des reformulations, et les tirets servant de remplacement de donnée vide sont passés en tiret simple.
+
+Ensuite le jeu de données de démonstration. La galerie ne pouvait pas être jugée : le seed ne comptait que deux projets terminés, tous deux déjà mis en avant. Impossible donc d'observer le cas central de la curation, un projet terminé qu'on n'a pas encore choisi d'afficher. Le seed est étendu à une douzaine de projets couvrant tous les statuts, avec cinq projets terminés répartis entre trois mis en avant et deux en attente de curation. Cela exerce à la fois le filtre par statut et le tri de la page Projets, et donne à la galerie de quoi montrer son regroupement réel. Choix assumé : aucun fichier n'est généré, seulement les métadonnées (statuts, mise en avant) ; la réutilisation d'un fichier-image joint se teste donc à la main, pas via le seed.
+
+- Tirets cadratins éliminés des templates, conformément à la règle typographique.
+- Le seed couvre tous les statuts et, surtout, des projets terminés mis en avant ET non mis en avant.
+- Le filtre par statut et le tri de la page Projets ont désormais de quoi être éprouvés.
+- Aucun fichier n'est généré par le seed : la réutilisation de plan-image reste un test manuel.
+
+## Itération 28 : graphes d'activité interactifs
+
+Les courbes de la page Activité étaient correctes mais peu interactives : points minuscules difficiles à viser, infobulle native limitée à une ligne, aucune comparaison, aucun moyen d'isoler une série. Le tracé était aussi étiré (preserveAspectRatio none), ce qui déformait les points.
+
+Choix technique. Le SVG maison est conservé plutôt qu'une librairie. Le RETEX est net : pour un faible volume de points (douze mois, quelques machines), le SVG l'emporte sur une solution Canvas en interactivité par élément et en accessibilité, et une librairie n'apporterait son avantage qu'au-delà de plusieurs milliers de points. Chart.js, rendu en Canvas, aurait dégradé l'accessibilité soignée (titres natifs, focus clavier) et ajouté une dépendance à intégrer sans bundler. La décision est donc d'enrichir le SVG via un contrôleur Stimulus dédié, sans rien installer.
+
+Interactions ajoutées. Un curseur vertical et une infobulle unique apparaissent au survol et présentent la valeur de toutes les séries visibles pour le mois pointé (divulgation progressive : le détail au survol, rien qui encombre par défaut). Les zones de survol couvrent toute la colonne du mois, ce qui rend la visée indépendante de la taille des points. Le graphe de réservations superpose l'année courante et l'année précédente, et une légende cliquable permet de masquer ou d'afficher chaque série.
+
+Robustesse de la comparaison. Si l'année précédente n'a aucune donnée, sa série et son entrée de légende sont masquées d'office : conformément au RETEX, on n'affiche pas un visuel vide ou une courbe plate qui ferait douter de l'exactitude. Le serveur fournit désormais les réservations de l'année N-1 en plus de l'année courante ; le reste du comportement est porté côté client par le contrôleur, sans logique métier dupliquée.
+
+- Le SVG maison est enrichi, sans dépendance, accessibilité préservée.
+- Survol croisé (curseur + infobulle multi-séries) et zones de visée larges.
+- Comparaison année courante / précédente, légende cliquable pour isoler une série.
+- Une série de comparaison sans données est masquée, série et légende comprises.
+
+## Itération 29 : choix libre de l'année de comparaison
+
+L'itération précédente comparait l'année courante à l'année précédente, en dur. Le besoin réel est de choisir librement l'année de comparaison, sur le graphe des réservations.
+
+Périmètre. Seul le graphe des réservations reçoit la comparaison : le graphe de stock affiche un niveau cumulé, qui se prête mal à la superposition de deux années (le cumul d'une année et celui d'une autre ne partagent pas d'origine commune). Ce choix est assumé.
+
+Pattern. Le RETEX des outils d'analyse (Matomo, Google Analytics, Kaltura) converge sur un contrôle « comparer à » explicite, avec des présets et une option de choix. Transposé à notre granularité annuelle, cela donne un menu déroulant « Comparer à : Aucune / année… » placé au-dessus du graphe. La comparaison n'est pas imposée par défaut : elle s'active par choix. Seules les années qui comptent des données sont proposées, et une année sans réservation sélectionnée par erreur n'ajoute aucune courbe.
+
+M�canisme. Le serveur envoie les données mensuelles de toutes les années disponibles (volume négligeable, quelques années de douze valeurs) ; le menu bascule la série de comparaison côté client, sans rechargement. L'échelle de l'axe Y est fixée d'avance sur le maximum de toutes les années comparables, pour qu'elle reste stable quel que soit le choix, et que les graduations restent cohérentes avec le tracé.
+
+- Le graphe des réservations propose un choix libre de l'année de comparaison.
+- Le graphe de stock cumulé reste sans comparaison (inadapté), choix assumé.
+- Comparaison activable et non imposée ; seules les années avec données sont offertes.
+- Bascule côté client sans rechargement ; échelle Y stable pour rester lisible.

@@ -134,6 +134,17 @@ class ChargerDemoCommand extends Command
             ['Engrenage planétaire', 'Prototype d\'engrenage pour un projet de robotique.', ProjetType::Pedagogique, ProjetStatut::EnCours, $marie, $formateur, false, null],
             ['Lampe origami', 'Abat-jour en PETG translucide, terminé et partagé.', ProjetType::Personnel, ProjetStatut::Termine, $jean, $bde, true, null],
             ['Boîte à bijoux gravée', 'Petite boîte en bois gravée, terminée et partagée.', ProjetType::Pedagogique, ProjetStatut::Termine, $luc, $formateur, true, null],
+            // Projets terminés NON mis en avant : cas indispensable pour juger la
+            // curation de la galerie (l'admin doit pouvoir les activer).
+            ['Règle paramétrique', 'Règle graduée imprimée en 3D, terminée mais pas encore mise en avant.', ProjetType::Personnel, ProjetStatut::Termine, $marie, $formateur, false, null],
+            ['Coque Raspberry Pi', 'Boîtier ventilé pour Raspberry Pi 5, terminé, en attente de curation.', ProjetType::Pedagogique, ProjetStatut::Termine, $jean, $bde, false, null],
+            ['Médaillon gravé', 'Médaillon souvenir gravé au laser, terminé et mis en avant.', ProjetType::Personnel, ProjetStatut::Termine, $luc, $bde, true, null],
+            // Variété supplémentaire pour stresser filtre et tri (tous statuts).
+            ['Affiche découpée', 'Lettrage découpé au plotter pour un événement campus.', ProjetType::Personnel, ProjetStatut::EnAttente, $luc, null, false, null],
+            ['Pièce de rechange imprimante', 'Réparation d\'un guide-filament cassé.', ProjetType::Pedagogique, ProjetStatut::Valide, $marie, $formateur, false, null],
+            ['Trophée hackathon', 'Trophée en acrylique gravé pour le hackathon annuel.', ProjetType::Pedagogique, ProjetStatut::EnCours, $luc, $bde, false, null],
+            ['Étiquettes flocage', 'Flocage de logos sur textile, refusé : visuel basse résolution.', ProjetType::Personnel, ProjetStatut::Refuse, $marie, $bde, false, 'Visuel fourni en trop basse résolution pour le flocage.'],
+            ['Prototype capteur IoT', 'Brouillon d\'un boîtier pour station météo connectée.', ProjetType::Pedagogique, ProjetStatut::Brouillon, $jean, null, false, null],
             // Supports de jeux d'essai (titres préfixés « [Test] » pour être repérables).
             // Cas nominal : projet validé, prêt à réserver.
             ['[Test] Réservation nominale', 'Projet validé servant au jeu d\'essai du cas nominal de réservation.', ProjetType::Pedagogique, ProjetStatut::Valide, $jean, $formateur, false, null],

@@ -38,6 +38,18 @@ final class SupervisionController extends AbstractController
         $debut = new \DateTimeImmutable(sprintf('%d-01-01 00:00:00', $annee));
         $fin = new \DateTimeImmutable(sprintf('%d-01-01 00:00:00', $annee + 1));
 
+        // Réservations par mois pour TOUTES les années ayant des données, afin
+        // d'alimenter le sélecteur « comparer à » (choix libre de l'année de
+        // comparaison, bascule côté client sans rechargement). Volume négligeable
+        // (quelques années × douze lignes).
+        $anneesDispo = $reservations->anneesAvecReservations();
+        $reservationsParAnnee = [];
+        foreach ($anneesDispo as $a) {
+            $dA = new \DateTimeImmutable(sprintf('%d-01-01 00:00:00', $a));
+            $fA = new \DateTimeImmutable(sprintf('%d-01-01 00:00:00', $a + 1));
+            $reservationsParAnnee[$a] = $reservations->reservationsParMois($dA, $fA);
+        }
+
         // Pour le taux d'utilisation, le dénominateur (temps d'ouverture) doit
         // refléter la période réellement écoulée : sinon, sur l'année en cours,
         // on diviserait par une capacité incluant des mois futurs sans aucune
@@ -54,6 +66,8 @@ final class SupervisionController extends AbstractController
         return $this->render('admin/supervision/index.html.twig', [
             'annee' => $annee,
             'reservationsParMois' => $reservations->reservationsParMois($debut, $fin),
+            'reservationsParAnnee' => $reservationsParAnnee,
+            'anneesDispo' => $anneesDispo,
             'tauxMachines' => $supervision->tauxUtilisationMachines($debut, $finTaux),
             'stockParMois' => $mouvements->variationParMois($debut, $fin),
             'mouvementsRecents' => $mouvements->recents(10),

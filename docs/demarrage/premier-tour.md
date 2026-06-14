@@ -97,8 +97,8 @@ Retournez sur **https://localhost** et connectez-vous avec l'adresse et le mot d
 Vous arrivez dans l'application. Prenez le temps de regarder, en suivant ce petit parcours :
 
 1. **Le tableau de bord.** C'est votre point de départ d'admin. Il montre en un coup d'œil les demandes en attente, le stock sous le seuil, les machines actives. Les chiffres viennent des données de démonstration que vous avez chargées.
-2. **Les machines.** Ouvrez la liste des machines (menu Ressources). Vous y voyez le parc du FabLab, chaque machine avec son type lisible et son état. Essayez la barre de recherche en haut, et cliquez sur une en-tête de colonne pour trier : la liste réagit immédiatement.
-3. **Le stock.** Toujours dans Ressources, ouvrez les stocks. Les articles sont rangés par espace machine, avec une barre qui montre le niveau par rapport au seuil d'alerte. Les chips en haut filtrent par catégorie.
+2. **Les machines.** Ouvrez la liste des machines (menu Atelier). Vous y voyez le parc du FabLab, chaque machine avec son type lisible et son état. Essayez la barre de recherche en haut, et cliquez sur une en-tête de colonne pour trier : la liste réagit immédiatement.
+3. **Le stock.** Toujours dans Atelier, ouvrez les consommables. Les articles sont rangés par espace machine, avec une barre qui montre le niveau par rapport au seuil d'alerte. Les chips en haut filtrent par catégorie.
 4. **Les demandes.** Si des projets sont en attente, vous pouvez les valider ou les refuser depuis la file de validation. Vous tenez là le cœur du métier : décider des projets étudiants.
 5. **La supervision.** Dans le menu Pilotage, ouvrez la supervision. C'est la vue analytique du labo : l'activité de réservation mois par mois, le taux d'utilisation de chaque machine, et les derniers mouvements de stock. Grâce aux données de démonstration, les trois axes sont déjà parlants. Vous pouvez aussi exporter ces données en CSV ou en tableur depuis cette page.
 

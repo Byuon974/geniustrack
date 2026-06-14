@@ -39,3 +39,20 @@ Les courbes ne tracent que les mois écoulés. Tracer les mois à venir à zéro
 Les graphes portent leurs repères. Chaque courbe affiche un axe vertical à trois graduations, un repère intermédiaire discret, et un point par mois. La valeur exacte d'un mois se lit en infobulle au survol du point, ce qui garde le tracé propre tout en donnant le chiffre précis à la demande. Conformément au RETEX, on n'étiquette pas tous les points : seule la valeur du dernier mois reste affichée en permanence, ce qui sert aussi d'alternative pour qui n'utilise pas la souris. L'infobulle est une balise SVG native, accessible au focus clavier et au lecteur d'écran.
 
 Les cartes sont regroupées par nature. Les deux courbes d'évolution occupent une première rangée, au même format et à la même hauteur ; les deux blocs de listes, le taux d'utilisation des machines et les derniers mouvements, occupent une seconde rangée. Regrouper par nature, plutôt que de mêler une courbe et une liste sur une même rangée, aligne les hauteurs et donne une page équilibrée. La carte des mouvements reçoit un filtre par motif (tous, réassort, consommation) et un défilement interne à en-tête figé, de sorte qu'elle ne pousse jamais la page, quel que soit le nombre de mouvements.
+
+## 7. Graphes interactifs et comparaison d'années (itérations 28-29)
+
+Cette section complète et fait évoluer le point 6 (en particulier le paragraphe sur la lecture des graphes par infobulle native, désormais dépassé pour les courbes d'évolution).
+
+Le choix d'outillage reste le SVG maison, sans librairie. Le RETEX (sources 2025-2026 : comparatifs Canvas/SVG, bibliothèques de graphes) est net : pour un faible volume de points, le SVG l'emporte en interactivité par élément et en accessibilité, et une librairie rendue en Canvas n'apporterait son avantage qu'au-delà de plusieurs milliers de points, au prix d'une accessibilité à reconstruire et d'une dépendance à intégrer sans bundler. À l'échelle d'un FabLab (douze mois, quelques machines), la balance penche sans ambiguïté pour le SVG enrichi.
+
+Les courbes d'évolution gagnent une couche d'interaction portée par un contrôleur Stimulus dédié. Au survol, un curseur vertical et une infobulle unique présentent la valeur de toutes les séries visibles pour le mois pointé : c'est de la divulgation progressive, le détail apparaît à la demande sans encombrer le tracé par défaut. La visée est facilitée par des zones de survol couvrant toute la colonne du mois, indépendantes de la taille des points. Une légende cliquable permet d'isoler une série.
+
+Le graphe des réservations permet de comparer librement deux années. Le RETEX des outils d'analyse (Matomo, Google Analytics, Kaltura) converge sur un contrôle « comparer à » explicite, avec présets : transposé à une granularité annuelle, cela donne un menu déroulant proposant les années qui comptent des données. La comparaison s'active par choix, elle n'est pas imposée. Le serveur fournit les données de toutes les années disponibles, et la bascule se fait côté client sans rechargement ; l'échelle verticale est fixée d'avance sur le maximum de toutes les années comparables, pour rester stable quel que soit le choix. Conformément au RETEX sur les états vides, une année sans données n'ajoute aucune courbe.
+
+Le graphe de stock ne reçoit pas la comparaison. C'est un niveau cumulé : superposer deux années de cumul, qui ne partagent pas d'origine commune, induirait en erreur plus qu'il n'éclairerait. Le choix est assumé. Son libellé est par ailleurs allégé : le titre « Niveau de stock dans le temps » se suffit à lui-même, la mention « cumulé » qui le doublait a été retirée.
+
+- Le SVG maison est conservé et enrichi (RETEX : meilleur pour faible volume).
+- Survol croisé, visée par colonne, légende cliquable sur les courbes d'évolution.
+- Comparaison libre d'années sur les réservations, activable, bascule côté client.
+- Le stock cumulé reste sans comparaison, et son libellé est allégé.

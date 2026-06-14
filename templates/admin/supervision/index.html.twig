@@ -47,28 +47,45 @@
         {% else %}
             {% set totaux = {} %}
             {% for r in reservationsParMois %}{% set totaux = totaux|merge({(r.mois): r.total}) %}{% endfor %}
+
+            {# Données mensuelles de chaque année disponible (pour « comparer à »),
+               hors année courante. Clé = année, valeur = 12 totaux mensuels. #}
+            {% set comparables = {} %}
+            {% set maxAll = 1 %}
+            {% for a, lignes in reservationsParAnnee|default({}) %}
+                {% if a != annee %}
+                    {% set tA = {} %}
+                    {% for r in lignes %}{% set tA = tA|merge({(r.mois): r.total}) %}{% endfor %}
+                    {% set serieA = [] %}
+                    {% for m in 1..12 %}{% set serieA = serieA|merge([tA[m]|default(0)]) %}{% set maxAll = max(maxAll, tA[m]|default(0)) %}{% endfor %}
+                    {% set comparables = comparables|merge({(a): serieA}) %}
+                {% endif %}
+            {% endfor %}
+
             {% set maxRes = 1 %}
             {% for m in 1..moisLimite %}{% set maxRes = max(maxRes, totaux[m]|default(0)) %}{% endfor %}
+            {# Échelle Y stable quelle que soit l'année de comparaison choisie :
+               on prend le max de l'année courante ET de toutes les comparables. #}
+            {% set maxEchelle = max(maxRes, maxAll) %}
 
-            {# Points : x réparti sur les mois écoulés, y inversé (origine SVG en haut),
-               plage de tracé y ∈ [16, 96]. Un point par mois, avec sa valeur exacte
-               en infobulle native (accessible au survol et au focus). #}
-            {% set pas = moisLimite > 1 ? (316 / (moisLimite - 1)) : 0 %}
-            {% set pts = [] %}
+            {% set moisCourts = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'] %}
+            {% set libelles = [] %}
+            {% set dataAct = [] %}
             {% for m in 1..moisLimite %}
-                {% set x = 34 + (m - 1) * pas %}
-                {% set v = totaux[m]|default(0) %}
-                {% set y = 96 - (v / maxRes * 80) %}
-                {% set pts = pts|merge([(x|round(1)) ~ ',' ~ (y|round(1))]) %}
+                {% set libelles = libelles|merge([moisCourts[m - 1]]) %}
+                {% set dataAct = dataAct|merge([totaux[m]|default(0)]) %}
             {% endfor %}
 
             <div class="superv-graphe">
                 {{ include('admin/supervision/_courbe.html.twig', {
-                    pts: pts, moisLimite: moisLimite, pas: pas,
-                    couleur: 'var(--gl-blueprint)',
-                    maxVal: maxRes, totaux: totaux, unite: 'réservations',
-                    grad: [maxRes, (maxRes / 2)|round, 0],
-                    dernier: totaux[moisLimite]|default(0)
+                    series: [
+                        {cle: 'actuelle', label: annee, couleur: '#1d4e6f', data: dataAct, visible: true}
+                    ],
+                    mois: libelles,
+                    max: maxEchelle,
+                    grad: [maxEchelle, (maxEchelle / 2)|round, 0],
+                    aria: 'Réservations par mois pour ' ~ annee ~ ', avec comparaison possible',
+                    comparables: comparables
                 }) }}
             </div>
         {% endif %}
@@ -78,7 +95,6 @@
     <section class="superv-bloc superv-bloc--stock">
         <div class="superv-tt">
             <h2 class="superv-titre">Niveau de stock dans le temps</h2>
-            <span class="superv-tot">cumulé</span>
         </div>
         {% if stockParMois is empty %}
             {{ include('components/empty.html.twig', {message: 'Aucun mouvement de stock sur la période.'}) }}
@@ -98,22 +114,24 @@
             {% set amplitude = (niveauMax - niveauMin) > 0 ? (niveauMax - niveauMin) : 1 %}
 
             {% set pas = moisLimite > 1 ? (316 / (moisLimite - 1)) : 0 %}
-            {% set pts = [] %}
-            {% set valeurs = {} %}
+            {% set moisCourts = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'] %}
+            {% set libelles = [] %}
+            {% set dataNiv = [] %}
             {% for niveau in niveaux %}
-                {% set x = 34 + loop.index0 * pas %}
-                {% set y = 96 - ((niveau - niveauMin) / amplitude * 80) %}
-                {% set pts = pts|merge([(x|round(1)) ~ ',' ~ (y|round(1))]) %}
-                {% set valeurs = valeurs|merge({(loop.index): niveau}) %}
+                {% set libelles = libelles|merge([moisCourts[loop.index0]]) %}
+                {% set dataNiv = dataNiv|merge([niveau]) %}
             {% endfor %}
 
             <div class="superv-graphe">
                 {{ include('admin/supervision/_courbe.html.twig', {
-                    pts: pts, moisLimite: moisLimite, pas: pas,
-                    couleur: 'var(--gl-filament)',
-                    maxVal: niveauMax, totaux: valeurs, unite: 'unités',
+                    series: [
+                        {cle: 'stock', label: 'Stock', couleur: '#e8702a', data: dataNiv, visible: true}
+                    ],
+                    mois: libelles,
+                    max: niveauMax,
                     grad: [niveauMax, ((niveauMax + niveauMin) / 2)|round, niveauMin],
-                    dernier: niveaux|last
+                    aria: 'Niveau de stock sur ' ~ (libelles|length) ~ ' mois',
+                    legende_visible: false
                 }) }}
             </div>
         {% endif %}

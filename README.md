@@ -209,6 +209,7 @@ Le script lit les identifiants depuis le conteneur PostgreSQL, refuse un dump vi
 - Supervision analytique : page distincte du tableau de bord, taux d'utilisation des machines (capacité dérivée des horaires d'ouverture), activité de réservation par mois, fluctuations de consommables.
 - Traçage automatique du stock : chaque ajustement écrit un mouvement daté dans un historique immuable (modèle ledger, comme les sanctions), avec motif catégorisé.
 - Export des données en CSV et XLSX : trois jeux (réservations, taux machines, mouvements), réservé à l'administrateur (données nominatives).
+- Galerie « projets réalisés » : page de curation dédiée où l'admin met en avant les projets terminés et choisit l'image de leur carte d'accueil (un fichier déjà joint au projet, copié vers le dossier public, ou une image téléversée). La page Vitrine y renvoie ; l'accueil affiche l'image retenue ou un pictogramme par défaut.
 
 ## Conventions
 

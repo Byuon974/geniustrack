@@ -111,6 +111,29 @@ class SessionReservationRepository extends ServiceEntityRepository
     }
 
     /**
+     * Liste des années (décroissantes) qui comptent au moins une session non
+     * annulée, pour alimenter le sélecteur « comparer à » de la supervision. On
+     * ne propose ainsi que des années réellement comparables.
+     *
+     * @return int[]
+     */
+    public function anneesAvecReservations(): array
+    {
+        $sql = <<<'SQL'
+            SELECT DISTINCT EXTRACT(YEAR FROM date_debut)::int AS annee
+            FROM session_reservation
+            WHERE statut != :annulee
+            ORDER BY annee DESC
+            SQL;
+
+        $lignes = $this->getEntityManager()->getConnection()->executeQuery($sql, [
+            'annulee' => ReservationStatut::Annulee->value,
+        ])->fetchAllAssociative();
+
+        return array_map(static fn (array $l) => (int) $l['annee'], $lignes);
+    }
+
+    /**
      * Total des minutes réservées par machine sur une période (sessions non
      * annulées). Chaque occupation hérite de la durée de sa session ; on somme
      * donc la durée de la session par machine occupée. Sert au taux

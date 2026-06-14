@@ -8,7 +8,7 @@ Préalable : disposer d'un compte de chaque rôle utile (admin, formateur, étud
 
 Vérifie qu'une machine ayant un historique de réservations ne peut pas être supprimée et bascule proprement en « hors service ».
 
-1. En admin, créer une machine (Ressources › Machines › Ajouter).
+1. En admin, créer une machine (Atelier › Machines › Ajouter).
 2. En étudiant, sur un projet validé, réserver un créneau sur cette machine (le wizard de réservation).
 3. En admin, revenir sur la liste des machines et tenter de supprimer cette machine.
    - Attendu : la suppression est refusée. Un message d'erreur s'affiche en haut de la liste : la machine a un historique et doit être passée « hors service ». **Pas d'erreur serveur (500).**
@@ -94,7 +94,7 @@ Vérifie le créneau souple : heure de début au pas de 30 minutes, durée régl
 
 Vérifie la page analytique et le calcul du taux d'utilisation.
 
-1. En admin ou formateur, ouvrir Pilotage › Supervision.
+1. En admin ou formateur, ouvrir Pilotage › Activité.
 2. Vérifier les quatre cartes : en haut, les deux courbes (réservations par mois, niveau de stock) côte à côte à la même hauteur ; en bas, le taux d'utilisation des machines et les derniers mouvements de stock.
 3. Changer d'année dans le filtre de période et vérifier que les données suivent.
 4. Vérifier qu'une machine très réservée affiche un taux élevé (rouge) et une machine peu réservée un taux faible (vert).

@@ -1704,6 +1704,25 @@ form input[type="file"]::file-selector-button:hover {
 
 /* Supervision : graphe en courbe (SVG), fidèle à la maquette validée. */
 .superv-graphe svg { width: 100%; height: 120px; display: block; }
+/* ── Graphe interactif (contrôleur « graphe ») ── */
+.graphe { position: relative; }
+.graphe-controles { display: flex; align-items: center; justify-content: space-between; gap: var(--gl-space-3); flex-wrap: wrap; margin-bottom: var(--gl-space-2); }
+.graphe-cmp { display: inline-flex; align-items: center; gap: 6px; font-size: var(--gl-text-xs); color: var(--gl-slate); }
+.graphe-cmp select { font: inherit; font-size: var(--gl-text-xs); padding: 3px 8px; border: 1px solid var(--gl-line); border-radius: 6px; background: #fff; color: var(--gl-ink); cursor: pointer; }
+.graphe-legende { display: flex; gap: var(--gl-space-3); }
+.leg-item { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: var(--gl-text-xs); cursor: pointer; border: 1px solid transparent; border-radius: 6px; padding: 2px 8px; color: var(--gl-slate); background: none; }
+.leg-item:hover { background: var(--gl-bg); }
+.leg-item.off { opacity: .45; text-decoration: line-through; }
+.leg-pastille { width: 12px; height: 12px; border-radius: 3px; }
+.graphe .hit { fill: transparent; cursor: pointer; }
+.graphe .curseur { stroke: var(--gl-gray); stroke-dasharray: 3 3; opacity: 0; transition: opacity .1s; }
+.graphe .pt { transition: r .1s; }
+.graphe .pt--actif { r: 6; }
+.graphe .tip { position: absolute; pointer-events: none; background: var(--gl-ink); color: #fff; border-radius: 6px; padding: 8px 10px; font-size: var(--gl-text-xs); line-height: 1.5; opacity: 0; transform: translate(-50%, -8px); transition: opacity .1s; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,.18); z-index: 2; }
+.graphe .tip.on { opacity: 1; }
+.graphe .tip__mois { font-weight: 600; margin-bottom: 2px; }
+.graphe .tip__ligne { display: flex; align-items: center; gap: 6px; }
+.graphe .tip__pastille { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
 .superv-leg { font-size: var(--gl-text-xs); color: var(--gl-gray); margin-top: var(--gl-space-2); }
 
 /* Wizard : boutons du navigateur (rendus par form_rest, classes Symfony par

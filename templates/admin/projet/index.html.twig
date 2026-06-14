@@ -1,7 +1,7 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Gestion des projets{% endblock %}
-{% block fil_ariane %}{{ include("components/fil_ariane.html.twig", {segments: [{libelle: "Pilotage", url: null}, {libelle: "Projets", url: null}]}) }}{% endblock %}
+{% block title %}Projets{% endblock %}
+{% block fil_ariane %}{{ include("components/fil_ariane.html.twig", {segments: [{libelle: "Atelier", url: null}, {libelle: "Projets", url: null}]}) }}{% endblock %}
 
 {% block body %}
 {% set libelleTransition = {
@@ -23,21 +23,44 @@
     {% if projets is empty %}
         {{ include('components/empty.html.twig', {message: 'Aucun projet enregistré.'}) }}
     {% else %}
-        <table class="data-table projet-admin-table">
-            <thead>
-                <tr>
-                    <th>Projet</th>
-                    <th>Étudiant</th>
-                    <th>Type</th>
-                    <th>Statut</th>
-                    <th class="actions-col">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
+        {# Chips de filtre par statut, rendues puis passées au composant. #}
+        {% set statuts = {'brouillon': 'Brouillon', 'en_attente': 'En attente', 'valide': 'Validé', 'refuse': 'Refusé', 'en_cours': 'En cours', 'termine': 'Terminé'} %}
+        {% set chips %}
+            <button type="button" class="filter-chip is-active" data-datatable-target="chip" data-action="datatable#filtrerCategorie" data-categorie="">Tous</button>
+            {% for valeur, libelle in statuts %}
+                <button type="button" class="filter-chip" data-datatable-target="chip" data-action="datatable#filtrerCategorie" data-categorie="{{ valeur }}">{{ libelle }}</button>
+            {% endfor %}
+        {% endset %}
+
+        {% embed 'components/data_table.html.twig' with {
+            recherche_placeholder: 'Rechercher un projet…',
+            recherche_label: 'Rechercher un projet',
+            vide_message: 'Aucun projet ne correspond à la recherche.',
+            filtres: chips
+        } %}
+            {% block entetes %}
+                <th class="dt-sortable" data-datatable-target="header" data-sort-key="titre"
+                    data-action="datatable#trier">Projet <span class="dt-arrow" aria-hidden="true"></span></th>
+                <th class="dt-sortable" data-datatable-target="header" data-sort-key="etudiant"
+                    data-action="datatable#trier">Étudiant <span class="dt-arrow" aria-hidden="true"></span></th>
+                <th class="dt-sortable" data-datatable-target="header" data-sort-key="type"
+                    data-action="datatable#trier">Type <span class="dt-arrow" aria-hidden="true"></span></th>
+                <th class="dt-sortable" data-datatable-target="header" data-sort-key="statut"
+                    data-action="datatable#trier">Statut <span class="dt-arrow" aria-hidden="true"></span></th>
+                <th class="actions-col">Actions</th>
+            {% endblock %}
+            {% block lignes %}
                 {% for projet in projets %}
-                    <tr>
-                        <td class="projet-titre-cell"><span class="projet-titre-texte">{{ projet.titre }}</span></td>
-                        <td>{{ projet.etudiant ? projet.etudiant.nomComplet : '—' }}</td>
+                    {% set etu = projet.etudiant ? projet.etudiant.nomComplet : '-' %}
+                    <tr data-datatable-target="row"
+                        data-categorie="{{ projet.statut.value }}"
+                        data-recherche="{{ (projet.titre ~ ' ' ~ etu ~ ' ' ~ projet.type.libelle ~ ' ' ~ projet.statut.libelle)|lower }}"
+                        data-sort-titre="{{ projet.titre|lower }}"
+                        data-sort-etudiant="{{ etu|lower }}"
+                        data-sort-type="{{ projet.type.libelle|lower }}"
+                        data-sort-statut="{{ projet.statut.libelle|lower }}">
+                        <td><span class="projet-titre-texte">{{ projet.titre }}</span></td>
+                        <td>{{ etu }}</td>
                         <td>{{ projet.type.libelle }}</td>
                         <td>{{ include('components/badge.html.twig', {couleur: projet.statut.couleur, label: projet.statut.libelle}) }}</td>
                         <td class="actions-col">
@@ -61,8 +84,8 @@
                         </td>
                     </tr>
                 {% endfor %}
-            </tbody>
-        </table>
+            {% endblock %}
+        {% endembed %}
     {% endif %}
 </div>
 {% endblock %}
