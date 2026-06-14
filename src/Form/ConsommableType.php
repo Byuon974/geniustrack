@@ -13,6 +13,8 @@ use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\Length;
+use Symfony\Component\Validator\Constraints\LessThanOrEqual;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\Positive;
 use Symfony\Component\Validator\Constraints\PositiveOrZero;
@@ -46,7 +48,8 @@ class ConsommableType extends AbstractType
         $builder
             ->add('nom', TextType::class, [
                 'label' => 'Nom de l\'article',
-                'constraints' => [new NotBlank()],
+                'attr' => ['maxlength' => 150],
+                'constraints' => [new NotBlank(), new Length(min: 2, max: 150)],
             ])
             ->add('categorie', ChoiceType::class, [
                 'label' => 'Catégorie',
@@ -60,26 +63,26 @@ class ConsommableType extends AbstractType
             ])
             ->add('quantite', IntegerType::class, [
                 'label' => 'Quantité en stock',
-                'attr' => ['min' => 0, 'inputmode' => 'numeric'],
-                'constraints' => [new PositiveOrZero()],
+                'attr' => ['min' => 0, 'max' => 5000, 'inputmode' => 'numeric'],
+                'constraints' => [new PositiveOrZero(), new LessThanOrEqual(value: 5000, message: 'La quantité ne peut pas dépasser {{ compared_value }}.')],
             ])
             ->add('seuilMinimal', IntegerType::class, [
                 'label' => 'Seuil d\'alerte',
-                'attr' => ['min' => 0, 'inputmode' => 'numeric'],
+                'attr' => ['min' => 0, 'max' => 5000, 'inputmode' => 'numeric'],
                 'help' => 'En dessous de ce niveau, l\'article est signalé en stock bas.',
-                'constraints' => [new PositiveOrZero()],
+                'constraints' => [new PositiveOrZero(), new LessThanOrEqual(value: 5000, message: 'Le seuil ne peut pas dépasser {{ compared_value }}.')],
             ])
             ->add('consommationMensuelleEstimee', NumberType::class, [
                 'label' => 'Consommation estimée par mois',
-                'attr' => ['min' => 0, 'step' => '0.5', 'inputmode' => 'decimal'],
+                'attr' => ['min' => 0, 'max' => 5000, 'step' => '0.5', 'inputmode' => 'decimal'],
                 'help' => 'Laisser à 0 si inconnu : aucune prédiction de rupture ne sera faite.',
-                'constraints' => [new PositiveOrZero()],
+                'constraints' => [new PositiveOrZero(), new LessThanOrEqual(value: 5000, message: 'La consommation ne peut pas dépasser {{ compared_value }}.')],
             ])
             ->add('delaiFournisseurJours', IntegerType::class, [
                 'label' => 'Délai fournisseur (jours)',
-                'attr' => ['min' => 0, 'inputmode' => 'numeric'],
+                'attr' => ['min' => 0, 'max' => 180, 'inputmode' => 'numeric'],
                 'help' => 'Du jour de commande à la livraison.',
-                'constraints' => [new PositiveOrZero()],
+                'constraints' => [new PositiveOrZero(), new LessThanOrEqual(value: 180, message: 'Le délai ne peut pas dépasser {{ compared_value }} jours.')],
             ]);
     }
 

@@ -22,27 +22,36 @@ class Consommable
 
     #[ORM\Column(length: 150)]
     #[Assert\NotBlank]
+    #[Assert\Length(min: 2, max: 150)]
     private string $nom;
 
     #[ORM\Column(length: 80)]
     #[Assert\NotBlank]
+    #[Assert\Length(min: 2, max: 80)]
     private string $categorie;
 
+    // Bornes hautes : une borne métier réaliste évite les saisies absurdes et la
+    // corruption en aval (RETEX OWASP « range check », WCAG SC 3.3.4). Un stock de
+    // FabLab étudiant reste dans les milliers d'unités ; 100 000 cadre large.
     #[ORM\Column]
     #[Assert\PositiveOrZero]
+    #[Assert\LessThanOrEqual(100000)]
     private int $quantite = 0;
 
     // BF_4.4 : seuil déclenchant l'alerte de stock bas.
     #[ORM\Column]
     #[Assert\PositiveOrZero]
+    #[Assert\LessThanOrEqual(100000)]
     private int $seuilMinimal = 0;
 
     #[ORM\Column(length: 20)]
     private string $unite = 'unité';
 
     // Pour la prédiction de rupture (BF_4.3) : délai fournisseur en jours.
+    // Au-delà d'un an, un réapprovisionnement n'a plus de sens opérationnel.
     #[ORM\Column]
     #[Assert\PositiveOrZero]
+    #[Assert\LessThanOrEqual(365)]
     private int $delaiFournisseurJours = 14;
 
     // Consommation moyenne estimée, saisie par l'admin (approche pragmatique
@@ -50,6 +59,7 @@ class Consommable
     // En unités par mois (granularité naturelle pour bobines/résine).
     #[ORM\Column]
     #[Assert\PositiveOrZero]
+    #[Assert\LessThanOrEqual(100000)]
     private float $consommationMensuelleEstimee = 0;
 
     public function getId(): ?int

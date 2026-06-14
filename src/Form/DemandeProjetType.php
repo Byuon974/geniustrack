@@ -148,7 +148,7 @@ class DemandeProjetType extends AbstractType
                     'label' => 'Quantité',
                     'required' => false,
                     'mapped' => false, // stocké hors entité Projet (métadonnée de demande)
-                    'attr' => ['min' => 1, 'max' => 10, 'inputmode' => 'numeric'],
+                    'attr' => ['min' => 1, 'max' => 10, 'inputmode' => 'numeric', 'data-stepper-target' => 'champ'],
                     'constraints' => [
                         new Assert\Positive(message: 'La quantité doit être au moins de 1.'),
                         new Assert\LessThanOrEqual(value: 10, message: 'La quantité ne peut pas dépasser {{ compared_value }}.'),

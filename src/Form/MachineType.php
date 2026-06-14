@@ -15,13 +15,19 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\Image;
+use Symfony\Component\Validator\Constraints\Length;
+use Symfony\Component\Validator\Constraints\NotBlank;
 
 class MachineType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('nom', TextType::class, ['label' => 'Nom de la machine'])
+            ->add('nom', TextType::class, [
+                'label' => 'Nom de la machine',
+                'attr' => ['maxlength' => 150],
+                'constraints' => [new NotBlank(), new Length(min: 2, max: 150)],
+            ])
             ->add('type', ChoiceType::class, [
                 'label' => 'Type',
                 'choices' => \App\Catalogue\MachineTypes::choix(),
@@ -29,6 +35,8 @@ class MachineType extends AbstractType
             ->add('description', TextareaType::class, [
                 'label' => 'Description',
                 'required' => false,
+                'attr' => ['maxlength' => 255, 'rows' => 3],
+                'constraints' => [new Length(max: 255)],
             ])
             ->add('etat', EnumType::class, [
                 'class' => MachineEtat::class,
@@ -36,7 +44,7 @@ class MachineType extends AbstractType
                 'label' => 'État',
             ])
             ->add('photoFile', FileType::class, [
-                'label' => 'Photo (JPEG/PNG/WebP, max 2 Mo)',
+                'label' => 'Photo (JPEG/PNG/WebP, max 5 Mo)',
                 'mapped' => false,   // géré à la main, pas une propriété de l'entité
                 'required' => false,
                 'constraints' => [

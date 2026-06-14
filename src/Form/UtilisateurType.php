@@ -26,8 +26,8 @@ class UtilisateurType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('prenom', TextType::class, ['label' => 'Prénom'])
-            ->add('nom', TextType::class, ['label' => 'Nom'])
+            ->add('prenom', TextType::class, ['label' => 'Prénom', 'attr' => ['maxlength' => 100], 'constraints' => [new NotBlank(), new Length(min: 1, max: 100)]])
+            ->add('nom', TextType::class, ['label' => 'Nom', 'attr' => ['maxlength' => 100], 'constraints' => [new NotBlank(), new Length(min: 1, max: 100)]])
             ->add('email', EmailType::class, [
                 'label' => 'Adresse e-mail (@cci.re)',
                 'constraints' => [
@@ -60,7 +60,11 @@ class UtilisateurType extends AbstractType
             $builder->add('motDePasse', PasswordType::class, [
                 'label' => 'Mot de passe',
                 'mapped' => false,
-                'constraints' => [new NotBlank(), new Length(min: 8)],
+                // min 8 pour la robustesse ; max 128 pour autoriser les phrases de
+                // passe longues tout en évitant les saisies abusives (le hachage
+                // d'une entrée démesurée peut peser, NIST SP 800-63B borne ainsi).
+                'attr' => ['maxlength' => 128],
+                'constraints' => [new NotBlank(), new Length(min: 8, max: 128)],
             ]);
         }
     }

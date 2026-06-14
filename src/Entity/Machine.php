@@ -19,9 +19,11 @@ class Machine
 
     #[ORM\Column(length: 150)]
     #[Assert\NotBlank]
+    #[Assert\Length(min: 2, max: 150)]
     private string $nom;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Assert\Length(max: 1000)]
     private ?string $description = null;
 
     #[ORM\Column(length: 255, nullable: true)]

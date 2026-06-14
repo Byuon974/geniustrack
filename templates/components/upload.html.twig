@@ -15,7 +15,10 @@
 
   L'appelant place ce partiel DANS son <form> et fournit le data-controller.
 #}
-<div class="upload" data-controller="file-upload">
+<div class="upload" data-controller="file-upload"
+     data-file-upload-max-fichiers-value="{{ max_fichiers|default(10) }}"
+     data-file-upload-max-taille-mo-value="{{ max_taille_mo|default(25) }}"
+     data-file-upload-max-total-mo-value="{{ max_total_mo|default(80) }}">
     {% if label is defined and label %}
         <span class="upload__label">{{ label }}</span>
     {% endif %}
@@ -42,6 +45,7 @@
 
     <ul class="upload__liste" data-file-upload-target="liste"></ul>
     <p class="upload__vide" data-file-upload-target="vide">Aucun fichier sélectionné.</p>
+    <div class="upload__erreur" data-file-upload-target="erreur" role="alert" hidden></div>
 
     {% if bouton is defined and bouton %}
         <div class="upload__actions">

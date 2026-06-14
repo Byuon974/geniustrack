@@ -1,0 +1,25 @@
+{#
+  Stepper numerique reutilisable : deux boutons « moins » et « plus » encadrant
+  une valeur, pour saisir une petite quantite sans clavier. Pilote un input reel
+  (masque) qui porte la valeur soumise au formulaire.
+
+  Parametres :
+    input_html (requis) : balisage de l'input reel, fourni par l'appelant.
+        L'input DOIT porter data-stepper-target="champ" et, si possible, des
+        attributs min/max (le controleur les lit pour borner).
+        - a la creation projet : {{ form_widget(form.quantite) }}
+    label_moins (option) : aria-label du bouton « moins »
+    label_plus  (option) : aria-label du bouton « plus »
+    depart      (option) : valeur affichee au depart si l'input est vide (defaut 1)
+
+  L'appelant fournit le min/max sur l'input lui-meme ; le controleur s'y aligne.
+#}
+<div class="stepper-num" data-controller="stepper">
+    <button type="button" data-action="stepper#moins"
+            aria-label="{{ label_moins|default('Diminuer') }}">{{ include('components/icon.html.twig', {name: 'minus', size: 16}) }}</button>
+    <span class="stepper-num__val" data-stepper-target="valeur">{{ depart|default(1) }}</span>
+    <button type="button" data-action="stepper#plus"
+            aria-label="{{ label_plus|default('Augmenter') }}">{{ include('components/icon.html.twig', {name: 'plus', size: 16}) }}</button>
+    {# Input reel, masque, porteur de la valeur soumise. #}
+    {{ input_html|raw }}
+</div>

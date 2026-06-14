@@ -9,11 +9,10 @@
 
 
 {{ form_start(form) }}
-    {# Bloc « Détails » conditionnel : présent seulement si des champs spécifiques
-       aux machines cochées existent. Quand il est là, « Matériel » et « Détails »
-       partagent une rangée (deux colonnes) pour réduire la hauteur ; sinon
-       « Matériel » occupe toute la largeur. Colonne unique préservée DANS chaque
-       bloc (RETEX formulaire). #}
+    {# Un seul bloc « Matériel & détails » : les champs de détail (quantité,
+       supports) rejoignent le matériel au lieu d'une colonne séparée qui se
+       vide quand peu de champs s'appliquent. Colonne unique préservée dans
+       chaque bloc (RETEX formulaire). #}
     {% set aDetails = form.quantite is defined or form.support_flocage is defined or form.support_gravure is defined %}
     <div class="form-grille">
         <fieldset class="bloc bloc--pleine">
@@ -25,10 +24,33 @@
             </div>
         </fieldset>
 
-        <fieldset class="bloc{{ aDetails ? '' : ' bloc--pleine' }}">
+        <fieldset class="bloc bloc--pleine">
             <p class="bloc__titre">Matériel nécessaire</p>
             <div class="bloc__corps">
                 {{ form_row(form.machines) }}
+
+                {% if aDetails %}
+                    <div class="form-sous-section">
+                        {% if form.quantite is defined %}
+                            <div class="champ-stepper">
+                                {{ form_label(form.quantite) }}
+                                {{ include('components/stepper.html.twig', {
+                                    input_html: form_widget(form.quantite),
+                                    label_moins: 'Une unité de moins',
+                                    label_plus: 'Une unité de plus',
+                                    depart: form.quantite.vars.value|default(1)
+                                }) }}
+                            </div>
+                        {% endif %}
+                        {% if form.support_flocage is defined or form.support_gravure is defined %}
+                        <div class="champ-duo">
+                            {% if form.support_flocage is defined %}{{ form_row(form.support_flocage) }}{% endif %}
+                            {% if form.support_gravure is defined %}{{ form_row(form.support_gravure) }}{% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
                 {% if form.plansFiles is defined %}
                     {{ include('components/upload.html.twig', {
                         input_html: form_widget(form.plansFiles),
@@ -38,21 +60,6 @@
                 {% endif %}
             </div>
         </fieldset>
-
-        {% if aDetails %}
-        <fieldset class="bloc">
-            <p class="bloc__titre">Détails</p>
-            <div class="bloc__corps">
-                {% if form.quantite is defined %}{{ form_row(form.quantite) }}{% endif %}
-                {% if form.support_flocage is defined or form.support_gravure is defined %}
-                <div class="champ-duo">
-                    {% if form.support_flocage is defined %}{{ form_row(form.support_flocage) }}{% endif %}
-                    {% if form.support_gravure is defined %}{{ form_row(form.support_gravure) }}{% endif %}
-                </div>
-                {% endif %}
-            </div>
-        </fieldset>
-        {% endif %}
     </div>
 
     <div class="form-actions">

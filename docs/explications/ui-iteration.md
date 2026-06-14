@@ -273,3 +273,44 @@ Leçon : un même geste mérite un même composant. Dédoubler la présentation 
 - La présentation est unifiée entre création et modification, un seul contrôleur.
 - L'input natif reste la source de vérité, reconstruit à chaque changement.
 - L'accessibilité (focus, clavier) et le retour visuel avant envoi sont assurés.
+
+## Itération 22 : faire respecter les limites d'upload en amont
+
+Problème observé : le composant d'upload acceptait n'importe quel nombre de fichiers (66 vus en test), la liste s'étirait sans fin et gonflait la carte, et rien ne signalait que le surplus serait rejeté. La limite n'existait que côté serveur, donc le refus n'arrivait qu'après l'envoi, une fois le mal fait à l'écran.
+
+Décision : appliquer les limites dès l'ajout, côté client, en miroir des contraintes serveur (dix fichiers, vingt-cinq mégaoctets par fichier, quatre-vingts au total). Le contrôleur reçoit ces seuils en paramètres plutôt qu'en dur, refuse les fichiers hors limite, et affiche la liste des refus avec leur motif. La liste des fichiers retenus est bornée en hauteur avec un défilement interne, pour que la carte ne grandisse jamais. Cette validation client reste une commodité : les contraintes serveur demeurent la vraie barrière, si bien qu'un contournement du script est toujours refusé à la réception.
+
+Leçon : une limite doit se faire sentir au moment du geste, pas après l'envoi. Laisser l'utilisateur empiler soixante-six fichiers pour les rejeter ensuite, c'est lui faire perdre son temps et casser la mise en page au passage. Le bon réflexe est de refléter la règle serveur côté client, d'expliquer chaque refus, et de borner tout affichage de liste pour qu'il ne déborde jamais.
+
+- Le déclencheur est une observation concrète et un comportement absurde à l'écran.
+- La limite est appliquée à la source du geste, avec un motif de refus explicite.
+- La validation client double la règle serveur sans la remplacer.
+- Toute liste affichée est bornée et défile, jamais étirée sans fin.
+
+## Itération 23 : message de refus agrégé plutôt que liste détaillée
+
+Correction de l'itération 22. La validation client des limites d'upload affichait une ligne par fichier refusé, avec son nom et son motif. Sur une sélection abusive (soixante-six fichiers pour une limite de dix), cela produisait cinquante-six lignes identiques, qui étiraient la zone d'erreur et reproduisaient le débordement même qu'on cherchait à supprimer. Le bornage posé à l'itération 22 ne couvrait que la liste des fichiers acceptés, pas celle des refus.
+
+Décision : remplacer la liste détaillée par un message agrégé unique. Les refus sont comptés par motif (limite de nombre, taille d'un fichier, total cumulé) et résumés en une phrase, par exemple « 56 fichiers écartés : limite de 10 fichiers atteinte ». Lister chaque fichier refusé n'apporte rien : ces fichiers ne sont ni envoyés ni enregistrés, ils n'existent que le temps de la sélection dans le navigateur. C'est d'ailleurs le choix des bibliothèques d'upload éprouvées (Dropzone, Uppy, FilePond), qui synthétisent les rejets au lieu de les énumérer.
+
+Leçon : un retour d'erreur doit informer, pas submerger. Quand des dizaines d'éléments échouent pour la même raison, l'utilisateur a besoin du motif et du nombre, pas d'un inventaire. Et tout affichage dynamique, y compris une zone d'erreur, doit être pensé pour ne jamais croître sans limite : la borne ne se met pas seulement sur la liste « heureuse », mais sur toute zone qui se remplit à partir d'une entrée utilisateur.
+
+- La correction porte sur une zone oubliée au bornage précédent.
+- Le message est compté par motif et tient en une phrase.
+- Énumérer des fichiers jamais envoyés est du bruit, pas de l'information.
+- Toute zone alimentée par l'utilisateur doit être bornée, pas seulement la principale.
+
+## Itération 24 : input masqué et stepper unifié
+
+Deux défauts d'intégration observés sur la page de demande. D'abord l'input de fichier natif restait visible sous la zone de glisser-déposer, avec son bouton « Parcourir » et son « Aucun fichier sélectionné » : le composant d'upload n'avait jamais reçu la règle qui masque l'input réel, présente seulement dans la maquette. Ensuite la quantité s'affichait en champ numérique brut, avec les fléchettes natives du navigateur, alors que le nombre de personnes d'un créneau utilisait déjà un stepper « moins / valeur / plus ». Deux champs au même rôle, rendus différemment selon l'écran : une incohérence qui fait amateur.
+
+Décision. L'input de fichier est masqué proprement (position absolue, dimensions réduites, plutôt que display:none qui rendrait le clic programmatique fragile) : il reste dans le document pour porter la sélection envoyée, la zone de dépôt étant la seule surface visible. Pour la quantité, le stepper est extrait en composant réutilisable (un contrôleur Stimulus et un partiel) et employé tel quel, avec la classe visuelle déjà utilisée par la réservation : même apparence, même comportement, un seul point de maintenance. Le composant lit les bornes sur l'input réel (min, max) et reste la source de vérité de la valeur soumise.
+
+Bloc « Détails » simplifié. Ce bloc occupait une colonne séparée qui se vidait quand peu de champs s'appliquaient (souvent la seule quantité), créant un déséquilibre. Les champs de détail (quantité, supports) rejoignent désormais le bloc « Matériel » sous une sous-section, et la colonne fantôme disparaît. Le choix de ne pas révéler ces champs en direct au cochage d'une machine est assumé : la règle « quelle machine entraîne quel champ » vit côté serveur (doctrine du projet), et la dupliquer en JavaScript pour un gain mineur fragiliserait l'ensemble. La cohérence prime sur l'effet.
+
+Leçon : un composant doit être unique pour un rôle donné, et son intégration doit être vérifiée en conditions réelles, pas seulement en maquette. Le masquage d'un input oublié au passage du prototype au code, ou un stepper réimplémenté ici et pas là, sont le même défaut : une intention de design qui ne se propage pas jusqu'au bout. On extrait, on réutilise, on vérifie à l'écran.
+
+- Les deux défauts viennent d'une intention de maquette non propagée au code intégré.
+- L'input réel est masqué mais conservé ; la valeur soumise reste correcte.
+- Le stepper devient un composant unique, partagé avec la réservation.
+- Le bloc Détails fusionne pour ne plus laisser de colonne vide.

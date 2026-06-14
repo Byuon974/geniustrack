@@ -540,7 +540,7 @@ form textarea { min-height: 48px; }
     padding: 2px 6px; border: 1px solid var(--gl-line); border-radius: var(--gl-radius);
 }
 .plans-list { margin: var(--gl-space-4) 0; }
-.plans-list ul { margin: var(--gl-space-2) 0 0; padding-left: var(--gl-space-4); }
+.plans-list ul { margin: var(--gl-space-2) 0 0; padding-left: var(--gl-space-4); max-height: 240px; overflow-y: auto; }
 .form-photo-current { margin-bottom: var(--gl-space-3); }
 .form-photo-current img { display: block; border-radius: var(--gl-radius); margin-bottom: var(--gl-space-1); }
 
@@ -1212,6 +1212,10 @@ tr[class*="dt-row--"] > td:first-child { border-left: 3px solid transparent; pad
 /* ───────────── Composant d'upload (zone drag-drop + liste) ───────────── */
 .upload { margin-top: var(--gl-space-3); }
 .upload__label { font-weight: 600; display: block; margin-bottom: var(--gl-space-2); }
+/* L'input natif est piloté par la zone : on le masque sans le retirer du DOM
+   (il porte la sélection envoyée). Position absolue + dimensions nulles plutôt
+   que display:none, pour que le .click() programmatique reste fiable partout. */
+.upload input[type="file"] { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
 .upload__zone {
     border: 2px dashed var(--gl-line); border-radius: var(--gl-radius);
     padding: var(--gl-space-6) var(--gl-space-4); text-align: center;
@@ -1225,7 +1229,7 @@ tr[class*="dt-row--"] > td:first-child { border-left: 3px solid transparent; pad
 .upload__principal { font-weight: 600; color: var(--gl-blueprint); }
 .upload__secondaire { font-size: var(--gl-text-sm); color: var(--gl-ink-soft); margin-top: 2px; }
 .upload__formats { font-size: var(--gl-text-xs); color: var(--gl-gray); margin-top: var(--gl-space-2); }
-.upload__liste { list-style: none; margin: var(--gl-space-3) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--gl-space-2); }
+.upload__liste { list-style: none; margin: var(--gl-space-3) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--gl-space-2); max-height: 240px; overflow-y: auto; }
 .upload__item {
     display: flex; align-items: center; gap: var(--gl-space-2);
     border: 1px solid var(--gl-line); border-radius: var(--gl-radius);
@@ -1238,6 +1242,8 @@ tr[class*="dt-row--"] > td:first-child { border-left: 3px solid transparent; pad
 .upload__vide { font-size: var(--gl-text-sm); color: var(--gl-gray); font-style: italic; margin-top: var(--gl-space-2); }
 .upload__vide[hidden] { display: none; }
 .upload__actions { margin-top: var(--gl-space-3); }
+.upload__erreur { margin-top: var(--gl-space-2); padding: var(--gl-space-2) var(--gl-space-3); border-radius: var(--gl-radius); background: var(--gl-red-soft); border: 1px solid var(--gl-red); color: var(--gl-red); font-size: var(--gl-text-sm); }
+.upload__erreur[hidden] { display: none; }
 
 /* ───────────── Vue admin de gestion des projets ───────────── */
 .projet-admin-actions { display: flex; flex-wrap: wrap; gap: var(--gl-space-2); justify-content: flex-end; }
@@ -1890,6 +1896,13 @@ form input[type="file"]::file-selector-button:hover {
     border-left: 1px solid var(--gl-line); border-right: 1px solid var(--gl-line); height: 38px;
     display: inline-flex; align-items: center; justify-content: center;
 }
+/* Input reel du stepper : present pour porter la valeur, mais masque (la valeur
+   visible est dans .stepper-num__val). Masquage accessible, pas display:none. */
+.stepper-num input[type="number"] { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
+/* Sous-section de detail (quantite, supports) sous le materiel : separateur leger. */
+.form-sous-section { margin-top: var(--gl-space-4); padding-top: var(--gl-space-4); border-top: 1px solid var(--gl-line); display: flex; flex-direction: column; gap: var(--gl-space-4); }
+.champ-stepper { display: flex; flex-direction: column; gap: var(--gl-space-2); }
+.champ-stepper > label { font-weight: 600; font-size: var(--gl-text-sm); }
 .resa-ajouter { flex: 1; min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .resa-confirmer { width: 100%; margin-top: var(--gl-space-3); }
 

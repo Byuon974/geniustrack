@@ -39,10 +39,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(length: 100)]
     #[Assert\NotBlank]
+    #[Assert\Length(min: 1, max: 100)]
     private string $nom;
 
     #[ORM\Column(length: 100)]
     #[Assert\NotBlank]
+    #[Assert\Length(min: 1, max: 100)]
     private string $prenom;
 
     // BF_6.2 : un compte sanctionné est désactivé. Défaut SQL à true pour que

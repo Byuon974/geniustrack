@@ -21,7 +21,13 @@ import { Controller } from '@hotwired/stimulus';
  * exactement les fichiers listes.
  */
 export default class extends Controller {
-    static targets = ['input', 'zone', 'liste', 'vide', 'envoyer'];
+    static targets = ['input', 'zone', 'liste', 'vide', 'envoyer', 'erreur'];
+
+    static values = {
+        maxFichiers: { type: Number, default: 10 },
+        maxTailleMo: { type: Number, default: 25 },   // par fichier
+        maxTotalMo: { type: Number, default: 80 },    // cumulé
+    };
 
     connect() {
         // Etat interne : la liste des fichiers retenus.
@@ -63,20 +69,76 @@ export default class extends Controller {
     }
 
     ajouter(fileList) {
+        // On compte les refus par motif plutôt que de lister chaque fichier :
+        // afficher cinquante lignes identiques est du bruit (les fichiers refusés
+        // ne sont même pas envoyés). Un résumé court suffit (RETEX Dropzone, Uppy,
+        // FilePond : message agrégé, pas une ligne par rejet).
+        const refus = { nombre: 0, taille: 0, total: 0 };
+        const maxOctetsFichier = this.maxTailleMoValue * 1024 * 1024;
+        const maxOctetsTotal = this.maxTotalMoValue * 1024 * 1024;
+
         for (const fichier of fileList) {
-            // Evite les doublons evidents (meme nom et meme taille).
+            // Doublon évident (même nom et même taille).
             const existe = this.fichiers.some((f) => f.name === fichier.name && f.size === fichier.size);
-            if (!existe) {
-                this.fichiers.push(fichier);
+            if (existe) {
+                continue;
             }
+            // Nombre maximal de fichiers.
+            if (this.fichiers.length >= this.maxFichiersValue) {
+                refus.nombre += 1;
+                continue;
+            }
+            // Taille d'un fichier.
+            if (fichier.size > maxOctetsFichier) {
+                refus.taille += 1;
+                continue;
+            }
+            // Poids total cumulé.
+            const totalActuel = this.fichiers.reduce((somme, f) => somme + f.size, 0);
+            if (totalActuel + fichier.size > maxOctetsTotal) {
+                refus.total += 1;
+                continue;
+            }
+            this.fichiers.push(fichier);
         }
+
+        this.afficherErreurs(refus);
         this.synchroniserInput();
         this.rendre();
+    }
+
+    afficherErreurs(refus) {
+        if (!this.hasErreurTarget) {
+            return;
+        }
+        const total = refus.nombre + refus.taille + refus.total;
+        if (total === 0) {
+            this.erreurTarget.hidden = true;
+            this.erreurTarget.innerHTML = '';
+            return;
+        }
+
+        // Motifs agrégés, dans l'ordre où ils se présentent.
+        const motifs = [];
+        if (refus.nombre > 0) {
+            motifs.push(`limite de ${this.maxFichiersValue} fichiers atteinte`);
+        }
+        if (refus.taille > 0) {
+            motifs.push(`taille au-delà de ${this.maxTailleMoValue} Mo`);
+        }
+        if (refus.total > 0) {
+            motifs.push(`total au-delà de ${this.maxTotalMoValue} Mo`);
+        }
+
+        const tete = total > 1 ? `${total} fichiers écartés` : 'Un fichier écarté';
+        this.erreurTarget.hidden = false;
+        this.erreurTarget.textContent = `${tete} : ${motifs.join(', ')}.`;
     }
 
     retirer(event) {
         const index = Number(event.params.index);
         this.fichiers.splice(index, 1);
+        this.afficherErreurs({ nombre: 0, taille: 0, total: 0 }); // on refait de la place
         this.synchroniserInput();
         this.rendre();
     }
