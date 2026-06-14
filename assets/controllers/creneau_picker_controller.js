@@ -181,6 +181,11 @@ export default class extends Controller {
             fb_duree: this.#duree(),
         });
         this.zoneCreneauxTarget.setAttribute('aria-busy', 'true');
+        this.zoneCreneauxTarget.innerHTML =
+            '<div class="creneaux-skeleton" aria-hidden="true">'
+            + '<div class="gl-skel"></div><div class="gl-skel"></div>'
+            + '<div class="gl-skel"></div><div class="gl-skel"></div>'
+            + '<div class="gl-skel"></div><div class="gl-skel"></div></div>';
         try {
             const reponse = await fetch(`${this.urlValue}?${params.toString()}`, {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },

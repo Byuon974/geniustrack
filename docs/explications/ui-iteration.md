@@ -161,3 +161,29 @@ Leçon : chaque grief s'est résolu par un pattern établi plutôt que par une i
 - Quand la question peut se fermer par une recherche (couleur fonctionnelle, patterns de dashboard, densité de formulaire, free/busy), la recherche précède le correctif.
 - Chaque correctif devient une règle réutilisable (une décision `DEC-NNN`), pour que la leçon serve aux écrans suivants.
 - Le débogage sur faits (prouver où est le problème) précède toute décision de refonte ; on ne suppose pas la cause.
+
+## Itération 13 : la recette sur l'instance réelle (multi-créneaux, lenteur, densité)
+
+Problème observé : sur l'application assemblée et nourrie de données denses, plusieurs griefs concordants. Le panier de réservation restait bloqué à un créneau, impossible d'en ajouter un second. Le calendrier mettait plus d'une seconde à s'afficher. La page de supervision laissait un large vide sous la courbe de stock et débordait la hauteur d'écran. Les barres d'utilisation du tableau de bord, enfin, ne montraient pas leurs trois niveaux faute de contraste dans le jeu de données.
+
+Décision (DEC-101) : débogage sur faits, puis correctifs ciblés. Le multi-créneaux ne relevait pas du métier mais d'un formulaire de retrait imbriqué dans le formulaire d'ajout, invalide en HTML, qui faisait perdre ses champs au bouton « Ajouter » dès qu'une ligne existait ; sortir les formulaires de retrait et les relier par l'attribut `form` a suffi, vérifié sous navigateur. La lenteur venait d'une requête par créneau et par machine, soit des centaines de requêtes pour un mois ; une requête unique sur la période, le calcul fait ensuite en mémoire, et un squelette de chargement pour l'attente résiduelle. Le vide de la supervision tenait à une sparkline en hauteur automatique, étirée par sa largeur, et à des cartes qui copiaient la hauteur de leur voisine ; une hauteur de graphe fixe et un alignement des cartes sur leur hauteur naturelle ont rendu la page dense et sans défilement. La seed a été densifiée et pondérée par machine pour que les trois niveaux d'usage apparaissent réellement.
+
+Leçon : sur une instance réelle, un bug d'apparence « métier » (le panier qui ne grandit pas) peut n'être qu'une faute de structure HTML ; prouver la cause avant de toucher au service a évité de modifier la logique de réservation, intacte. La lenteur perçue comme « réseau » était en fait un nombre de requêtes : la mesure désigne le bon levier. Et la densité d'un tableau de bord se gagne en bornant les graphes décoratifs, pas en les étirant pour combler le vide.
+
+- Le déclencheur reste une observation concrète sur l'instance réelle, jamais une intuition.
+- Prouver la cause (structure HTML, nombre de requêtes, comportement du SVG) précède tout correctif.
+- La correction réutilise un mécanisme standard (attribut `form`, requête unique, hauteur bornée) plutôt qu'une invention.
+- Présentation et métier restent étanches : aucun correctif de cette itération n'a touché une règle de capacité, de quota ou de verrou.
+
+## Itération 14 : la supervision, d'une page fonctionnelle à une page juste
+
+Problème observé : la page de supervision marchait, mais quatre défauts ressortaient sur l'instance réelle. Les courbes traçaient les mois futurs à zéro, donnant une fausse chute d'activité. Les graphes étaient nus, sans axes ni valeurs ni points. Rien ne permettait de lire un chiffre précis. Et le découpage mêlait une courbe et une liste par rangée, produisant des cartes de hauteurs disparates et un rendu désordonné. Le tout devait continuer de tenir sur un écran sans défilement.
+
+Décision (DEC-102) : refonte de la présentation, fondée sur le RETEX dataviz, sans toucher au métier. Les courbes s'arrêtent au mois courant, ce qui supprime la chute trompeuse. Chaque courbe gagne un axe gradué, un point par mois, une infobulle native au survol pour la valeur exacte, et l'étiquette permanente du dernier point comme repère et comme alternative au survol. Les cartes sont regroupées par nature : les deux courbes alignées en haut, les deux listes en bas, ce qui aligne les hauteurs rangée par rangée. La carte des mouvements reçoit un filtre par motif et un défilement interne à en-tête figé, repris de patterns déjà présents dans le projet (le conteneur d'ascenseur interne et le contrôleur de filtre de la galerie).
+
+Leçon : « fonctionnel » n'est pas « juste ». Une courbe qui trace le futur à zéro n'est pas neutre, elle ment sur la tendance ; corriger la borne d'affichage valait plus que toute fioriture visuelle. Le regroupement par nature, plutôt que par ordre d'apparition des données, suffit à rendre une grille équilibrée. Et la refonte la plus visible n'a réutilisé que des mécanismes déjà éprouvés ailleurs dans l'interface, sans rien inventer ni toucher au calcul des indicateurs.
+
+- Le déclencheur reste une observation concrète sur l'instance réelle.
+- La recherche fonde la décision quand la question est tranchable (honnêteté des axes, tooltip contre étiquetage, densité sans défilement).
+- La correction réutilise les composants existants (ascenseur interne, contrôleur de filtre) plutôt qu'une invention.
+- Présentation et métier restent étanches : aucun calcul d'indicateur n'a été modifié.

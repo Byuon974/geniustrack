@@ -23,89 +23,72 @@
     </div>
 </div>
 
+{# Mois limite des courbes : on ne trace JAMAIS les mois futurs (sinon une
+   chute artificielle vers zéro fausse la lecture, anti-pattern dataviz). Pour
+   l'année en cours, on s'arrête au mois courant ; pour une année passée, on
+   trace les 12 mois. #}
+{% set moisLimite = (annee == ('now'|date('Y'))) ? ('now'|date('n')) : 12 %}
+
+{# Rangée 1 : les deux courbes d'évolution, côté à côté, même format. #}
 <div class="superv-grille">
 
-    {# Axe 1 : activité de réservation (courbe sur 12 mois, fidèle à la maquette). #}
+    {# Activité de réservation : courbe jusqu'au mois courant. #}
     <section class="superv-bloc superv-bloc--reservations">
-        <h2 class="superv-titre">Réservations par mois</h2>
+        <div class="superv-tt">
+            <h2 class="superv-titre">Réservations par mois</h2>
+            {% if reservationsParMois is not empty %}
+                {% set total = 0 %}
+                {% for r in reservationsParMois %}{% set total = total + r.total %}{% endfor %}
+                <span class="superv-tot"><b>{{ total }}</b> sur la période</span>
+            {% endif %}
+        </div>
         {% if reservationsParMois is empty %}
             {{ include('components/empty.html.twig', {message: 'Aucune réservation sur cette période.'}) }}
         {% else %}
-            {# Normalisation : un total par mois (1..12), 0 si le mois est absent. #}
             {% set totaux = {} %}
             {% for r in reservationsParMois %}{% set totaux = totaux|merge({(r.mois): r.total}) %}{% endfor %}
             {% set maxRes = 1 %}
-            {% for m in 1..12 %}{% set maxRes = max(maxRes, totaux[m]|default(0)) %}{% endfor %}
-            {% set total = 0 %}
-            {% for r in reservationsParMois %}{% set total = total + r.total %}{% endfor %}
+            {% for m in 1..moisLimite %}{% set maxRes = max(maxRes, totaux[m]|default(0)) %}{% endfor %}
 
-            {# Génération des points de la courbe : x réparti sur 12 mois, y
-               inversé (SVG : origine en haut). Plage de tracé y ∈ [16, 96]. #}
+            {# Points : x réparti sur les mois écoulés, y inversé (origine SVG en haut),
+               plage de tracé y ∈ [16, 96]. Un point par mois, avec sa valeur exacte
+               en infobulle native (accessible au survol et au focus). #}
+            {% set pas = moisLimite > 1 ? (316 / (moisLimite - 1)) : 0 %}
             {% set pts = [] %}
-            {% for m in 1..12 %}
-                {% set x = 12 + (m - 1) * 30 %}
+            {% for m in 1..moisLimite %}
+                {% set x = 34 + (m - 1) * pas %}
                 {% set v = totaux[m]|default(0) %}
                 {% set y = 96 - (v / maxRes * 80) %}
-                {% set pts = pts|merge([x ~ ',' ~ (y|round(1))]) %}
+                {% set pts = pts|merge([(x|round(1)) ~ ',' ~ (y|round(1))]) %}
             {% endfor %}
 
             <div class="superv-graphe">
-                <svg viewBox="0 0 360 128" preserveAspectRatio="none" aria-label="Réservations par mois">
-                    <line x1="6" y1="96" x2="354" y2="96" stroke="var(--gl-line)"/>
-                    <polyline fill="none" stroke="var(--gl-blueprint)" stroke-width="3"
-                              stroke-linejoin="round" stroke-linecap="round"
-                              points="{{ pts|join(' ') }}"/>
-                    <g font-size="10" fill="var(--gl-gray)" text-anchor="middle">
-                        <text x="12" y="118">Jan</text><text x="72" y="118">Mar</text>
-                        <text x="132" y="118">Mai</text><text x="192" y="118">Juil</text>
-                        <text x="252" y="118">Sep</text><text x="312" y="118">Nov</text>
-                    </g>
-                </svg>
-                <p class="superv-leg">{{ total }} réservation{{ total > 1 ? 's' : '' }} sur la période.</p>
+                {{ include('admin/supervision/_courbe.html.twig', {
+                    pts: pts, moisLimite: moisLimite, pas: pas,
+                    couleur: 'var(--gl-blueprint)',
+                    maxVal: maxRes, totaux: totaux, unite: 'réservations',
+                    grad: [maxRes, (maxRes / 2)|round, 0],
+                    dernier: totaux[moisLimite]|default(0)
+                }) }}
             </div>
         {% endif %}
     </section>
 
-    {# Axe 2 : taux d'utilisation des machines #}
-    <section class="superv-bloc superv-bloc--machines">
-        <h2 class="superv-titre">Taux d'utilisation des machines</h2>
-        {% if tauxMachines is empty %}
-            {{ include('components/empty.html.twig', {message: 'Aucune donnée machine sur cette période.'}) }}
-        {% else %}
-            {% for m in tauxMachines %}
-                <div class="superv-mbar">
-                    <span class="superv-mnom">{{ m.nom }}</span>
-                    <span class="superv-mpiste"><span class="superv-mfill superv-mfill--{{ m.niveau }}" style="width: {{ m.taux }}%"></span></span>
-                    <span class="superv-mval">{{ m.taux }}%</span>
-                </div>
-            {% endfor %}
-            <div class="superv-code">
-                <span><i class="superv-i superv-i--saturation"></i>Saturation</span>
-                <span><i class="superv-i superv-i--eleve"></i>Usage élevé</span>
-                <span><i class="superv-i superv-i--disponible"></i>Disponible</span>
-            </div>
-        {% endif %}
-    </section>
-
-    {# Axe 3 : évolution du niveau de stock global dans le temps (4e bloc,
-       courbe cumulée). RETEX dashboard d'inventaire : suivre le niveau global
-       plutôt qu'un article isolé. Le niveau de chaque mois est le cumul des
-       variations nettes depuis le début de la période. #}
+    {# Niveau de stock cumulé : même format que la courbe de réservations. #}
     <section class="superv-bloc superv-bloc--stock">
-        <h2 class="superv-titre">Niveau de stock dans le temps</h2>
+        <div class="superv-tt">
+            <h2 class="superv-titre">Niveau de stock dans le temps</h2>
+            <span class="superv-tot">cumulé</span>
+        </div>
         {% if stockParMois is empty %}
             {{ include('components/empty.html.twig', {message: 'Aucun mouvement de stock sur cette période.'}) }}
         {% else %}
-            {# Cumul progressif du niveau de stock, mois par mois.
-               Pièges Twig évités : (1) « merge » réindexe les clés numériques,
-               donc on empile dans une LISTE (indices 0..11), pas une map par mois ;
-               (2) stockParMois peut ne pas avoir toutes les clés de mois, d'où un
-               accès défensif via « stockParMois[m] is defined ». #}
+            {# Cumul progressif. Liste (indices 0..) car merge réindexe les clés. #}
             {% set cumul = 0 %}
             {% set niveaux = [] %}
             {% set niveauMax = 1 %}
             {% set niveauMin = 0 %}
-            {% for m in 1..12 %}
+            {% for m in 1..moisLimite %}
                 {% set v = stockParMois[m] is defined ? stockParMois[m] : 0 %}
                 {% set cumul = cumul + v %}
                 {% set niveaux = niveaux|merge([cumul]) %}
@@ -114,52 +97,87 @@
             {% endfor %}
             {% set amplitude = (niveauMax - niveauMin) > 0 ? (niveauMax - niveauMin) : 1 %}
 
+            {% set pas = moisLimite > 1 ? (316 / (moisLimite - 1)) : 0 %}
             {% set pts = [] %}
+            {% set valeurs = {} %}
             {% for niveau in niveaux %}
-                {% set x = 12 + loop.index0 * 30 %}
+                {% set x = 34 + loop.index0 * pas %}
                 {% set y = 96 - ((niveau - niveauMin) / amplitude * 80) %}
-                {% set pts = pts|merge([x ~ ',' ~ (y|round(1))]) %}
+                {% set pts = pts|merge([(x|round(1)) ~ ',' ~ (y|round(1))]) %}
+                {% set valeurs = valeurs|merge({(loop.index): niveau}) %}
             {% endfor %}
 
             <div class="superv-graphe">
-                <svg viewBox="0 0 360 128" preserveAspectRatio="none" aria-label="Niveau de stock dans le temps">
-                    <line x1="6" y1="96" x2="354" y2="96" stroke="var(--gl-line)"/>
-                    <polyline fill="none" stroke="var(--gl-filament)" stroke-width="3"
-                              stroke-linejoin="round" stroke-linecap="round"
-                              points="{{ pts|join(' ') }}"/>
-                    <g font-size="10" fill="var(--gl-gray)" text-anchor="middle">
-                        <text x="12" y="118">Jan</text><text x="72" y="118">Mar</text>
-                        <text x="132" y="118">Mai</text><text x="192" y="118">Juil</text>
-                        <text x="252" y="118">Sep</text><text x="312" y="118">Nov</text>
-                    </g>
-                </svg>
-                <p class="superv-leg">Évolution cumulée du stock global : les creux marquent les passages sous le niveau habituel.</p>
+                {{ include('admin/supervision/_courbe.html.twig', {
+                    pts: pts, moisLimite: moisLimite, pas: pas,
+                    couleur: 'var(--gl-filament)',
+                    maxVal: niveauMax, totaux: valeurs, unite: 'unités',
+                    grad: [niveauMax, ((niveauMax + niveauMin) / 2)|round, niveauMin],
+                    dernier: niveaux|last
+                }) }}
             </div>
         {% endif %}
     </section>
 
-    {# Axe 4 : fluctuations de consommables (derniers mouvements) #}
-    <section class="superv-bloc superv-bloc--mouvements">
+</div>
+
+{# Rangée 2 : les deux blocs « listes » (barres + tableau), plus hauts. #}
+<div class="superv-grille superv-grille--bas">
+
+    {# Taux d'utilisation des machines. #}
+    <section class="superv-bloc superv-bloc--machines">
+        <h2 class="superv-titre">Taux d'utilisation des machines</h2>
+        {% if tauxMachines is empty %}
+            {{ include('components/empty.html.twig', {message: 'Aucune donnée machine sur cette période.'}) }}
+        {% else %}
+            <div class="superv-mbars">
+                {% for m in tauxMachines %}
+                    <div class="superv-mbar">
+                        <span class="superv-mnom">{{ m.nom }}</span>
+                        <span class="superv-mpiste"><span class="superv-mfill superv-mfill--{{ m.niveau }}" style="width: {{ m.taux }}%"></span></span>
+                        <span class="superv-mval">{{ m.taux }}%</span>
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="superv-code">
+                <span><i class="superv-i superv-i--saturation"></i>Saturation</span>
+                <span><i class="superv-i superv-i--eleve"></i>Usage élevé</span>
+                <span><i class="superv-i superv-i--disponible"></i>Disponible</span>
+            </div>
+        {% endif %}
+    </section>
+
+    {# Derniers mouvements : filtre par motif + tableau à ascenseur interne. #}
+    <section class="superv-bloc superv-bloc--mouvements" data-controller="gallery-filter">
         <h2 class="superv-titre">Derniers mouvements de stock</h2>
         {% if mouvementsRecents is empty %}
             {{ include('components/empty.html.twig', {message: 'Aucun mouvement enregistré pour le moment.'}) }}
         {% else %}
-            <table class="superv-tbl">
-                <thead><tr><th>Date</th><th>Article</th><th>Motif</th><th class="num">Var.</th></tr></thead>
-                <tbody>
-                    {% for mv in mouvementsRecents %}
-                        <tr>
-                            <td>{{ mv.effectueLe|date('d/m') }}</td>
-                            <td>{{ mv.consommable.nom }}</td>
-                            <td>{{ mv.motif.libelle }}</td>
-                            <td class="num {{ mv.variation >= 0 ? 'up' : 'down' }}">{{ mv.variation >= 0 ? '+' : '' }}{{ mv.variation }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            <div class="superv-code">
-                <span><i class="superv-i superv-i--disponible"></i>Entrée</span>
-                <span><i class="superv-i superv-i--saturation"></i>Sortie</span>
+            <div class="superv-filtres" role="group" aria-label="Filtrer par motif">
+                <button type="button" class="superv-chip is-active" aria-pressed="true"
+                        data-categorie="tous" data-action="gallery-filter#filter"
+                        data-gallery-filter-target="chip">Tous</button>
+                <button type="button" class="superv-chip" aria-pressed="false"
+                        data-categorie="entree" data-action="gallery-filter#filter"
+                        data-gallery-filter-target="chip">Réassort</button>
+                <button type="button" class="superv-chip" aria-pressed="false"
+                        data-categorie="sortie" data-action="gallery-filter#filter"
+                        data-gallery-filter-target="chip">Consommation</button>
+            </div>
+            <div class="dt-scroll">
+                <table class="superv-tbl data-table">
+                    <thead><tr><th>Date</th><th>Article</th><th>Motif</th><th class="num">Var.</th></tr></thead>
+                    <tbody>
+                        {% for mv in mouvementsRecents %}
+                            <tr data-gallery-filter-target="item" data-categories="{{ mv.variation >= 0 ? 'entree' : 'sortie' }}">
+                                <td>{{ mv.effectueLe|date('d/m') }}</td>
+                                <td>{{ mv.consommable.nom }}</td>
+                                <td class="motif">{{ mv.motif.libelle }}</td>
+                                <td class="num {{ mv.variation >= 0 ? 'up' : 'down' }}">{{ mv.variation >= 0 ? '+' : '' }}{{ mv.variation }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         {% endif %}
     </section>

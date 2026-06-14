@@ -130,6 +130,13 @@ final class DisponibiliteService
         $creneaux = [];
         $depart = self::HEURE_OUVERTURE * 60 + self::MINUTE_OUVERTURE;
 
+        // Une requête pour toute la journée, puis comptage en mémoire (au lieu
+        // d'une requête par créneau et par machine).
+        $debutJour = $jour->setTime(0, 0);
+        $occupations = $this->reservations->occupationsActivesSurPeriode(
+            $debutJour, $debutJour->modify('+1 day')
+        );
+
         for ($m = $depart; $m + $dureeMinutes <= self::FERMETURE_MINUTES; $m += self::PAS_MINUTES) {
             $finCreneau = $m + $dureeMinutes;
             if ($m < self::PAUSE_FIN_MINUTES && $finCreneau > self::PAUSE_DEBUT_MINUTES) {
@@ -139,12 +146,13 @@ final class DisponibiliteService
             $debut = $jour->setTime(intdiv($m, 60), $m % 60);
             $fin = $debut->modify(sprintf('+%d minutes', $dureeMinutes));
 
-            $libres = 0;
-            foreach ($actives as $machine) {
-                if (!$this->reservations->machineOccupeeSurCreneau($machine, $debut, $fin)) {
-                    ++$libres;
+            $machinesOccupees = [];
+            foreach ($occupations as $o) {
+                if ($o['debut'] < $fin && $o['fin'] > $debut) {
+                    $machinesOccupees[$o['machine']] = true;
                 }
             }
+            $libres = $total - \count($machinesOccupees);
 
             $etat = match (true) {
                 0 === $libres => 'complet',
@@ -189,6 +197,14 @@ final class DisponibiliteService
         $premier = (new \DateTimeImmutable())->setDate($annee, $mois, 1)->setTime(0, 0);
         $nbJours = (int) $premier->format('t');
         $aujourdhui = (new \DateTimeImmutable('today'));
+        $finMois = $premier->modify('+1 month');
+
+        // UNE seule requête pour tout le mois : toutes les occupations actives
+        // qui le chevauchent, avec leur machine et leurs bornes. On évite ainsi
+        // la requête-par-créneau-et-par-machine qui rendait le calendrier lent
+        // (plusieurs centaines d'allers-retours SQL pour un mois).
+        $occupations = $this->reservations->occupationsActivesSurPeriode($premier, $finMois);
+        $nbMachinesActives = \count($this->machinesRepo->actives());
 
         $densites = [];
         for ($j = 1; $j <= $nbJours; ++$j) {
@@ -201,14 +217,9 @@ final class DisponibiliteService
                 continue;
             }
 
-            $creneaux = $this->creneauxAvecMachinesLibres($jour, $dureeMinutes, $utilisateur);
-            $total = \count($creneaux);
-            $libres = 0;
-            foreach ($creneaux as $c) {
-                if ($c['machinesLibres'] > 0) {
-                    ++$libres;
-                }
-            }
+            [$total, $libres] = $this->densiteDuJourEnMemoire(
+                $jour, $dureeMinutes, $nbMachinesActives, $occupations
+            );
 
             // Synthèse : aucun créneau ouvrable -> indispo ; tous pris -> complet ;
             // moins de la moitié des créneaux encore ouverts -> chargé ; sinon libre.
@@ -223,6 +234,51 @@ final class DisponibiliteService
         }
 
         return $densites;
+    }
+
+    /**
+     * Compte, pour un jour donné, le nombre de créneaux ouvrables et le nombre
+     * de créneaux où au moins une machine reste libre, à partir des occupations
+     * du mois déjà chargées en mémoire (aucune requête ici).
+     *
+     * @param list<array{machine: int, debut: \DateTimeImmutable, fin: \DateTimeImmutable}> $occupations
+     * @return array{0: int, 1: int} [total créneaux, créneaux avec ≥1 machine libre]
+     */
+    private function densiteDuJourEnMemoire(
+        \DateTimeImmutable $jour,
+        int $dureeMinutes,
+        int $nbMachinesActives,
+        array $occupations,
+    ): array {
+        $depart = self::HEURE_OUVERTURE * 60 + self::MINUTE_OUVERTURE;
+        $total = 0;
+        $creneauxLibres = 0;
+
+        for ($m = $depart; $m + $dureeMinutes <= self::FERMETURE_MINUTES; $m += self::PAS_MINUTES) {
+            $finCreneau = $m + $dureeMinutes;
+            if ($m < self::PAUSE_FIN_MINUTES && $finCreneau > self::PAUSE_DEBUT_MINUTES) {
+                continue;
+            }
+
+            $debut = $jour->setTime(intdiv($m, 60), $m % 60);
+            $fin = $debut->modify(sprintf('+%d minutes', $dureeMinutes));
+            ++$total;
+
+            // Machines distinctes occupées sur ce créneau (chevauchement
+            // d'intervalles semi-ouverts), comptées en mémoire.
+            $machinesOccupees = [];
+            foreach ($occupations as $o) {
+                if ($o['debut'] < $fin && $o['fin'] > $debut) {
+                    $machinesOccupees[$o['machine']] = true;
+                }
+            }
+
+            if (\count($machinesOccupees) < $nbMachinesActives) {
+                ++$creneauxLibres;
+            }
+        }
+
+        return [$total, $creneauxLibres];
     }
 
     /**

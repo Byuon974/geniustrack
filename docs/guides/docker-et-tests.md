@@ -85,6 +85,12 @@ tous les assets, CSS comme JS. Comme le JS passe par le même mécanisme, plus a
 contrôleur Stimulus ne démarre : c'est pourquoi le style ET l'interactivité tombent
 ensemble.
 
+Depuis DEC-101, l'assembleur détecte ce cas en fin d'assemblage (test HTTP du CSS
+principal) et applique la correction lui-même : purge de `public/assets` et
+`var/cache`, vidage du cache, puis nouveau test. L'assemblage ne laisse donc plus
+un site sans style. La procédure manuelle ci-dessous ne sert qu'en cas de
+récidive (par exemple après un `asset-map:compile` lancé à la main).
+
 Action corrective :
 
 ```bash

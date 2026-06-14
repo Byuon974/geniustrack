@@ -26,4 +26,16 @@ Export plutôt que graphiques lourds. L'analyse fine se fait hors application, s
 
 ## 4. Ce qui est réellement disponible
 
-Les trois axes s'appuient sur des données réelles, sans simulation. L'activité de réservation et le taux d'utilisation se calculent sur les réservations existantes (dates, durées, machines). Les fluctuations de consommables s'appuient sur l'historique des mouvements, qui se constitue à partir des ajustements postérieurs à la mise en place du traçage : la courbe se remplit avec le temps, ce qui est le comportement attendu.
+Les trois axes d'analyse (réservation, utilisation des machines, consommables) s'appuient sur des données réelles, sans simulation. Les consommables se déclinent en deux cartes : la courbe du niveau de stock et le tableau des mouvements ; les trois axes occupent donc quatre cartes. L'activité de réservation et le taux d'utilisation se calculent sur les réservations existantes (dates, durées, machines). Les fluctuations de consommables s'appuient sur l'historique des mouvements, qui se constitue à partir des ajustements postérieurs à la mise en place du traçage : la courbe se remplit avec le temps, ce qui est le comportement attendu.
+
+## 5. Mise en page : densité sans défilement
+
+La page tient sur un écran sans défilement vertical : c'est une vue de pilotage que l'on embrasse d'un coup d'œil. Les quatre blocs occupent une grille à deux colonnes dont les cartes prennent leur hauteur naturelle, sans qu'une carte soit étirée par sa voisine plus haute. Les courbes d'évolution (activité de réservation, niveau de stock) sont des sparklines à hauteur fixe et modérée : un graphe de tendance se lit à l'allure générale, il n'a pas besoin de remplir tout l'espace, et l'étirer créerait du vide au détriment de la densité (RETEX dashboard, DEC-101).
+
+## 6. Lecture des graphes et organisation des cartes (refonte DEC-102)
+
+Les courbes ne tracent que les mois écoulés. Tracer les mois à venir à zéro produisait une chute trompeuse en fin de courbe : un anti-pattern dataviz, car l'œil lit une baisse d'activité là où il n'y a qu'une absence de données. Pour l'année en cours, la courbe s'arrête donc au mois courant ; pour une année passée, elle couvre les douze mois.
+
+Les graphes portent leurs repères. Chaque courbe affiche un axe vertical à trois graduations, un repère intermédiaire discret, et un point par mois. La valeur exacte d'un mois se lit en infobulle au survol du point, ce qui garde le tracé propre tout en donnant le chiffre précis à la demande. Conformément au RETEX, on n'étiquette pas tous les points : seule la valeur du dernier mois reste affichée en permanence, ce qui sert aussi d'alternative pour qui n'utilise pas la souris. L'infobulle est une balise SVG native, accessible au focus clavier et au lecteur d'écran.
+
+Les cartes sont regroupées par nature. Les deux courbes d'évolution occupent une première rangée, au même format et à la même hauteur ; les deux blocs de listes, le taux d'utilisation des machines et les derniers mouvements, occupent une seconde rangée. Regrouper par nature, plutôt que de mêler une courbe et une liste sur une même rangée, aligne les hauteurs et donne une page équilibrée. La carte des mouvements reçoit un filtre par motif (tous, réassort, consommation) et un défilement interne à en-tête figé, de sorte qu'elle ne pousse jamais la page, quel que soit le nombre de mouvements.

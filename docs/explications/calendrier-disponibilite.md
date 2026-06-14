@@ -61,11 +61,13 @@ complet     Aucune machine libre sur le créneau          Pastille rouge, désac
 
 Depuis DEC-099, les créneaux du jour sont présentés en liste verticale épurée de style agenda (`fb-liste`) : une ligne par créneau, avec une pastille d'état discrète, l'heure et le nombre de machines libres aligné à droite. L'état n'est plus porté par la seule couleur : la pastille s'accompagne toujours d'un libellé chiffré (« 6 machines libres ») ou de la mention « Complet », conforme à l'accessibilité. Les pavés-boutons colorés en grille de la version antérieure sont abandonnés (rendu jugé peu professionnel en revue de maquette).
 
-L'anonymat est garanti côté serveur. Le `DisponibiliteService` calcule l'état de chaque créneau d'une journée en réutilisant `machineOccupeeSurCreneau()` machine par machine (la logique qui sert déjà au contrôle de la réservation). Le serveur ne renvoie jamais le projet ni la personne d'une réservation d'autrui, seulement l'état du créneau et le décompte de machines libres.
+L'anonymat est garanti côté serveur. Le `DisponibiliteService` charge en une seule requête toutes les occupations actives qui chevauchent la période demandée (un jour, ou un mois entier pour le calendrier), via `occupationsActivesSurPeriode()`, puis calcule l'état de chaque créneau en mémoire. Ce choix remplace une lecture machine par machine et créneau par créneau, qui multipliait les allers-retours vers la base (plusieurs centaines de requêtes pour un mois) et rendait le calendrier lent. Le serveur ne renvoie jamais le projet ni la personne d'une réservation d'autrui, seulement l'état du créneau et le décompte de machines libres.
 
 ### La densité du jour sur le calendrier (DEC-099)
 
 Le sélecteur de date est un calendrier mensuel inline (et non plus une liste déroulante de jours). Chaque jour réservable porte une pastille de densité, calculée côté serveur par `densitesDuMois()` : libre, chargé, ou complet selon la proportion de créneaux du jour encore ouverts pour la durée envisagée. Le nombre de créneaux libres n'apparaît qu'au survol du jour ou sur le jour sélectionné, jamais en texte permanent dans la cellule. Les jours passés et les jours entièrement complets sont désactivés. Le principe free/busy tient au niveau du jour comme au niveau du créneau : seul l'état synthétique est exposé.
+
+Pendant la récupération (calendrier d'un mois ou créneaux d'un jour), un squelette animé occupe la place du contenu à venir, plutôt qu'un texte « Chargement… ». L'attente résiduelle paraît moins brutale, et l'animation respecte la préférence système de mouvement réduit.
 
 ```
 État du jour   Signification                               Pastille

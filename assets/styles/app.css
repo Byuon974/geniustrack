@@ -1329,7 +1329,16 @@ form input[type="file"]::file-selector-button:hover {
 .cal-pastille { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: var(--gl-space-2); vertical-align: middle; }
 .cal-liste { margin-top: var(--gl-space-6); }
 
-/* ───────────── Calendrier mensuel skeuomorphique (rendu serveur) ───────────── */
+/* Skeleton de chargement : placeholder animé occupant la place du calendrier et
+   des créneaux pendant le fetch, pour une attente moins brutale que le texte
+   « Chargement… ». Le JS remplace ce contenu dès les données reçues. */
+@keyframes gl-skeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+.gl-skel { background: var(--gl-gray-soft); border-radius: var(--gl-radius-sm); animation: gl-skeleton-pulse 1.1s ease-in-out infinite; }
+.cal-skeleton { display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--gl-space-2); }
+.cal-skeleton .gl-skel { height: 30px; }
+.creneaux-skeleton { display: flex; flex-direction: column; gap: var(--gl-space-2); }
+.creneaux-skeleton .gl-skel { height: 54px; }
+@media (prefers-reduced-motion: reduce) { .gl-skel { animation: none; } }
 .cal-cadre {
     background: var(--gl-bg);
     border-radius: var(--gl-radius-lg);
@@ -1499,9 +1508,15 @@ form input[type="file"]::file-selector-button:hover {
 .superv-annee:hover { border-color: var(--gl-blueprint); }
 .superv-annee.on { background: var(--gl-blueprint); border-color: var(--gl-blueprint); color: #fff; font-weight: 600; }
 
-.superv-grille { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gl-space-4); }
+.superv-grille { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gl-space-4); align-items: start; }
+.superv-grille--bas { margin-top: var(--gl-space-4); }
 .superv-bloc { background: var(--gl-surface); border: 1px solid var(--gl-line); border-radius: 10px; padding: var(--gl-space-4); box-shadow: 0 1px 3px rgba(20, 24, 28, .05); }
 .superv-titre { font-size: var(--gl-text-xs); font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--gl-gray); margin: 0 0 var(--gl-space-3); }
+/* En-tête de carte : titre à gauche, total/mention à droite, même ligne de base. */
+.superv-tt { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: var(--gl-space-2); }
+.superv-tt .superv-titre { margin: 0; }
+.superv-tot { font-size: var(--gl-text-sm); color: var(--gl-ink-soft); }
+.superv-tot b { color: var(--gl-ink); font-weight: 600; }
 
 /* Courbe d'activité en barres verticales */
 .superv-courbe { display: flex; align-items: flex-end; gap: 6px; height: 150px; }
@@ -1511,7 +1526,7 @@ form input[type="file"]::file-selector-button:hover {
 
 /* Barres machines */
 .superv-mbar { display: flex; align-items: center; gap: var(--gl-space-3); margin-bottom: var(--gl-space-3); }
-.superv-mnom { width: 170px; flex-shrink: 0; font-size: var(--gl-text-sm); color: var(--gl-slate); }
+.superv-mnom { width: 140px; flex-shrink: 0; font-size: var(--gl-text-sm); color: var(--gl-slate); }
 .superv-mpiste { flex: 1; height: 9px; background: var(--gl-bg); border-radius: 99px; overflow: hidden; }
 .superv-mfill { display: block; height: 100%; border-radius: 99px; opacity: .9; }
 .superv-mfill--saturation { background: var(--gl-red); }
@@ -1535,6 +1550,17 @@ form input[type="file"]::file-selector-button:hover {
 .superv-tbl .num { text-align: right; font-weight: 600; }
 .superv-tbl .up { color: var(--gl-green); }
 .superv-tbl .down { color: var(--gl-red); }
+.superv-tbl .motif { font-size: var(--gl-text-xs); color: var(--gl-ink-soft); }
+
+/* Filtre par motif (chips réutilisant le contrôleur gallery-filter). */
+.superv-filtres { display: flex; gap: var(--gl-space-2); margin-bottom: var(--gl-space-3); }
+.superv-chip { font-size: var(--gl-text-xs); padding: 3px 11px; border: 1px solid var(--gl-line); border-radius: 99px; background: var(--gl-surface); color: var(--gl-slate); cursor: pointer; }
+.superv-chip:hover { border-color: var(--gl-gray); }
+.superv-chip.is-active { background: var(--gl-slate); color: #fff; border-color: var(--gl-slate); }
+/* Dans la carte mouvements, l'ascenseur interne est plus court (la carte
+   partage sa rangée avec les barres machines). En-tête figé hérité de .dt-scroll. */
+.superv-bloc--mouvements .dt-scroll { max-height: 188px; }
+.superv-bloc--mouvements .superv-tbl thead th { background: var(--gl-bg); }
 
 .superv-note { font-size: var(--gl-text-xs); color: var(--gl-gray); margin-top: var(--gl-space-4); padding-top: var(--gl-space-3); border-top: 1px solid var(--gl-line); }
 
@@ -1571,7 +1597,7 @@ form input[type="file"]::file-selector-button:hover {
 .form-erreurs ul { margin: 0; padding-left: var(--gl-space-4); font-size: var(--gl-text-sm); }
 
 /* Supervision : graphe en courbe (SVG), fidèle à la maquette validée. */
-.superv-graphe svg { width: 100%; height: auto; display: block; }
+.superv-graphe svg { width: 100%; height: 120px; display: block; }
 .superv-leg { font-size: var(--gl-text-xs); color: var(--gl-gray); margin-top: var(--gl-space-2); }
 
 /* Wizard : boutons du navigateur (rendus par form_rest, classes Symfony par

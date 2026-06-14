@@ -78,4 +78,43 @@ class ReservationRepository extends ServiceEntityRepository
 
         return $count > 0;
     }
+
+    /**
+     * Occupations actives (sessions planifiées ou effectuées) dont le créneau
+     * chevauche la période [debut, fin). Chargées en UNE requête, avec la
+     * machine et la session jointes, pour calculer la disponibilité d'un mois
+     * entier en mémoire plutôt qu'avec une requête par créneau et par machine
+     * (le calendrier passait de plusieurs centaines de requêtes à une seule).
+     *
+     * @return list<array{machine: int, debut: \DateTimeImmutable, fin: \DateTimeImmutable}>
+     */
+    public function occupationsActivesSurPeriode(
+        \DateTimeImmutable $debut,
+        \DateTimeImmutable $fin,
+    ): array {
+        /** @var list<array{machine_id: int, debut: \DateTimeImmutable, fin: \DateTimeImmutable}> $lignes */
+        $lignes = $this->createQueryBuilder('o')
+            ->select('IDENTITY(o.machine) AS machine_id', 's.dateDebut AS debut', 's.dateFin AS fin')
+            ->join('o.session', 's')
+            ->where('s.statut IN (:actifs)')
+            ->andWhere('s.dateDebut < :fin')
+            ->andWhere('s.dateFin > :debut')
+            ->setParameter('actifs', [
+                ReservationStatut::Planifiee->value,
+                ReservationStatut::Effectuee->value,
+            ])
+            ->setParameter('debut', $debut)
+            ->setParameter('fin', $fin)
+            ->getQuery()
+            ->getArrayResult();
+
+        return array_map(
+            static fn (array $l): array => [
+                'machine' => (int) $l['machine_id'],
+                'debut' => $l['debut'],
+                'fin' => $l['fin'],
+            ],
+            $lignes
+        );
+    }
 }

@@ -540,14 +540,53 @@ etape_verification() {
     # créneaux) seront actifs. Un échec ici, alors que la page répond, signale le
     # piège du public/assets/ compilé en dev.
     if [[ "${ok}" -eq 1 ]]; then
-        local code_asset
-        code_asset=$(curl -k -s -o /dev/null -w '%{http_code}' https://localhost/assets/styles/app.css 2>/dev/null || echo '000')
+        # Test du service des assets. AssetMapper sert le CSS à une URL VERSIONNÉE
+        # (digest), pas à /assets/styles/app.css : tester l'URL nue donne un faux
+        # 404. On lit donc l'URL réelle dans le HTML rendu (l'attribut href du
+        # app.css versionné) et on teste celle-là.
+        local html css_url code_asset
+        html=$(curl -k -s https://localhost/login 2>/dev/null || true)
+        css_url=$(printf '%s' "${html}" | grep -oE '/assets/styles/app[^"]*\.css' | head -n1)
+
+        if [[ -n "${css_url}" ]]; then
+            code_asset=$(curl -k -s -o /dev/null -w '%{http_code}' "https://localhost${css_url}" 2>/dev/null || echo '000')
+        else
+            # Pas de lien CSS trouvé dans la page : on retombe sur l'URL nue.
+            code_asset=$(curl -k -s -o /dev/null -w '%{http_code}' https://localhost/assets/styles/app.css 2>/dev/null || echo '000')
+        fi
+
         if [[ "${code_asset}" == "200" ]]; then
             journaliser INFO "    Les assets sont servis (CSS et JavaScript actifs)."
         else
-            journaliser WARN "    Les assets ne sont pas servis (HTTP ${code_asset} sur /assets/styles/app.css)."
-            journaliser WARN "    Sans eux, le style est incomplet et le JavaScript ne tourne pas (menus, créneaux inactifs)."
-            journaliser WARN "    Correctif : ${DOCKER:-docker} compose --project-directory ${DEST} exec php rm -rf public/assets var/cache && ${DOCKER:-docker} compose --project-directory ${DEST} exec php bin/console cache:clear"
+            # Réparation : un public/assets/ compilé ou un cache figé empêche le
+            # service à la volée. On purge, on vide le cache, on relance le worker
+            # PHP (FrankenPHP garde l'app en mémoire), puis on re-teste l'URL réelle.
+            journaliser INFO "    Service des assets non confirmé (HTTP ${code_asset}) : tentative de réparation…"
+            if [[ "${DRY_RUN}" -eq 0 ]]; then
+                executer "${DOCKER}" compose --project-directory "${DEST}" exec -T php rm -rf public/assets var/cache \
+                    || journaliser WARN "    Purge des assets/cache : avertissement, on poursuit."
+                executer "${DOCKER}" compose --project-directory "${DEST}" exec -T php bin/console cache:clear \
+                    || journaliser WARN "    cache:clear : avertissement, on poursuit."
+                executer "${DOCKER}" compose --project-directory "${DEST}" restart php \
+                    || journaliser WARN "    Redémarrage du worker PHP : avertissement, on poursuit."
+                sleep 3
+                html=$(curl -k -s https://localhost/login 2>/dev/null || true)
+                css_url=$(printf '%s' "${html}" | grep -oE '/assets/styles/app[^"]*\.css' | head -n1)
+                if [[ -n "${css_url}" ]]; then
+                    code_asset=$(curl -k -s -o /dev/null -w '%{http_code}' "https://localhost${css_url}" 2>/dev/null || echo '000')
+                fi
+            fi
+
+            if [[ "${code_asset}" == "200" ]]; then
+                journaliser INFO "    Assets réparés : CSS et JavaScript désormais actifs."
+            else
+                # Conditionnel : le test automatique peut échouer alors que les
+                # assets fonctionnent (URL non détectée, démarrage encore en cours).
+                # On n'affirme donc pas qu'ils sont cassés, on invite à vérifier.
+                journaliser WARN "    Le test automatique n'a pas pu confirmer le service des assets (HTTP ${code_asset})."
+                journaliser WARN "    Vérifiez dans le navigateur : si le style est complet, tout va bien."
+                journaliser WARN "    Sinon : ${DOCKER:-docker} compose --project-directory ${DEST} exec php rm -rf public/assets var/cache && ${DOCKER:-docker} compose --project-directory ${DEST} exec php bin/console cache:clear && ${DOCKER:-docker} compose --project-directory ${DEST} restart php"
+            fi
         fi
     fi
 

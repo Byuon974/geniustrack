@@ -1,0 +1,52 @@
+{# Courbe d'évolution mensuelle, fidèle au RETEX dataviz :
+   - axe Y gradué (3 repères), axe X aux mois écoulés seulement ;
+   - un point par mois, valeur exacte en infobulle native <title> (accessible
+     au survol ET au focus clavier / lecteur d'écran) ;
+   - valeur du dernier point étiquetée en permanence (alternative tactile, ne
+     dépend pas du survol).
+   Paramètres : pts (liste "x,y"), moisLimite, pas, couleur, totaux (map mois→valeur),
+   unite, grad (3 valeurs d'axe Y haut→bas), dernier (valeur du dernier point). #}
+{% set moisCourts = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'] %}
+{% set ptsList = pts %}
+<svg viewBox="0 0 360 128" preserveAspectRatio="none" role="img"
+     aria-label="Courbe sur {{ moisLimite }} mois, dernier point {{ dernier }} {{ unite }}">
+    {# Axes #}
+    <line x1="34" y1="14" x2="34" y2="96" stroke="var(--gl-line)"/>
+    <line x1="34" y1="96" x2="350" y2="96" stroke="var(--gl-line)"/>
+    {# Repère intermédiaire pointillé #}
+    <line x1="34" y1="55" x2="350" y2="55" stroke="var(--gl-line)" stroke-dasharray="2 3" opacity="0.6"/>
+    {# Graduations Y (haut, milieu, bas) #}
+    <g font-size="9" fill="var(--gl-gray)" text-anchor="end">
+        <text x="29" y="17">{{ grad[0] }}</text>
+        <text x="29" y="58">{{ grad[1] }}</text>
+        <text x="29" y="99">{{ grad[2] }}</text>
+    </g>
+    {# Ligne #}
+    <polyline fill="none" stroke="{{ couleur }}" stroke-width="2.5"
+              stroke-linejoin="round" stroke-linecap="round"
+              points="{{ ptsList|join(' ') }}"/>
+    {# Points + infobulle native #}
+    {% for p in ptsList %}
+        {% set xy = p|split(',') %}
+        {% set m = loop.index %}
+        {% set val = totaux[m] is defined ? totaux[m] : 0 %}
+        {% set dernierPt = loop.last %}
+        <circle cx="{{ xy[0] }}" cy="{{ xy[1] }}" r="{{ dernierPt ? 4 : 2.8 }}" fill="{{ couleur }}">
+            <title>{{ moisCourts[m - 1] }} : {{ val }} {{ unite }}</title>
+        </circle>
+    {% endfor %}
+    {# Étiquette permanente du dernier point #}
+    {% set dern = ptsList|last|split(',') %}
+    <text x="{{ dern[0] }}" y="{{ (dern[1] - 6)|round }}" text-anchor="end"
+          font-size="10" font-weight="600" fill="{{ couleur }}">{{ dernier }}</text>
+    {# Libellés X : un mois sur deux si trop serré, sinon tous #}
+    <g font-size="9" fill="var(--gl-gray)" text-anchor="middle">
+        {% for p in ptsList %}
+            {% set xy = p|split(',') %}
+            {% set m = loop.index %}
+            {% if moisLimite <= 7 or loop.index is odd or loop.last %}
+                <text x="{{ xy[0] }}" y="110" {{ loop.last ? 'fill="var(--gl-slate)" font-weight="600"' : '' }}>{{ moisCourts[m - 1] }}</text>
+            {% endif %}
+        {% endfor %}
+    </g>
+</svg>

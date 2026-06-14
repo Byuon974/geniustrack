@@ -34,8 +34,10 @@
                         data-action="creneau-picker#moisSuivant">{{ include('components/icon.html.twig', {name: 'chevron-right', size: 18}) }}</button>
             </div>
 
-            <div class="cal" data-creneau-picker-target="calendrier" aria-busy="true">
-                <p class="cat">Chargement du calendrier…</p>
+            <div class="cal" data-creneau-picker-target="calendrier" aria-busy="true" aria-label="Chargement du calendrier">
+                <div class="cal-skeleton" aria-hidden="true">
+                    {% for i in 1..35 %}<div class="gl-skel"></div>{% endfor %}
+                </div>
             </div>
 
             <div class="champ champ--duree">
@@ -95,10 +97,7 @@
                                         {{ c.machines|length }} machine{{ c.machines|length > 1 ? 's' : '' }} · {{ c.personnes }} pers.
                                     </div>
                                 </div>
-                                <form method="post" action="{{ path('reservation_retirer', {id: projet.id, index: loop.index0}) }}">
-                                    <input type="hidden" name="_token" value="{{ csrf_token('reservation_retirer') }}">
-                                    <button type="submit" class="resa-ligne__retirer" aria-label="Retirer ce créneau">{{ include('components/icon.html.twig', {name: 'x', size: 14}) }}</button>
-                                </form>
+                                <button type="submit" form="retirer-{{ loop.index0 }}" class="resa-ligne__retirer" aria-label="Retirer ce créneau">{{ include('components/icon.html.twig', {name: 'x', size: 14}) }}</button>
                             </div>
                         {% endfor %}
                     </div>
@@ -127,6 +126,17 @@
             </div>
         </div>
     </form>
+
+    {# Formulaires « retirer » déclarés HORS du formulaire principal : imbriquer
+       un <form> dans un autre est invalide en HTML et casse la soumission du
+       formulaire externe (le bouton « Ajouter » perdait alors ses champs, d'où
+       un panier bloqué à un créneau). Chaque bouton de la liste les cible via
+       l'attribut form="retirer-N". #}
+    {% for c in panier.creneaux %}
+        <form id="retirer-{{ loop.index0 }}" method="post" action="{{ path('reservation_retirer', {id: projet.id, index: loop.index0}) }}" hidden>
+            <input type="hidden" name="_token" value="{{ csrf_token('reservation_retirer') }}">
+        </form>
+    {% endfor %}
 
     {# ── Barre d'action sticky (mobile) ── #}
     {% if not panier.estVide %}

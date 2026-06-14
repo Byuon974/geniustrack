@@ -92,9 +92,12 @@ Vérifie le créneau souple : heure de début au pas de 30 minutes, durée régl
 Vérifie la page analytique et le calcul du taux d'utilisation.
 
 1. En admin ou formateur, ouvrir Pilotage › Supervision.
-2. Vérifier les trois axes : réservations par mois, taux d'utilisation des machines (barres colorées par niveau), derniers mouvements de stock.
+2. Vérifier les quatre cartes : en haut, les deux courbes (réservations par mois, niveau de stock) côte à côte à la même hauteur ; en bas, le taux d'utilisation des machines et les derniers mouvements de stock.
 3. Changer d'année dans le filtre de période et vérifier que les données suivent.
 4. Vérifier qu'une machine très réservée affiche un taux élevé (rouge) et une machine peu réservée un taux faible (vert).
+5. **Courbes honnêtes (DEC-102).** Sur l'année en cours, vérifier que les courbes s'arrêtent au mois courant (pas de chute vers zéro sur les mois à venir). Sur une année passée, elles couvrent les douze mois.
+6. **Lecture des graphes.** Survoler un point d'une courbe : une infobulle donne le mois et la valeur exacte. La valeur du dernier mois reste affichée en permanence près de la courbe.
+7. **Filtre des mouvements.** Dans la carte des mouvements, cliquer « Réassort » puis « Consommation » : la liste se réduit au motif choisi, « Tous » la rétablit. Vérifier que le tableau défile à l'intérieur de la carte sans pousser la page.
 
 ## 10. Export enrichi CSV et XLSX (DEC-077)
 
@@ -137,6 +140,8 @@ Vérifie l'ergonomie du sélecteur de date refondu et la page de report dédiée
 3. Survoler un jour ou le sélectionner : le nombre de créneaux libres apparaît ; il n'est pas affiché en permanence dans la cellule.
 4. Cliquer un jour : la liste des créneaux du jour se charge au centre. Cliquer un créneau libre : le panneau de droite bascule du panier vers les machines libres, avec le compteur de personnes et le bouton d'ajout.
 5. Vérifier que cocher une machine ne déplace pas la mise en page, et que la page ne défile pas (seules les listes internes défilent). Régler le nombre de personnes avec le compteur (de 1 à 15).
+6. **Plusieurs créneaux (DEC-101).** Ajouter un premier créneau au panier, puis en composer et en ajouter un second : le panier doit passer à deux lignes (« Votre réservation · 2 »), et non rester bloqué à une. Retirer une ligne avec sa croix : le panier repasse à une ligne sans casser l'ajout suivant.
+7. **Réactivité du calendrier.** Changer de mois ou cliquer un jour : un squelette de chargement s'affiche brièvement, puis le contenu apparaît. L'affichage doit être rapide (bien en deçà d'une seconde sur le jeu de démonstration).
 
 ### 12.2 Report d'un créneau
 
