@@ -314,3 +314,18 @@ Leçon : un composant doit être unique pour un rôle donné, et son intégratio
 - L'input réel est masqué mais conservé ; la valeur soumise reste correcte.
 - Le stepper devient un composant unique, partagé avec la réservation.
 - Le bloc Détails fusionne pour ne plus laisser de colonne vide.
+
+## Itération 25 : refonte de la navigation latérale
+
+La barre latérale avait grossi au fil des ajouts sans plan d'ensemble. Trois défauts s'étaient installés. L'icône « presse-papier » servait quatre fois (Mes projets, Demandes, Projets d'administration), brouillant la lecture. Trois entrées tournaient autour du mot « projet » sans distinction de rôle. Des libellés génériques (« Supervision », « Tableau de bord », « Contenu de la vitrine ») ne situaient pas l'utilisateur dans le contexte d'un FabLab. La page Galerie, ajoutée récemment, n'était même pas dans le menu.
+
+M�thode. La refonte s'appuie sur le RETEX de navigation (limiter à cinq-sept liens par cluster, regrouper logiquement, libellés courts et descriptifs, éviter les multi-niveaux ; les sections de conformité forment un groupe distinct dé-emphasé) et sur le vocabulaire du logiciel FOSS de référence du domaine (Fab-Manager) : membres pour les comptes, machines pour le matériel, activité pour le suivi statistique. Le registre est assumé FabLab.
+
+Nouvelle arborescence. Cinq groupes : Mon espace (Mes projets), Validation (Demandes à valider), Pilotage (Tableau de bord, Activité, Journal), Atelier (Machines, Consommables, Membres, Projets), Vitrine (Page d'accueil, Projets en avant). Les renommages : Supervision devient Activité, Stocks devient Consommables, Utilisateurs devient Membres, Contenu de la vitrine devient Page d'accueil, la Galerie devient Projets en avant et entre enfin dans le menu. Les projets d'administration quittent Pilotage pour Atelier (gestion des ressources), ce qui rapproche les objets gérés et éloigne le suivi. Chaque entrée reçoit une icône distincte : le presse-papier ne sert plus que pour Mes projets, Demandes prend une coche, Projets prend un document.
+
+Logo cliquable. L'entrée « Voir le site public » de la barre latérale est supprimée au profit du logo de l'en-tête rendu cliquable vers l'accueil. C'est la convention web établie (cliquer le logo ramène à l'accueil), attendue par les utilisateurs et signalée par le RETEX comme un repère permanent ; un lien isolé dans la barre faisait doublon avec ce repère naturel et n'était pas le pattern attendu.
+
+- L'icône presse-papier ne sert plus qu'à une entrée ; chaque libellé a son icône.
+- Le vocabulaire suit la référence FOSS du domaine, registre FabLab assumé.
+- La Galerie entre dans le menu ; les projets d'administration rejoignent l'Atelier.
+- Le logo de l'en-tête ramène à l'accueil, selon la convention attendue.

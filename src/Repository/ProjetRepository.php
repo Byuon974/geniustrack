@@ -106,6 +106,23 @@ class ProjetRepository extends ServiceEntityRepository
     }
 
     /**
+     * Projets terminés, éligibles à la galerie publique, pour la page de
+     * curation : qu'ils soient déjà mis en avant ou non, afin que l'admin
+     * puisse les activer ou les retirer. Tri du plus récent au plus ancien.
+     *
+     * @return Projet[]
+     */
+    public function terminesPourCuration(): array
+    {
+        return $this->createQueryBuilder('p')
+            ->where('p.statut = :termine')
+            ->setParameter('termine', ProjetStatut::Termine->value)
+            ->orderBy('p.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * Vrai si ce projet est le tout premier de l'étudiant sur GeniusLab,
      * c'est-à-dire qu'il n'en possède aucun autre. Sert à signaler une première
      * utilisation au formateur sur la fiche de demande (accompagnement humain de

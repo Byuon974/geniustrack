@@ -27,6 +27,25 @@
     </div>
 </section>
 
+<section class="apercu-section">
+    <div class="apercu-carte">
+        <div class="apercu-carte__texte">
+            <h2 class="apercu-carte__titre">Cartes « Projets réalisés »</h2>
+            <p class="apercu-carte__sous">
+                {% if nbProjetsGalerie > 0 %}
+                    {{ nbProjetsGalerie }} projet{{ nbProjetsGalerie > 1 ? 's' : '' }} mis en avant apparaî{{ nbProjetsGalerie > 1 ? 'ssent' : 't' }} dans la galerie de l'accueil.
+                {% else %}
+                    Aucun projet mis en avant pour l'instant. La galerie de l'accueil est masquée.
+                {% endif %}
+                Choisissez les projets affichés et l'image de leur carte dans la gestion dédiée.
+            </p>
+        </div>
+        <a href="{{ path('admin_galerie_index') }}" class="btn btn--primary">
+            {{ include('components/icon.html.twig', {name: 'image', size: 16}) }} Gérer les projets réalisés
+        </a>
+    </div>
+</section>
+
 <h2 class="apercu-titre-section">Bannière et textes éditoriaux</h2>
 
 {% if blocs is empty %}

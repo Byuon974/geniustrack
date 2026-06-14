@@ -1,0 +1,92 @@
+{% extends 'base.html.twig' %}
+{% block title %}Galerie — Projets réalisés{% endblock %}
+{% block fil_ariane %}{{ include("components/fil_ariane.html.twig", {segments: [{libelle: "Ressources", url: null}, {libelle: "Vitrine", url: path("admin_vitrine_index")}, {libelle: "Projets réalisés", url: null}]}) }}{% endblock %}
+{% block body %}
+{{ include('components/page_header.html.twig', {
+    titre: 'Galerie — Projets réalisés',
+    soustitre: 'Choisissez les projets mis en avant sur l\'accueil et l\'image de leur carte.'
+}) }}
+
+<div class="admin-page">
+    {% if projets is empty %}
+        {{ include('components/empty.html.twig', {message: 'Aucun projet terminé pour l\'instant. Les projets apparaissent ici une fois terminés.'}) }}
+    {% else %}
+        <div class="vitrine-projets">
+            {% for projet in projets %}
+                {% set images = plansImages[projet.id] %}
+                <div data-controller="revealform">
+                <div class="vitrine-projet">
+                    <div class="vitrine-projet__media">
+                        {% if projet.imageVitrine %}
+                            <img src="{{ asset('uploads/vitrine/' ~ projet.imageVitrine) }}" alt="" loading="lazy">
+                        {% else %}
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2 21 7v10l-9 5-9-5V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                        {% endif %}
+                    </div>
+                    <div class="vitrine-projet__corps">
+                        <p class="vitrine-projet__titre">{{ projet.titre }}</p>
+                        <p class="vitrine-projet__meta">
+                            {{ projet.etudiant ? projet.etudiant.nomComplet : '—' }}
+                            · {{ images|length }} image{{ images|length > 1 ? 's' : '' }} jointe{{ images|length > 1 ? 's' : '' }}
+                            · {{ projet.imageVitrine ? 'image définie' : 'placeholder' }}
+                        </p>
+                    </div>
+                    <div class="vitrine-projet__actions">
+                        <form method="post" action="{{ path('admin_galerie_basculer', {id: projet.id}) }}" class="ligne-action">
+                            <input type="hidden" name="_token" value="{{ csrf_token('galerie' ~ projet.id) }}">
+                            {% if projet.partageAutorise %}
+                                <button type="submit" class="btn btn--sm btn--galerie is-active" title="Retirer de la galerie">
+                                    {{ include('components/icon.html.twig', {name: 'eye', size: 14}) }} En avant
+                                </button>
+                            {% else %}
+                                <button type="submit" class="btn btn--sm btn--ghost">Mettre en avant</button>
+                            {% endif %}
+                        </form>
+                        <button type="button" class="btn btn--sm" data-action="revealform#ouvrir">
+                            {{ projet.imageVitrine ? 'Changer l\'image' : 'Choisir l\'image' }}
+                        </button>
+                    </div>
+                </div>
+
+                {# Zone de choix d'image, masquée par défaut, ouverte au clic. #}
+                <div class="img-choix" data-revealform-target="zone" hidden>
+                    <p class="img-choix__titre">Image de la carte — {{ projet.titre }}</p>
+
+                    {% if images is not empty %}
+                        <p class="sep">Réutiliser un fichier-image joint au projet :</p>
+                        <div class="plans-vignettes">
+                            {% for plan in images %}
+                                <form method="post" action="{{ path('admin_galerie_image_plan', {id: projet.id, planId: plan.id}) }}" class="ligne-action">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('image_plan' ~ projet.id) }}">
+                                    <button type="submit" class="plan-vignette" title="Utiliser {{ plan.nomOriginal }}">
+                                        <img src="{{ path('plan_telecharger', {id: plan.id}) }}" alt="{{ plan.nomOriginal }}" loading="lazy">
+                                    </button>
+                                </form>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="sep">Aucun fichier-image joint à ce projet.</p>
+                    {% endif %}
+
+                    <p class="sep">…ou téléverser une image dédiée (JPEG, PNG, WebP — 5 Mo max) :</p>
+                    <form method="post" action="{{ path('admin_galerie_image_upload', {id: projet.id}) }}" enctype="multipart/form-data" class="img-upload">
+                        <input type="hidden" name="_token" value="{{ csrf_token('image_upload' ~ projet.id) }}">
+                        <input type="file" name="image" accept="image/*" required>
+                        <button type="submit" class="btn btn--sm btn--primary">Téléverser</button>
+                    </form>
+
+                    {% if projet.imageVitrine %}
+                        <form method="post" action="{{ path('admin_galerie_image_retirer', {id: projet.id}) }}" class="ligne-action img-retirer">
+                            <input type="hidden" name="_token" value="{{ csrf_token('image_retirer' ~ projet.id) }}">
+                            <button type="submit" class="btn btn--sm btn--refus">Retirer l'image (placeholder)</button>
+                        </form>
+                    {% endif %}
+
+                    <button type="button" class="btn btn--sm btn--ghost" data-action="revealform#fermer">Fermer</button>
+                </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

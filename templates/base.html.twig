@@ -29,7 +29,7 @@
 
     {# ════════ SIDEBAR (navigation principale, desktop) ════════ #}
     <aside class="sidebar" data-shell-target="sidebar">
-        <div class="sidebar-brand">
+        <a class="sidebar-brand" href="{{ path('app_home') }}" aria-label="GeniusLab — retour à l'accueil">
             <span class="logo-mark" aria-hidden="true">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
                     <path d="M12 2 21 7v10l-9 5-9-5V7z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
@@ -37,18 +37,9 @@
                 </svg>
             </span>
             <span class="logo-text">GeniusLab</span>
-        </div>
+        </a>
 
         <nav class="sidebar-nav" aria-label="Navigation principale">
-            {# Lien vers le site public : navigation normale dans le même onglet,
-               comportement attendu et basique. #}
-            <div class="nav-group">
-                <p class="nav-group-label">GeniusLab</p>
-                <a class="nav-item" href="{{ path('app_home') }}">
-                    {{ include('components/icon.html.twig', {name: 'home'}) }}<span>Voir le site public</span>
-                </a>
-            </div>
-
             {# Étudiant. #}
             {% if is_granted('ROLE_ETUDIANT') %}
             <div class="nav-group">
@@ -64,12 +55,12 @@
             <div class="nav-group">
                 <p class="nav-group-label">Validation</p>
                 <a class="nav-item {{ app.request.attributes.get('_route') starts with 'demande' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') starts with 'demande' ? ' aria-current="page"' : '' }} href="{{ path('demande_index') }}">
-                    {{ include('components/icon.html.twig', {name: 'clipboard'}) }}<span>Demandes</span>
+                    {{ include('components/icon.html.twig', {name: 'check'}) }}<span>Demandes à valider</span>
                 </a>
             </div>
             {% endif %}
 
-            {# Pilotage : le tableau de bord est ouvert aux rôles qui pilotent. #}
+            {# Pilotage : suivi de l'activité, ouvert aux rôles qui pilotent. #}
             {% if is_granted('ROLE_FORMATEUR') or is_granted('ROLE_BDE') %}
             <div class="nav-group">
                 <p class="nav-group-label">Pilotage</p>
@@ -77,14 +68,8 @@
                     {{ include('components/icon.html.twig', {name: 'barChart'}) }}<span>Tableau de bord</span>
                 </a>
                 <a class="nav-item {{ app.request.attributes.get('_route') == 'pilotage_supervision' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') == 'pilotage_supervision' ? ' aria-current="page"' : '' }} href="{{ path('pilotage_supervision') }}">
-                    {{ include('components/icon.html.twig', {name: 'trendingUp'}) }}<span>Supervision</span>
+                    {{ include('components/icon.html.twig', {name: 'trendingUp'}) }}<span>Activité</span>
                 </a>
-                {# Gestion de tous les projets : réservée à l'administrateur. #}
-                {% if is_granted('ROLE_ADMIN') %}
-                <a class="nav-item {{ app.request.attributes.get('_route') == 'admin_projet_index' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') == 'admin_projet_index' ? ' aria-current="page"' : '' }} href="{{ path('admin_projet_index') }}">
-                    {{ include('components/icon.html.twig', {name: 'clipboard'}) }}<span>Projets</span>
-                </a>
-                {% endif %}
                 {# Le journal d'activité reste réservé à l'administrateur. #}
                 {% if is_granted('ROLE_ADMIN') %}
                 <a class="nav-item {{ app.request.attributes.get('_route') == 'admin_journal' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') == 'admin_journal' ? ' aria-current="page"' : '' }} href="{{ path('admin_journal') }}">
@@ -94,25 +79,32 @@
             </div>
             {% endif %}
 
-            {# Ressources : administration du parc, réservée à l'admin. #}
+            {# Atelier : administration des ressources et des projets, réservée à l'admin. #}
             {% if is_granted('ROLE_ADMIN') %}
             <div class="nav-group">
-                <p class="nav-group-label">Ressources</p>
+                <p class="nav-group-label">Atelier</p>
                 <a class="nav-item {{ app.request.attributes.get('_route') starts with 'admin_machine' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') starts with 'admin_machine' ? ' aria-current="page"' : '' }} href="{{ path('admin_machine_index') }}">
                     {{ include('components/icon.html.twig', {name: 'wrench'}) }}<span>Machines</span>
                 </a>
                 <a class="nav-item {{ app.request.attributes.get('_route') starts with 'admin_stock' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') starts with 'admin_stock' ? ' aria-current="page"' : '' }} href="{{ path('admin_stock_index') }}">
-                    {{ include('components/icon.html.twig', {name: 'pkg'}) }}<span>Stocks</span>
+                    {{ include('components/icon.html.twig', {name: 'pkg'}) }}<span>Consommables</span>
                 </a>
                 <a class="nav-item {{ app.request.attributes.get('_route') starts with 'admin_utilisateur' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') starts with 'admin_utilisateur' ? ' aria-current="page"' : '' }} href="{{ path('admin_utilisateur_index') }}">
-                    {{ include('components/icon.html.twig', {name: 'user'}) }}<span>Utilisateurs</span>
+                    {{ include('components/icon.html.twig', {name: 'user'}) }}<span>Membres</span>
+                </a>
+                <a class="nav-item {{ app.request.attributes.get('_route') == 'admin_projet_index' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') == 'admin_projet_index' ? ' aria-current="page"' : '' }} href="{{ path('admin_projet_index') }}">
+                    {{ include('components/icon.html.twig', {name: 'fileText'}) }}<span>Projets</span>
                 </a>
             </div>
 
+            {# Vitrine : le site public vu par les visiteurs. #}
             <div class="nav-group">
-                <p class="nav-group-label">Site public</p>
+                <p class="nav-group-label">Vitrine</p>
                 <a class="nav-item {{ app.request.attributes.get('_route') starts with 'admin_vitrine' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') starts with 'admin_vitrine' ? ' aria-current="page"' : '' }} href="{{ path('admin_vitrine_index') }}">
-                    {{ include('components/icon.html.twig', {name: 'layout'}) }}<span>Contenu de la vitrine</span>
+                    {{ include('components/icon.html.twig', {name: 'layout'}) }}<span>Page d'accueil</span>
+                </a>
+                <a class="nav-item {{ app.request.attributes.get('_route') starts with 'admin_galerie' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') starts with 'admin_galerie' ? ' aria-current="page"' : '' }} href="{{ path('admin_galerie_index') }}">
+                    {{ include('components/icon.html.twig', {name: 'image'}) }}<span>Projets en avant</span>
                 </a>
             </div>
             {% endif %}
@@ -235,7 +227,7 @@
         {% endif %}
         {% if is_granted('ROLE_FORMATEUR') or is_granted('ROLE_BDE') %}
         <a class="bnav-item {{ app.request.attributes.get('_route') starts with 'demande' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') starts with 'demande' ? ' aria-current="page"' : '' }} href="{{ path('demande_index') }}">
-            {{ include('components/icon.html.twig', {name: 'clipboard'}) }}<span>Demandes</span>
+            {{ include('components/icon.html.twig', {name: 'check'}) }}<span>Demandes</span>
         </a>
         <a class="bnav-item {{ app.request.attributes.get('_route') == 'pilotage_dashboard' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') == 'pilotage_dashboard' ? ' aria-current="page"' : '' }} href="{{ path('pilotage_dashboard') }}">
             {{ include('components/icon.html.twig', {name: 'barChart'}) }}<span>Bord</span>
@@ -243,7 +235,7 @@
         {% endif %}
         {% if is_granted('ROLE_ADMIN') %}
         <a class="bnav-item {{ app.request.attributes.get('_route') starts with 'admin_stock' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') starts with 'admin_stock' ? ' aria-current="page"' : '' }} href="{{ path('admin_stock_index') }}">
-            {{ include('components/icon.html.twig', {name: 'pkg'}) }}<span>Stocks</span>
+            {{ include('components/icon.html.twig', {name: 'pkg'}) }}<span>Conso</span>
         </a>
         {% endif %}
         {% if app.user %}

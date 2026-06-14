@@ -43,8 +43,10 @@ body.no-scroll { overflow: hidden; }
     padding: var(--gl-space-6) var(--gl-space-4);
     font-family: var(--gl-font-display); font-weight: 700;
     font-size: var(--gl-text-lg); color: #fff;
+    text-decoration: none;
     border-bottom: 1px solid rgba(255,255,255,.1);
 }
+.sidebar-brand:hover .logo-text { opacity: .85; }
 .logo-mark { color: var(--gl-filament); display: inline-flex; }
 
 .sidebar-nav { flex: 1; padding: var(--gl-space-3) 0; }
@@ -366,6 +368,7 @@ form textarea { min-height: 48px; }
     background: var(--gl-bg); color: var(--gl-line);
 }
 .machine-carte__media img { width: 100%; height: 100%; object-fit: cover; }
+.projet-carte__media img { width: 100%; height: 100%; object-fit: cover; }
 .machine-carte__corps, .projet-carte__corps { padding: var(--gl-space-4); }
 .machine-carte__corps h3, .projet-carte__corps h3 { margin: 0 0 var(--gl-space-2); font-size: var(--gl-text-lg); }
 .machine-carte__corps p, .projet-carte__corps p { margin: 0 0 var(--gl-space-3); color: var(--gl-ink-soft); font-size: var(--gl-text-sm); }
@@ -892,6 +895,25 @@ html { scroll-behavior: smooth; scroll-padding-top: 80px; }
     font-size: var(--gl-text-lg);
     margin: 0 0 var(--gl-space-4);
 }
+
+/* ───────────── Page de gestion de la galerie (projets réalisés) ───────────── */
+.vitrine-projets { display: flex; flex-direction: column; gap: var(--gl-space-3); }
+.vitrine-projet { display: flex; gap: var(--gl-space-4); align-items: center; background: var(--gl-surface); border: 1px solid var(--gl-line); border-radius: var(--gl-radius); padding: var(--gl-space-3) var(--gl-space-4); }
+.vitrine-projet__media { width: 84px; height: 64px; border-radius: 6px; background: var(--gl-bg); border: 1px solid var(--gl-line); flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: var(--gl-gray); overflow: hidden; }
+.vitrine-projet__media img { width: 100%; height: 100%; object-fit: cover; }
+.vitrine-projet__corps { flex: 1; min-width: 0; }
+.vitrine-projet__titre { font-weight: 600; margin: 0 0 2px; overflow-wrap: anywhere; }
+.vitrine-projet__meta { font-size: var(--gl-text-xs); color: var(--gl-ink-soft); }
+.vitrine-projet__actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+.img-choix { background: var(--gl-surface); border: 1px dashed var(--gl-line); border-radius: var(--gl-radius); padding: var(--gl-space-3); margin-top: calc(-1 * var(--gl-space-2)); margin-bottom: var(--gl-space-2); }
+.img-choix__titre { font-size: var(--gl-text-sm); font-weight: 600; margin: 0 0 var(--gl-space-2); }
+.img-choix .sep { font-size: var(--gl-text-xs); color: var(--gl-gray); margin: var(--gl-space-2) 0; }
+.plans-vignettes { display: flex; gap: var(--gl-space-2); flex-wrap: wrap; margin-bottom: var(--gl-space-2); }
+.plan-vignette { width: 64px; height: 64px; border: 2px solid var(--gl-line); border-radius: 6px; overflow: hidden; cursor: pointer; padding: 0; background: var(--gl-bg); }
+.plan-vignette:hover { border-color: var(--gl-blueprint); }
+.plan-vignette img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.img-upload { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gl-space-2); margin-bottom: var(--gl-space-2); }
+.img-retirer { margin-bottom: var(--gl-space-2); }
 
 /* ───────────── Formulaire inventaire : sections regroupées ───────────── */
 .form-grille {

@@ -35,11 +35,15 @@ use Symfony\Component\Validator\Constraints\Length;
 class ContenuVitrineController extends AbstractController
 {
     #[Route('', name: 'admin_vitrine_index', methods: ['GET'])]
-    public function index(ContenuVitrineRepository $repository, MachineRepository $machines): Response
-    {
+    public function index(
+        ContenuVitrineRepository $repository,
+        MachineRepository $machines,
+        \App\Repository\ProjetRepository $projets,
+    ): Response {
         return $this->render('admin/vitrine/index.html.twig', [
             'blocs' => $repository->findBy([], ['libelle' => 'ASC']),
             'nbMachines' => count($machines->actives()),
+            'nbProjetsGalerie' => count($projets->pourGalerie()),
         ]);
     }
 

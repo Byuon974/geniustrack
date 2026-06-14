@@ -45,35 +45,6 @@ class ProjetAdminController extends AbstractController
     }
 
     /**
-     * Bascule la mise en avant d'un projet en galerie publique. La galerie
-     * n'affiche que les projets terminés ET mis en avant (BF_2.2) ; la décision
-     * de mise en avant appartient à l'administrateur (DEC-105).
-     */
-    #[Route('/{id}/galerie', name: 'admin_projet_galerie', methods: ['POST'])]
-    public function basculerGalerie(
-        Request $request,
-        Projet $projet,
-        EntityManagerInterface $em,
-        JournalService $journal,
-    ): Response {
-        if ($this->isCsrfTokenValid('galerie'.$projet->getId(), $request->request->getString('_token'))) {
-            $nouvelEtat = !$projet->isPartageAutorise();
-            $projet->setPartageAutorise($nouvelEtat);
-            $em->flush();
-            $journal->tracer(
-                $this->getUser(),
-                $nouvelEtat ? 'Projet mis en avant en galerie' : 'Projet retiré de la galerie',
-                $projet->getTitre()
-            );
-            $this->addFlash('success', $nouvelEtat
-                ? 'Projet mis en avant : il apparaîtra en galerie s\'il est terminé.'
-                : 'Projet retiré de la galerie.');
-        }
-
-        return $this->redirectToRoute('admin_projet_index');
-    }
-
-    /**
      * Applique une transition de statut choisie par l'admin, parmi celles que la
      * machine à états autorise depuis le statut courant. Le workflow refuse tout
      * saut illégal, donc aucune vérification de cohérence à dupliquer ici.

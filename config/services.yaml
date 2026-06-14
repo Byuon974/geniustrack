@@ -18,6 +18,7 @@ services:
             # Injecté dans PhotoUploadService::__construct($repertoireMachines).
             string $repertoireMachines: '%app.repertoire_machines%'
             string $repertoirePlans: '%app.repertoire_plans%'
+            string $repertoireVitrine: '%app.repertoire_vitrine%'
             # Jeton du flux iCal (BF_3.1). Défaut vide = fonctionnalité inactive
             # (jamais bloquant au boot). À définir en prod pour activer l'abonnement.
             # La variable est déclarée vide dans .env : %env()% retourne donc une

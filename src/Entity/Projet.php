@@ -61,6 +61,12 @@ class Projet
     #[ORM\Column]
     private bool $partageAutorise = false;
 
+    /** Image de la carte en galerie publique (nom de fichier dans le dossier
+     *  vitrine public). Soit une copie d'un plan-image du projet, soit une image
+     *  dédiée téléversée par l'administrateur. Null = placeholder par défaut. */
+    #[ORM\Column(nullable: true)]
+    private ?string $imageVitrine = null;
+
     /** @var Collection<int, Machine> */
     #[ORM\ManyToMany(targetEntity: Machine::class)]
     private Collection $machines;
@@ -181,6 +187,18 @@ class Projet
     public function setPartageAutorise(bool $partageAutorise): self
     {
         $this->partageAutorise = $partageAutorise;
+
+        return $this;
+    }
+
+    public function getImageVitrine(): ?string
+    {
+        return $this->imageVitrine;
+    }
+
+    public function setImageVitrine(?string $imageVitrine): self
+    {
+        $this->imageVitrine = $imageVitrine;
 
         return $this;
     }
