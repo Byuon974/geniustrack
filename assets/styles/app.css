@@ -255,6 +255,10 @@ body.no-scroll { overflow: hidden; }
 
 /* : Alertes (flash) : */
 .alert { padding: var(--gl-space-3) var(--gl-space-4); border-radius: var(--gl-radius-sm); margin-bottom: var(--gl-space-4); font-size: var(--gl-text-sm); }
+.alert--dismiss { display: flex; align-items: center; gap: var(--gl-space-3); }
+.alert--dismiss .alert__texte { flex: 1; }
+.alert__fermer { border: none; background: none; cursor: pointer; color: inherit; opacity: .6; display: inline-flex; padding: 2px; border-radius: var(--gl-radius-sm); flex-shrink: 0; }
+.alert__fermer:hover { opacity: 1; }
 .alert--success { background: var(--gl-green-soft); color: var(--gl-green); }
 .alert--error   { background: var(--gl-red-soft);   color: var(--gl-red); }
 
@@ -1273,10 +1277,12 @@ form input[type="file"]::file-selector-button:hover {
     height: 100%; background: var(--gl-slate);
     border-radius: var(--gl-radius-sm); transition: width .3s;
 }
-/* Couleurs sémantiques selon l'intensité d'usage (forte/moyenne/faible). */
-.dash-bar-rempli--forte { background: var(--gl-blueprint); }
-.dash-bar-rempli--moyenne { background: var(--gl-filament); }
-.dash-bar-rempli--faible { background: var(--gl-slate); }
+/* Couleurs sémantiques selon l'intensité d'usage : dégradé de charge
+   faible (vert) → moyenne (orange) → forte (rouge), convention de jauge la
+   plus lisible (la machine la plus sollicitée est la plus saillante). */
+.dash-bar-rempli--forte { background: var(--gl-red); }
+.dash-bar-rempli--moyenne { background: var(--gl-amber); }
+.dash-bar-rempli--faible { background: var(--gl-green); }
 /* Légende des intensités (remplace l'ancienne échelle avec le « 0 » flottant). */
 .dash-usage__legende {
     display: flex; gap: var(--gl-space-4); flex-wrap: wrap;
@@ -1286,9 +1292,9 @@ form input[type="file"]::file-selector-button:hover {
 }
 .dash-usage__legende span { display: inline-flex; align-items: center; gap: var(--gl-space-1); }
 .dash-pip { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
-.dash-pip--forte { background: var(--gl-blueprint); }
-.dash-pip--moyenne { background: var(--gl-filament); }
-.dash-pip--faible { background: var(--gl-slate); }
+.dash-pip--forte { background: var(--gl-red); }
+.dash-pip--moyenne { background: var(--gl-amber); }
+.dash-pip--faible { background: var(--gl-green); }
 .dash-usage-table { width: 100%; border-collapse: collapse; }
 .dash-usage-table th {
     text-align: left; font-size: var(--gl-text-xs); text-transform: uppercase;
@@ -1398,47 +1404,34 @@ form input[type="file"]::file-selector-button:hover {
 .freebusy-aide__form select, .freebusy-aide__form input { margin: 0; }
 .freebusy-aide__zone { display: block; padding: 0 var(--gl-space-4) var(--gl-space-4); }
 .freebusy__titre { font-size: var(--gl-text-sm); color: var(--gl-ink-soft); margin: 0 0 var(--gl-space-2); }
-.freebusy__grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: var(--gl-space-2); }
+/* Créneaux en LISTE verticale épurée (style agenda) : pastille + heure + places.
+   Plus de pavés colorés en grille — rendu professionnel, sobre. */
+.fb-liste { display: flex; flex-direction: column; gap: 5px; }
 .fb-creneau {
-    border: 1px solid #d8d3c8; border-radius: var(--gl-radius-sm);
-    padding: var(--gl-space-2) 0; text-align: center; display: flex;
-    flex-direction: column; justify-content: center; gap: 2px; font: inherit; width: 100%;
-    /* Cible tactile : >= 48px (Material) sur appareils à pointeur grossier.
-       RETEX : sous 44px, taux d'erreur de tap x3 (research U. Maryland). */
-    min-height: 48px;
+    display: flex; align-items: center; gap: 11px; width: 100%; text-align: left;
+    border: 1px solid var(--gl-line); border-radius: var(--gl-radius-sm);
+    padding: 10px 12px; font: inherit; background: var(--gl-surface);
+    /* Cible tactile confortable (>= 44px). */
+    min-height: 46px;
 }
+.fb-pt { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--gl-gray); }
 .fb-heure { font-size: var(--gl-text-sm); font-weight: 600; }
-.fb-etat { font-size: var(--gl-text-xs); }
-/* Créneau libre : en léger relief, comme une touche que l'on peut presser. */
-.fb-creneau--libre {
-    background: linear-gradient(var(--gl-green-soft), #dcefe3);
-    border-color: #bcd9c5; color: var(--gl-green); cursor: pointer;
-    box-shadow: 0 1px 2px rgba(0,0,0,.07);
-}
-.fb-creneau--libre:hover { background: linear-gradient(#e9f6ee, var(--gl-green-soft)); }
-.fb-creneau--libre:active { box-shadow: inset 0 1px 2px rgba(0,0,0,.12); }
-.fb-creneau--libre .fb-etat { color: var(--gl-green); }
-/* Créneau occupé : en creux, enfoncé, inactif. */
-.fb-creneau--occupe {
-    background: var(--gl-gray-soft); border-color: #d0cabe; color: var(--gl-ink-soft);
-    box-shadow: inset 0 1px 2px rgba(0,0,0,.06);
-}
-.fb-creneau--complet {
-    background: var(--gl-red-soft); border-color: #e7c9c4; color: var(--gl-red);
-    box-shadow: inset 0 1px 2px rgba(0,0,0,.06);
-}
-/* Votre réservation : surélevée et encadrée, comme le jour courant du calendrier. */
-.fb-creneau--mien {
-    background: #fff; border-color: var(--gl-blueprint); color: var(--gl-blueprint);
-    box-shadow: 0 1px 3px rgba(0,0,0,.08);
-}
-.fb-creneau--choisi { outline: 2px solid var(--gl-blueprint); outline-offset: 1px; box-shadow: inset 0 1px 2px rgba(0,0,0,.12); }
-.freebusy__legende { display: flex; gap: var(--gl-space-4); margin-top: var(--gl-space-3); flex-wrap: wrap; }
-.freebusy__legende span { display: flex; align-items: center; gap: 5px; font-size: var(--gl-text-xs); color: var(--gl-ink-soft); }
-.fb-dot { width: 10px; height: 10px; border-radius: 3px; }
-.fb-dot--libre { background: var(--gl-green-soft); border: 1px solid #bcd9c5; }
-.fb-dot--occupe { background: var(--gl-gray-soft); border: 1px solid #d0cabe; }
-.fb-dot--complet { background: var(--gl-red-soft); border: 1px solid #e7c9c4; }
+.fb-etat { font-size: var(--gl-text-xs); color: var(--gl-ink-soft); margin-left: auto; }
+/* Créneau libre : cliquable, pastille verte. */
+.fb-creneau--libre { cursor: pointer; }
+.fb-creneau--libre .fb-pt { background: var(--gl-green); }
+.fb-creneau--libre:hover { border-color: var(--gl-blueprint); }
+/* Créneau partiellement occupé : cliquable, pastille ambre. */
+.fb-creneau--occupe { cursor: pointer; }
+.fb-creneau--occupe .fb-pt { background: var(--gl-amber); }
+.fb-creneau--occupe:hover { border-color: var(--gl-blueprint); }
+/* Créneau complet : inactif, pastille rouge, estompé. */
+.fb-creneau--complet { opacity: .5; }
+.fb-creneau--complet .fb-pt { background: var(--gl-red); }
+.fb-creneau--complet .fb-etat { color: var(--gl-red); }
+/* Créneau choisi : encadré bleu. */
+.fb-creneau--choisi { border-color: var(--gl-blueprint); background: var(--gl-blue-soft); }
+.fb-creneau--choisi .fb-heure { color: var(--gl-blueprint-dark); }
 
 /* ───────────── File de validation des demandes (pattern file d'approbation) ───────────── */
 .demande-file { display: flex; flex-direction: column; gap: var(--gl-space-3); }
@@ -1556,16 +1549,8 @@ form input[type="file"]::file-selector-button:hover {
    colonne, sélection de créneau par pastilles (plus de saisie de date).
    ───────────────────────────────────────────────────────────────────────── */
 .creneau-item__corps { padding: var(--gl-space-4); display: grid; gap: var(--gl-space-3); }
-.creneau-tete { display: grid; gap: var(--gl-space-3); }
-.creneau-tete .champ--machine select { width: 100%; }
 .champ-duo { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gl-space-3); }
 .champ-duo .champ label, .champ--machine label { font-size: var(--gl-text-sm); font-weight: 500; }
-
-/* Zone des pastilles : hauteur bornée pour ne pas pousser la page. */
-.creneau-dispo { border: 1px solid var(--gl-line); border-radius: var(--gl-radius-sm);
-  background: var(--gl-bg); padding: var(--gl-space-3); max-height: 168px; overflow-y: auto; }
-.creneau-dispo[aria-busy="true"] { opacity: .55; }
-.creneau-dispo .cat { margin: 0; }
 
 /* Nombre de personnes : compteur compact + message d'erreur visible. */
 .champ--personnes input { max-width: 110px; }
@@ -1576,14 +1561,6 @@ form input[type="file"]::file-selector-button:hover {
 .wizard__body { padding: var(--gl-space-4) var(--gl-space-6); }
 .creneau-item { margin-bottom: var(--gl-space-3); }
 .creneau-item__head { padding: var(--gl-space-2) var(--gl-space-4); }
-/* Mobile-first : on NE densifie PAS les créneaux (anti-pattern tactile). On
-   garde des pastilles larges, moins par ligne, plus d'espace entre cibles
-   (RETEX : l'espacement réduit l'activation accidentelle, WCAG 2.5.8). */
-.freebusy__grille { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: var(--gl-space-2); }
-.fb-creneau { padding: var(--gl-space-2) var(--gl-space-1); min-height: 52px; }
-/* Zone de pastilles : plus de hauteur sur petit écran pour limiter le scroll
-   interne imbriqué (source de frustration tactile). */
-.creneau-dispo { max-height: 240px; }
 
 /* Bloc d'erreurs de validation du wizard (visible en haut de l'étape). */
 .form-erreurs { border: 1px solid var(--gl-red); background: var(--gl-red-soft);
@@ -1685,87 +1662,186 @@ form input[type="file"]::file-selector-button:hover {
 .encart-premiere svg { color:var(--gl-amber); flex-shrink:0; }
 
 /* ── Page de réservation (multi-machines, mobile-first) ── */
-.reservation { max-width: 920px; margin: 0 auto; }
+.reservation { max-width: 1080px; margin: 0 auto; }
 .reservation__header { margin-bottom: var(--gl-space-4); }
 .reservation__header h1 { font-family: var(--gl-font-display); }
-/* Empilement mobile-first : composition puis panier. Deux colonnes dès le large. */
-.reservation__corps { display: flex; flex-direction: column; gap: var(--gl-space-5); }
-@media (min-width: 860px) {
-    .reservation__corps { display: grid; grid-template-columns: 1.6fr 1fr; gap: var(--gl-space-6); align-items: start; }
-}
-.resa-composer, .resa-panier { min-width: 0; }
-.resa-panier {
+
+/* ── Wizard : 3 colonnes de hauteur bornée, sans défilement de page ──
+   Modèle Cal.com : calendrier inline | créneaux du jour | panier/machines.
+   Chaque colonne a sa hauteur maîtrisée ; seules les listes internes
+   défilent. Empilement vertical sous 880px (mobile). */
+.resa-wizard {
+    display: grid; grid-template-columns: 288px minmax(0, 1fr) 264px;
+    height: 520px; overflow: hidden;
     background: var(--gl-surface); border: 1px solid var(--gl-line);
-    border-radius: var(--gl-radius); padding: var(--gl-space-4);
+    border-radius: var(--gl-radius);
 }
-.resa-panier__titre { font-family: var(--gl-font-display); font-size: var(--gl-text-lg); margin-bottom: var(--gl-space-3); }
-.resa-panier__vide {
-    text-align: center; color: var(--gl-ink-soft); font-size: var(--gl-text-sm);
-    padding: var(--gl-space-5) var(--gl-space-3); border: 1px dashed var(--gl-line); border-radius: var(--gl-radius-sm);
+.resa-col { padding: var(--gl-space-4); display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.resa-col--creneaux { border-left: 1px solid var(--gl-line); border-right: 1px solid var(--gl-line); }
+
+/* Colonne 1 : calendrier */
+.cal-tete { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--gl-space-3); }
+.cal-mois { font-family: var(--gl-font-display); font-size: var(--gl-text-base); font-weight: 600; text-transform: capitalize; }
+.cal-nav {
+    border: none; background: none; cursor: pointer; color: var(--gl-ink-soft);
+    padding: 5px; border-radius: var(--gl-radius-sm); display: inline-flex;
 }
-/* Période matin / après-midi */
-.fb-periode {
-    font-size: var(--gl-text-xs); font-weight: 700; color: var(--gl-slate);
-    text-transform: uppercase; letter-spacing: .04em; margin: var(--gl-space-3) 0 var(--gl-space-2);
+.cal-nav:hover { background: var(--gl-bg); }
+.cal[aria-busy="true"] { opacity: .55; }
+.cal-dow {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px;
+    font-size: var(--gl-text-xs); color: var(--gl-ink-soft); text-align: center;
+    margin-bottom: 5px; font-weight: 500;
 }
-/* Machines en pastilles cochables (compact, s'enroule) */
-.machines-bloc {
-    margin-top: var(--gl-space-3); padding: var(--gl-space-3) var(--gl-space-4);
-    background: var(--gl-surface); border: 1px solid var(--gl-line); border-radius: var(--gl-radius);
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cal-jour {
+    position: relative; aspect-ratio: 1; border: none; border-radius: var(--gl-radius-sm);
+    cursor: pointer; font: inherit; color: var(--gl-ink); background: transparent;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
 }
-.machines-titre { font-size: var(--gl-text-sm); font-weight: 600; margin-bottom: var(--gl-space-2); }
-.machines-puces { display: flex; flex-wrap: wrap; gap: var(--gl-space-2); }
+.cal-jour:hover:not(:disabled):not(.cal-jour--sel) { background: var(--gl-bg); }
+.cal-jour--today { background: var(--gl-blue-soft); color: var(--gl-blueprint-dark); font-weight: 600; }
+.cal-jour--sel { background: var(--gl-blueprint); color: #fff; font-weight: 600; }
+.cal-jour:disabled { opacity: .32; cursor: default; }
+.cal-num { font-size: var(--gl-text-sm); line-height: 1; }
+.cal-pt { width: 6px; height: 6px; border-radius: 50%; }
+.cal-pt--libre { background: var(--gl-green); }
+.cal-pt--charge { background: var(--gl-amber); }
+.cal-pt--complet { background: transparent; border: 1px solid var(--gl-line); }
+/* Le nombre de places n'apparaît qu'au survol / sur le jour sélectionné. */
+.cal-free {
+    font-size: 9px; line-height: 1; height: 9px; color: var(--gl-ink-soft);
+    opacity: 0; transition: opacity .1s;
+}
+.cal-jour:hover:not(:disabled) .cal-free, .cal-jour--sel .cal-free { opacity: 1; }
+.cal-jour--sel .cal-free { color: rgba(255, 255, 255, .85); }
+.cal-aujourdhui {
+    width: 100%; margin-top: auto; font-size: var(--gl-text-sm); padding: 8px;
+    border-radius: var(--gl-radius-sm); border: 1px solid var(--gl-line);
+    background: var(--gl-surface); cursor: pointer; font-family: inherit; color: var(--gl-ink);
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+.cal-aujourdhui:hover { background: var(--gl-bg); }
+.champ--duree { margin-top: var(--gl-space-3); }
+.champ--duree label { font-size: var(--gl-text-xs); color: var(--gl-ink-soft); display: block; margin-bottom: 5px; font-weight: 500; }
+.champ--duree select { width: 100%; }
+.cal-legende { display: flex; gap: var(--gl-space-3); margin-top: var(--gl-space-3); flex-wrap: wrap; font-size: var(--gl-text-xs); color: var(--gl-ink-soft); }
+.cal-legende span { display: flex; align-items: center; gap: 5px; }
+
+/* Colonne 2 : créneaux du jour (liste à défilement interne) */
+.resa-jour { font-family: var(--gl-font-display); font-size: var(--gl-text-base); font-weight: 600; margin: 0 0 var(--gl-space-3); text-transform: capitalize; }
+.creneau-dispo { overflow-y: auto; flex: 1; min-height: 0; margin: 0 -4px; padding: 0 4px; }
+.creneau-dispo[aria-busy="true"] { opacity: .55; }
+.creneau-dispo .cat { margin: 0; }
+
+/* Colonne 3 : panier (défaut) OU machines du créneau choisi */
+.resa-col--droit { min-width: 0; }
+.resa-panier { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.resa-panier__titre {
+    font-family: var(--gl-font-display); font-size: var(--gl-text-sm); font-weight: 600;
+    margin: 0 0 var(--gl-space-3); display: flex; align-items: center; gap: 7px;
+}
+.resa-panier__liste { overflow-y: auto; flex: 1; min-height: 0; margin: 0 -4px; padding: 0 4px; }
+.resa-panier__vide { color: var(--gl-ink-soft); font-size: var(--gl-text-sm); margin: 0; }
+
+/* Machines en pastilles cochables (panneau droit) */
+.machines-bloc { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.machines-titre { font-size: var(--gl-text-xs); color: var(--gl-ink-soft); margin-bottom: var(--gl-space-2); }
+.machines-puces { display: flex; flex-wrap: wrap; gap: var(--gl-space-2); overflow-y: auto; }
 .puce {
     display: inline-flex; align-items: center; gap: 8px;
-    padding: 11px 16px; border: 1px solid var(--gl-line); border-radius: 24px;
+    padding: 6px 12px; border: 1px solid var(--gl-line); border-radius: var(--gl-radius-sm);
     cursor: pointer; background: #fff; font-size: var(--gl-text-sm); font-weight: 500; user-select: none;
-    /* Cible tactile confortable : hauteur >= 44px, RETEX touch targets. */
-    min-height: 44px;
+    min-height: 36px;
 }
-.puce:has(input:checked) { border-color: var(--gl-blueprint); background: var(--gl-blueprint); color: #fff; }
+.puce:has(input:checked) { border-color: var(--gl-blueprint); background: var(--gl-blue-soft); color: var(--gl-blueprint-dark); }
 .puce input { position: absolute; opacity: 0; width: 0; height: 0; }
 .puce__check {
     width: 15px; height: 15px; border: 1.5px solid var(--gl-line); border-radius: 4px;
     display: inline-grid; place-items: center; flex-shrink: 0;
 }
-.puce:has(input:checked) .puce__check { background: #fff; border-color: #fff; }
-.puce:has(input:checked) .puce__check::after { content: '✓'; font-size: 11px; color: var(--gl-blueprint); }
+.puce:has(input:checked) .puce__check { background: var(--gl-blueprint); border-color: var(--gl-blueprint); }
+.puce:has(input:checked) .puce__check::after { content: '✓'; font-size: 11px; color: #fff; }
 .puce--indispo {
-    opacity: .45; cursor: not-allowed; background: var(--gl-red-soft);
-    border-color: transparent; text-decoration: line-through;
+    opacity: .5; cursor: not-allowed; background: var(--gl-bg);
+    border-color: transparent; text-decoration: line-through; color: var(--gl-ink-soft);
 }
-.resa-ajouter, .resa-confirmer { width: 100%; margin-top: var(--gl-space-3); }
-/* Lignes du panier */
+
+/* Pied du panneau droit : stepper personnes + Ajouter, ANCRÉ en bas
+   (margin-top:auto) pour que cocher une machine ne déplace rien. */
+.resa-col__pied {
+    margin-top: auto; padding-top: var(--gl-space-3); border-top: 1px solid var(--gl-line);
+    display: flex; align-items: flex-end; gap: var(--gl-space-2); flex-shrink: 0;
+}
+.champ--personnes { flex: 0 0 auto; }
+.champ--personnes label { font-size: var(--gl-text-xs); color: var(--gl-ink-soft); display: block; margin-bottom: 5px; font-weight: 500; }
+.stepper-num { display: inline-flex; align-items: center; border: 1px solid var(--gl-line); border-radius: var(--gl-radius-sm); overflow: hidden; }
+.stepper-num button {
+    border: none; background: var(--gl-surface); width: 36px; height: 38px; cursor: pointer;
+    color: var(--gl-ink-soft); display: inline-flex; align-items: center; justify-content: center; font-family: inherit;
+}
+.stepper-num button:hover { background: var(--gl-bg); }
+.stepper-num__val {
+    min-width: 38px; text-align: center; font-size: var(--gl-text-sm); font-weight: 600;
+    border-left: 1px solid var(--gl-line); border-right: 1px solid var(--gl-line); height: 38px;
+    display: inline-flex; align-items: center; justify-content: center;
+}
+.resa-ajouter { flex: 1; min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.resa-confirmer { width: 100%; margin-top: var(--gl-space-3); }
+
+/* Période matin / après-midi */
+.fb-periode {
+    font-size: var(--gl-text-xs); font-weight: 700; color: var(--gl-slate);
+    text-transform: uppercase; letter-spacing: .04em; margin: var(--gl-space-3) 0 var(--gl-space-2);
+}
+.fb-periode:first-child { margin-top: 0; }
+
+/* Lignes du panier (compactes) */
 .resa-ligne {
     display: flex; justify-content: space-between; align-items: flex-start; gap: var(--gl-space-2);
-    padding: var(--gl-space-3); border: 1px solid var(--gl-line); border-radius: var(--gl-radius-sm); margin-bottom: var(--gl-space-2);
+    padding: 9px 10px; border: 1px solid var(--gl-line); border-radius: var(--gl-radius-sm); margin-bottom: var(--gl-space-2);
 }
 .resa-ligne__quand { font-weight: 600; font-family: var(--gl-font-display); font-size: var(--gl-text-sm); }
 .resa-ligne__machines { font-size: var(--gl-text-xs); color: var(--gl-ink-soft); margin-top: 3px; }
-.resa-vignette {
-    display: inline-block; background: var(--gl-slate); color: #fff;
-    font-size: 10px; padding: 2px 8px; border-radius: 20px; margin: 2px 2px 0 0;
-}
 .resa-ligne__retirer {
-    color: var(--gl-red); border: none; background: none; font-size: var(--gl-text-xs);
-    cursor: pointer; text-decoration: underline; flex-shrink: 0;
-    /* Cible tactile : padding pour atteindre ~44px sans changer le rendu visuel. */
-    padding: 11px var(--gl-space-2); min-height: 44px;
+    color: var(--gl-red); border: none; background: none; cursor: pointer; flex-shrink: 0;
+    display: inline-flex; padding: 4px; border-radius: var(--gl-radius-sm);
+}
+.resa-ligne__retirer:hover { background: var(--gl-red-soft); }
+
+/* ── Page de report : même gabarit 3 colonnes borné que le wizard ── */
+.resa-report {
+    display: grid; grid-template-columns: 288px minmax(0, 1fr) 264px;
+    height: 480px; overflow: hidden;
+    background: var(--gl-surface); border: 1px solid var(--gl-line); border-radius: var(--gl-radius);
+}
+.resa-report .resa-col--creneaux { border-left: 1px solid var(--gl-line); border-right: 1px solid var(--gl-line); }
+.resa-report__duree { font-size: var(--gl-text-xs); color: var(--gl-ink-soft); margin: var(--gl-space-3) 0 0; }
+.resa-report__choix { font-size: var(--gl-text-sm); color: var(--gl-ink); margin: 0; }
+@media (max-width: 879px) {
+    .resa-report { grid-template-columns: 1fr; height: auto; }
+    .resa-report .resa-col--creneaux { border-left: none; border-right: none; border-top: 1px solid var(--gl-line); border-bottom: 1px solid var(--gl-line); }
+}
+
+/* Empilement mobile : sous 880px, le wizard passe en colonnes empilées
+   (le défilement de page redevient normal et attendu sur mobile). */
+@media (max-width: 879px) {
+    .resa-wizard { grid-template-columns: 1fr; height: auto; }
+    .resa-col--creneaux { border-left: none; border-right: none; border-top: 1px solid var(--gl-line); border-bottom: 1px solid var(--gl-line); }
+    .creneau-dispo, .resa-panier__liste, .machines-puces { max-height: 320px; }
+    .cal-aujourdhui { margin-top: var(--gl-space-3); }
+    .resa-panier, .machines-bloc { flex: none; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Barre d'action sticky (mobile) : le panier est empilé sous la composition,
-   donc « Confirmer » tombe sous la ligne de flottaison. RETEX e-commerce :
-   un CTA fixe en bas garde l'action à portée du pouce (+5 à 15 % de complétion
-   sur mobile). Masquée au-delà de 860px (le panier est alors en colonne visible)
-   et masquée tant que le panier est vide.
+   Barre d'action sticky (mobile) : garde « Vérifier » à portée du pouce quand
+   le panier sort de l'écran. Masquée au-delà de 880px et si le panier est vide.
    ───────────────────────────────────────────────────────────────────────── */
 .resa-sticky {
     display: none;
     position: sticky; bottom: 0; left: 0; right: 0; z-index: 20;
     margin: var(--gl-space-4) calc(-1 * var(--gl-space-4)) calc(-1 * var(--gl-space-4));
     padding: var(--gl-space-3) var(--gl-space-4);
-    /* Respect des encoches / barre home iOS. */
     padding-bottom: calc(var(--gl-space-3) + env(safe-area-inset-bottom, 0px));
     background: var(--gl-surface); border-top: 1px solid var(--gl-line);
     box-shadow: 0 -4px 16px rgba(26, 38, 48, 0.1);
@@ -1774,14 +1850,9 @@ form input[type="file"]::file-selector-button:hover {
 .resa-sticky__resume { flex: 1; min-width: 0; font-size: var(--gl-text-sm); }
 .resa-sticky__resume strong { font-family: var(--gl-font-display); }
 .resa-sticky__resume span { display: block; color: var(--gl-ink-soft); font-size: var(--gl-text-xs); }
-.resa-sticky form { margin: 0; flex-shrink: 0; }
 .resa-sticky .btn { min-height: 48px; white-space: nowrap; }
-@media (max-width: 859px) {
-    /* Affichée seulement quand le panier contient au moins un créneau. */
+@media (max-width: 879px) {
     .reservation[data-panier="plein"] .resa-sticky { display: flex; }
-    /* Sur mobile, le bouton Confirmer du panier devient redondant : la barre
-       sticky le porte. On garde celui du panier pour le desktop. */
-    .reservation[data-panier="plein"] .resa-confirmer--inline { display: none; }
 }
 
 /* Bouton Connexion en haut à droite (visiteur non connecté), pendant du menu

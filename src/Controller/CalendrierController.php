@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Repository\ReservationRepository;
+use App\Repository\SessionReservationRepository;
 use App\Service\CalendrierIcalService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -40,7 +40,7 @@ class CalendrierController extends AbstractController
      */
     #[Route('/calendrier', name: 'calendrier_vue', methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
-    public function vue(Request $request, ReservationRepository $reservations): Response
+    public function vue(Request $request, SessionReservationRepository $reservations): Response
     {
         $utilisateur = $this->getUser();
 
@@ -73,7 +73,7 @@ class CalendrierController extends AbstractController
     #[Route('/calendrier/{jeton}.ics', name: 'calendrier_ical', methods: ['GET'])]
     public function ical(
         string $jeton,
-        ReservationRepository $reservations,
+        SessionReservationRepository $reservations,
         CalendrierIcalService $ical,
     ): Response {
         // Comparaison à temps constant pour éviter les attaques temporelles.

@@ -6,6 +6,7 @@ namespace App\Tests\Service;
 
 use App\Entity\Machine;
 use App\Entity\Projet;
+use App\Entity\SessionReservation;
 use App\Entity\User;
 use App\Enum\MachineEtat;
 use App\Enum\ProjetType;
@@ -16,8 +17,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
- * Vérifie les règles métier critiques du Lot 3.
- * Tourne sur SQLite en mémoire (.env.test) — rapide, sans service externe.
+ * Vérifie les règles métier critiques du Lot 3, sur le modèle « session ».
+ * Tourne sur SQLite en mémoire (.env.test) : rapide, sans service externe.
  */
 class ReservationServiceTest extends KernelTestCase
 {
@@ -31,7 +32,6 @@ class ReservationServiceTest extends KernelTestCase
         $this->em = $container->get(EntityManagerInterface::class);
         $this->service = $container->get(ReservationService::class);
 
-        // Schéma créé à la volée pour la base de test.
         $tool = new \Doctrine\ORM\Tools\SchemaTool($this->em);
         $tool->createSchema($this->em->getMetadataFactory()->getAllMetadata());
     }
@@ -74,12 +74,13 @@ class ReservationServiceTest extends KernelTestCase
         $machine = $this->creerMachine();
         $debut = new \DateTimeImmutable('+2 days 10:00');
 
-        $reservation = $this->service->creerSession(
-            $projet, $machine, ReservationType::Realisation, $debut, 3
+        $session = $this->service->creerSession(
+            $projet, ReservationType::Realisation, $debut, 3, 60, [$machine]
         );
 
-        self::assertNotNull($reservation->getId());
-        self::assertSame(3, $reservation->getNbPersonnesPrevues());
+        self::assertNotNull($session->getId());
+        self::assertSame(3, $session->getNbPersonnes());
+        self::assertCount(1, $session->getOccupations());
     }
 
     public function testMachineEnMaintenanceRefusee(): void
@@ -89,8 +90,8 @@ class ReservationServiceTest extends KernelTestCase
 
         $this->expectException(ReservationImpossibleException::class);
         $this->service->creerSession(
-            $projet, $machine, ReservationType::Realisation,
-            new \DateTimeImmutable('+2 days 10:00'), 1
+            $projet, ReservationType::Realisation,
+            new \DateTimeImmutable('+2 days 10:00'), 1, 60, [$machine]
         );
     }
 
@@ -102,15 +103,15 @@ class ReservationServiceTest extends KernelTestCase
         $m2 = $this->creerMachine();
         $debut = new \DateTimeImmutable('+2 days 10:00');
 
-        // 10 personnes sur m1.
-        $this->service->creerSession($projet, $m1, ReservationType::Realisation, $debut, 10);
+        // 10 personnes (une session, machine m1).
+        $this->service->creerSession($projet, ReservationType::Realisation, $debut, 10, 60, [$m1]);
 
-        // 6 de plus sur m2 → 16 > 15 → doit échouer.
+        // 6 de plus sur le même créneau (machine m2) → 16 > 15 → doit échouer.
         $this->expectException(ReservationImpossibleException::class);
-        $this->service->creerSession($projet, $m2, ReservationType::Realisation, $debut, 6);
+        $this->service->creerSession($projet, ReservationType::Realisation, $debut, 6, 60, [$m2]);
     }
 
-    public function testLotMultiMachinesCompteEffectifUneSeuleFois(): void
+    public function testSessionMultiMachinesCompteEffectifUneSeuleFois(): void
     {
         $projet = $this->creerProjetValide();
         $m1 = $this->creerMachine();
@@ -118,18 +119,30 @@ class ReservationServiceTest extends KernelTestCase
         $m3 = $this->creerMachine();
         $debut = new \DateTimeImmutable('+2 days 10:00');
 
-        // Un groupe de 7 personnes sur 3 machines en parallèle : l'effectif est
-        // porté par la 1re réservation, 0 sur les suivantes (même groupe).
+        // Un groupe de 7 personnes sur 3 machines en parallèle = UNE session,
+        // trois occupations. L'effectif est porté une seule fois par la session.
+        $session = $this->service->creerSession(
+            $projet, ReservationType::Realisation, $debut, 7, 60, [$m1, $m2, $m3]
+        );
+
+        self::assertCount(3, $session->getOccupations());
+        // La capacité consommée sur le créneau est 7 (le groupe), pas 21.
+        self::assertSame(7, $session->getNbPersonnes());
+    }
+
+    public function testLotPlusieursCreneauxAtomique(): void
+    {
+        $projet = $this->creerProjetValide();
+        $m1 = $this->creerMachine();
+        $m2 = $this->creerMachine();
+
+        // Deux sessions distinctes (deux créneaux) dans un même panier.
         $creees = $this->service->creerSessionsLot([
-            ['projet' => $projet, 'machine' => $m1, 'type' => ReservationType::Realisation, 'debut' => $debut, 'nbPersonnes' => 7, 'duree' => 60],
-            ['projet' => $projet, 'machine' => $m2, 'type' => ReservationType::Realisation, 'debut' => $debut, 'nbPersonnes' => 0, 'duree' => 60],
-            ['projet' => $projet, 'machine' => $m3, 'type' => ReservationType::Realisation, 'debut' => $debut, 'nbPersonnes' => 0, 'duree' => 60],
+            ['projet' => $projet, 'type' => ReservationType::Realisation, 'debut' => new \DateTimeImmutable('+2 days 10:00'), 'nbPersonnes' => 5, 'duree' => 60, 'machines' => [$m1]],
+            ['projet' => $projet, 'type' => ReservationType::Realisation, 'debut' => new \DateTimeImmutable('+3 days 14:00'), 'nbPersonnes' => 2, 'duree' => 60, 'machines' => [$m2]],
         ]);
 
-        self::assertCount(3, $creees);
-        // La capacité consommée sur le créneau est 7 (le groupe), pas 21.
-        $somme = array_sum(array_map(fn ($r) => $r->getNbPersonnesPrevues(), $creees));
-        self::assertSame(7, $somme);
+        self::assertCount(2, $creees);
     }
 
     public function testLotEchoueEntierementSiUneMachineIndisponible(): void
@@ -141,15 +154,49 @@ class ReservationServiceTest extends KernelTestCase
 
         try {
             $this->service->creerSessionsLot([
-                ['projet' => $projet, 'machine' => $m1, 'type' => ReservationType::Realisation, 'debut' => $debut, 'nbPersonnes' => 3, 'duree' => 60],
-                ['projet' => $projet, 'machine' => $hs, 'type' => ReservationType::Realisation, 'debut' => $debut, 'nbPersonnes' => 0, 'duree' => 60],
+                ['projet' => $projet, 'type' => ReservationType::Realisation, 'debut' => $debut, 'nbPersonnes' => 3, 'duree' => 60, 'machines' => [$m1]],
+                ['projet' => $projet, 'type' => ReservationType::Realisation, 'debut' => new \DateTimeImmutable('+3 days 09:00'), 'nbPersonnes' => 2, 'duree' => 60, 'machines' => [$hs]],
             ]);
             self::fail('Le lot aurait dû échouer sur la machine en maintenance.');
         } catch (ReservationImpossibleException) {
-            // Atomicité : aucune réservation ne doit subsister, pas même celle de m1.
+            // Atomicité : aucune session ni occupation ne doit subsister.
             $this->em->clear();
-            $rechargé = $this->em->getRepository(\App\Entity\Reservation::class)->findAll();
-            self::assertCount(0, $rechargé, 'Le lot partiel ne doit rien laisser en base.');
+            $sessions = $this->em->getRepository(SessionReservation::class)->findAll();
+            self::assertCount(0, $sessions, 'Le lot partiel ne doit rien laisser en base.');
         }
+    }
+
+    public function testQuotaRealisationPlafonneMaisPrepaIllimitee(): void
+    {
+        $projet = $this->creerProjetValide();
+        $debut = new \DateTimeImmutable('+2 days 08:00');
+        $max = SessionReservation::MAX_SESSIONS_REALISATION;
+
+        // On atteint le quota de réalisations (une machine neuve par créneau,
+        // des heures distinctes pour éviter toute collision machine).
+        for ($i = 0; $i < $max; ++$i) {
+            $this->service->creerSession(
+                $projet, ReservationType::Realisation,
+                $debut->modify(sprintf('+%d hours', $i)), 1, 30, [$this->creerMachine()]
+            );
+        }
+
+        // Une réalisation de plus dépasse le quota : refus.
+        try {
+            $this->service->creerSession(
+                $projet, ReservationType::Realisation,
+                $debut->modify('+10 hours'), 1, 30, [$this->creerMachine()]
+            );
+            self::fail('Le quota de réalisations aurait dû être atteint.');
+        } catch (ReservationImpossibleException) {
+            // attendu
+        }
+
+        // Mais une PRÉPARATION reste possible : elle n'est pas plafonnée.
+        $prepa = $this->service->creerSession(
+            $projet, ReservationType::Preparation,
+            $debut->modify('+20 hours'), 1, 30, [$this->creerMachine()]
+        );
+        self::assertNotNull($prepa->getId());
     }
 }

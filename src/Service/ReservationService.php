@@ -7,59 +7,69 @@ namespace App\Service;
 use App\Entity\Machine;
 use App\Entity\Projet;
 use App\Entity\Reservation;
+use App\Entity\SessionReservation;
 use App\Enum\ProjetStatut;
 use App\Enum\ReservationStatut;
 use App\Enum\ReservationType;
+use App\Repository\SessionReservationRepository;
 use App\Repository\ReservationRepository;
 use App\Service\Exception\ReservationImpossibleException;
-use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\DBAL\LockMode;
+use Doctrine\ORM\EntityManagerInterface;
 
 /**
  * Couche métier des réservations.
  *
- * Responsabilités :
- *  - faire respecter la capacité de 15 personnes (BF_3.9) sans race condition ;
- *  - interdire la réservation d'une machine en maintenance/HS (BF_3.8) ;
- *  - limiter à 4 sessions de réalisation par projet (benchmark) ;
- *  - garantir l'atomicité via une transaction + verrou pessimiste.
+ * Une réservation est une SESSION : un groupe occupe un créneau (date + durée)
+ * pour y utiliser une ou plusieurs machines en parallèle. La session porte
+ * l'effectif, le type et le statut ; chaque machine occupée est une occupation
+ * (App\Entity\Reservation) rattachée à la session.
  *
- * Le controller ne connaît AUCUNE de ces règles : il délègue ici.
+ * Responsabilités :
+ *  - faire respecter la capacité de 15 personnes par créneau (BF_3.9), comptée
+ *    une seule fois par session, sans race condition ;
+ *  - interdire la réservation d'une machine en maintenance ou hors service
+ *    (BF_3.8) ;
+ *  - limiter à 4 sessions de RÉALISATION par projet (benchmark) ; la
+ *    préparation n'est pas plafonnée ;
+ *  - garantir l'atomicité via une transaction et un verrou pessimiste.
+ *
+ * Le contrôleur ne connaît aucune de ces règles : il délègue ici.
  */
 class ReservationService
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
-        private readonly ReservationRepository $reservations,
+        private readonly SessionReservationRepository $sessions,
+        private readonly ReservationRepository $occupations,
     ) {
     }
 
     /**
-     * Crée une session de réservation pour un projet, en validant toutes les
-     * contraintes métier dans une transaction atomique.
+     * Crée une session de réservation (un créneau, une à plusieurs machines)
+     * pour un projet, en validant toutes les contraintes métier dans une
+     * transaction atomique.
      *
+     * @param list<Machine> $machines machines à occuper sur ce créneau (au moins une)
      * @throws ReservationImpossibleException si une règle métier est violée
      */
     public function creerSession(
         Projet $projet,
-        Machine $machine,
         ReservationType $type,
         \DateTimeImmutable $debut,
         int $nbPersonnes,
-        ?int $dureeMinutes = null,
-    ): Reservation {
-        // Transaction atomique unitaire : une seule session. Toutes les règles
-        // métier (statut projet, machine réservable, quota, verrou capacité)
-        // sont portées par persisterSessionVerrouillee, partagé avec le lot.
+        int $dureeMinutes,
+        array $machines,
+    ): SessionReservation {
         $this->em->getConnection()->beginTransaction();
         try {
-            $reservation = $this->persisterSessionVerrouillee(
-                $projet, $machine, $type, $debut, $nbPersonnes, $dureeMinutes
+            $session = $this->persisterSessionVerrouillee(
+                $projet, $type, $debut, $nbPersonnes, $dureeMinutes, $machines
             );
             $this->em->flush();
             $this->em->getConnection()->commit();
 
-            return $reservation;
+            return $session;
         } catch (\Throwable $e) {
             $this->em->getConnection()->rollBack();
             throw $e;
@@ -67,26 +77,26 @@ class ReservationService
     }
 
     /**
-     * Crée plusieurs sessions dans UNE seule transaction atomique. Soit toutes
-     * les réservations du lot sont créées, soit aucune : si une machine est
-     * indisponible ou la capacité dépassée en cours de lot, tout est annulé.
+     * Crée plusieurs sessions dans UNE seule transaction atomique : soit toutes
+     * les sessions du lot sont créées, soit aucune. Sert le panier, qui peut
+     * composer plusieurs créneaux avant confirmation. Un échec sur une session
+     * (machine prise, capacité dépassée) annule l'ensemble et rend la main avec
+     * un état propre (pas de moitié de panier committée, pas de doublon en cas
+     * de reconfirmation).
      *
-     * Cela évite l'écueil du lot partiellement créé : sans cette atomicité, un
-     * échec sur la 2e machine laissait la 1re committée, et reconfirmer le panier
-     * recréait des doublons. Ici, l'échec rend la main avec un état propre.
-     *
-     * @param list<array{projet: Projet, machine: Machine, type: ReservationType, debut: \DateTimeImmutable, nbPersonnes: int, duree: int|null}> $sessions
-     * @return list<Reservation>
+     * @param list<array{projet: Projet, type: ReservationType, debut: \DateTimeImmutable, nbPersonnes: int, duree: int, machines: list<Machine>}> $lots
+     * @return list<SessionReservation>
      * @throws ReservationImpossibleException
      */
-    public function creerSessionsLot(array $sessions): array
+    public function creerSessionsLot(array $lots): array
     {
         $this->em->getConnection()->beginTransaction();
         try {
             $creees = [];
-            foreach ($sessions as $s) {
+            foreach ($lots as $lot) {
                 $creees[] = $this->persisterSessionVerrouillee(
-                    $s['projet'], $s['machine'], $s['type'], $s['debut'], $s['nbPersonnes'], $s['duree']
+                    $lot['projet'], $lot['type'], $lot['debut'],
+                    $lot['nbPersonnes'], $lot['duree'], $lot['machines']
                 );
             }
             $this->em->flush();
@@ -100,186 +110,198 @@ class ReservationService
     }
 
     /**
-     * Cœur d'une création de session, SANS gestion de transaction (l'appelant
-     * ouvre et valide la transaction). Applique le verrou pessimiste, vérifie la
-     * disponibilité machine et la capacité, persiste la réservation. Ne flushe
-     * pas : l'appelant flushe une fois pour tout le lot.
+     * Cœur de la création d'une session, SANS gestion de transaction (l'appelant
+     * ouvre et valide la transaction, et flushe une fois pour tout le lot).
+     * Applique les règles, verrouille chaque machine, vérifie disponibilité et
+     * capacité, puis persiste la session et ses occupations.
      *
+     * @param list<Machine> $machines
      * @throws ReservationImpossibleException
      */
     private function persisterSessionVerrouillee(
         Projet $projet,
-        Machine $machine,
         ReservationType $type,
         \DateTimeImmutable $debut,
         int $nbPersonnes,
-        ?int $dureeMinutes,
-    ): Reservation {
+        int $dureeMinutes,
+        array $machines,
+    ): SessionReservation {
+        if ([] === $machines) {
+            throw new ReservationImpossibleException(
+                'Une session doit comporter au moins une machine.'
+            );
+        }
+
         // Règle 0 : on ne réserve que sur un projet validé ou en cours (BF_3.3).
-        // Portée dans le service (pas seulement le contrôleur) : la règle métier
-        // tient quel que soit le point d'entrée. Défense en profondeur conforme
-        // à la doctrine « le métier vit dans les services ».
+        // Portée dans le service (pas seulement le contrôleur) : la règle tient
+        // quel que soit le point d'entrée. Défense en profondeur conforme à la
+        // doctrine « le métier vit dans les services ».
         if (!\in_array($projet->getStatut(), [ProjetStatut::Valide, ProjetStatut::EnCours], true)) {
             throw new ReservationImpossibleException(
                 'Ce projet doit être validé avant de pouvoir réserver un créneau.'
             );
         }
 
-        // Règle 1 : machine réservable (ni maintenance ni hors service).
-        if (!$machine->estReservable()) {
-            throw new ReservationImpossibleException(
-                sprintf('La machine « %s » est %s et ne peut pas être réservée.',
-                    $machine->getNom(),
-                    $machine->getEtat()->libelle()
-                )
-            );
-        }
-
-        // Règle 2 : quota de sessions de réalisation par projet. On exclut
-        // Annulee ET Reportee : un créneau abandonné ne consomme pas de session.
-        // Le filtre porte sur la collection du projet, qui inclut déjà les
-        // réservations ajoutées plus tôt dans le même lot (addReservation les y
-        // rattache avant flush), donc le quota est respecté à l'échelle du lot.
-        if ($type === ReservationType::Realisation) {
-            $nbRealisations = $projet->getReservations()->filter(
-                fn (Reservation $r) => $r->getType() === ReservationType::Realisation
-                    && $r->getStatut() !== ReservationStatut::Annulee
-                    && $r->getStatut() !== ReservationStatut::Reportee
+        // Règle 1 : quota de sessions de RÉALISATION par projet. La préparation
+        // n'est pas plafonnée (RETEX : aucun système observé ne plafonne un
+        // sous-type d'accompagnement ; le quota du benchmark vise les sessions
+        // de fabrication). On exclut Annulee ET Reportee : une session
+        // abandonnée ne consomme pas de quota. Le comptage porte sur les
+        // sessions déjà rattachées au projet (les sessions du même lot le sont
+        // par addSession avant flush), donc le quota est respecté à l'échelle
+        // du lot.
+        if (ReservationType::Realisation === $type) {
+            $nbRealisations = $projet->getSessions()->filter(
+                static fn (SessionReservation $s): bool => ReservationType::Realisation === $s->getType()
+                    && ReservationStatut::Annulee !== $s->getStatut()
+                    && ReservationStatut::Reportee !== $s->getStatut()
             )->count();
 
-            if ($nbRealisations >= Projet::MAX_SESSIONS_REALISATION) {
+            if ($nbRealisations >= SessionReservation::MAX_SESSIONS_REALISATION) {
                 throw new ReservationImpossibleException(sprintf(
                     'Ce projet a déjà atteint le maximum de %d sessions de réalisation.',
-                    Projet::MAX_SESSIONS_REALISATION
+                    SessionReservation::MAX_SESSIONS_REALISATION
                 ));
             }
         }
 
-        // Durée : celle choisie pour la session (créneau à durée variable), ou
-        // à défaut la durée propre à la machine (compatibilité ascendante).
-        $duree = $dureeMinutes ?? $machine->getDureeCreneauMinutes();
-        $fin = $debut->modify(sprintf('+%d minutes', $duree));
+        $fin = $debut->modify(sprintf('+%d minutes', $dureeMinutes));
 
-        // Verrou de sérialisation : on verrouille la MACHINE (ligne qui existe
-        // toujours) avant de lire la capacité. Sans cela, deux réservations
-        // simultanées sur un créneau VIDE liraient toutes deux une somme de 0
-        // (le FOR UPDATE sur un agrégat sans ligne ne verrouille rien) et
-        // dépasseraient la capacité. En verrouillant la machine, les
-        // transactions concurrentes sur ce créneau sont mises en file et
-        // évaluent la capacité l'une après l'autre.
-        $this->em->lock($machine, LockMode::PESSIMISTIC_WRITE);
+        // Règle 2 : chaque machine doit être réservable et libre sur le créneau.
+        // On verrouille la MACHINE (ligne stable) avant de lire sa disponibilité
+        // et la capacité du créneau : sans cela, deux sessions concurrentes sur
+        // un créneau vide liraient toutes deux une somme de 0 et dépasseraient
+        // la capacité. Le verrou sérialise les écritures par machine.
+        foreach ($machines as $machine) {
+            if (!$machine->estReservable()) {
+                throw new ReservationImpossibleException(
+                    sprintf('La machine « %s » est %s et ne peut pas être réservée.',
+                        $machine->getNom(),
+                        $machine->getEtat()->libelle()
+                    )
+                );
+            }
 
-        // Règle 3 : machine pas déjà occupée sur ce créneau.
-        if ($this->reservations->machineOccupeeSurCreneau($machine, $debut, $fin)) {
-            throw new ReservationImpossibleException(
-                sprintf('La machine « %s » est déjà réservée sur ce créneau.', $machine->getNom())
-            );
+            $this->em->lock($machine, LockMode::PESSIMISTIC_WRITE);
+
+            if ($this->occupations->machineOccupeeSurCreneau($machine, $debut, $fin)) {
+                throw new ReservationImpossibleException(
+                    sprintf('La machine « %s » est déjà réservée sur ce créneau.', $machine->getNom())
+                );
+            }
         }
 
-        // Règle 4 : capacité 15 personnes (BF_3.9), lecture VERROUILLÉE.
-        $dejaPresents = $this->reservations->sommePersonnesSurCreneau($debut, $fin, verrouiller: true);
-        if ($dejaPresents + $nbPersonnes > Reservation::CAPACITE_MAX_FABLAB) {
-            $restant = max(0, Reservation::CAPACITE_MAX_FABLAB - $dejaPresents);
+        // Règle 3 : capacité 15 personnes sur le créneau (BF_3.9), lecture
+        // VERROUILLÉE. L'effectif de la session est compté une seule fois, quel
+        // que soit le nombre de machines (le même groupe utilise plusieurs
+        // machines en parallèle, il n'occupe pas N fois la capacité).
+        $dejaPresents = $this->sessions->sommePersonnesSurCreneau($debut, $fin, verrouiller: true);
+        if ($dejaPresents + $nbPersonnes > SessionReservation::CAPACITE_MAX_FABLAB) {
+            $restant = max(0, SessionReservation::CAPACITE_MAX_FABLAB - $dejaPresents);
             throw new ReservationImpossibleException(sprintf(
                 'Capacité dépassée : %d place(s) restante(s) sur ce créneau (max %d).',
                 $restant,
-                Reservation::CAPACITE_MAX_FABLAB
+                SessionReservation::CAPACITE_MAX_FABLAB
             ));
         }
 
-        $reservation = (new Reservation())
-            ->setMachine($machine)
+        $session = (new SessionReservation())
             ->setType($type)
-            ->definirCreneau($debut, $duree)
-            ->setNbPersonnesPrevues($nbPersonnes)
+            ->definirCreneau($debut, $dureeMinutes)
+            ->setNbPersonnes($nbPersonnes)
             ->setStatut(ReservationStatut::Planifiee);
 
-        // addReservation synchronise le côté inverse (collection du projet) et
-        // pose le projet sur la réservation. Indispensable pour que la règle de
-        // quota voie les sessions déjà ajoutées dans le même lot, avant flush.
-        $projet->addReservation($reservation);
+        // Rattache la session au projet (synchronise la collection, pose le
+        // projet) pour que la règle de quota voie les sessions du même lot.
+        $projet->addSession($session);
 
-        $this->em->persist($reservation);
+        foreach ($machines as $machine) {
+            $occupation = (new Reservation())->setMachine($machine);
+            $session->addOccupation($occupation);
+            $this->em->persist($occupation);
+        }
 
-        return $reservation;
+        $this->em->persist($session);
+
+        return $session;
     }
 
     /**
      * Reporte une session vers une nouvelle date (BF_3.12).
      *
-     * Le report = marquer l'ancien créneau « reporté » + créer un nouveau créneau
-     * (même machine, même type, même effectif) à la nouvelle date. La création
-     * passe par creerSession, donc toutes les règles (capacité, machine libre,
-     * quota) s'appliquent à la nouvelle date. Si la création échoue, l'ancien
-     * créneau reste intact (on ne le marque reporté qu'après succès).
+     * Report = marquer l'ancienne session « reportée » puis en créer une
+     * nouvelle (mêmes machines, même type, même effectif, même durée) à la
+     * nouvelle date. La création passe par creerSession, donc toutes les règles
+     * (capacité, machines libres, quota) s'appliquent à la nouvelle date. Si la
+     * création échoue, l'ancienne session est rétablie intacte.
      *
-     * Renvoie le nouveau créneau. Le second retour (via le booléen) indique si
-     * le report est tardif (< 3 jours), à traiter en sanction par l'appelant.
+     * Le report agit sur la session ENTIÈRE (toutes ses machines ensemble),
+     * conformément au RETEX : ce qui est réservé sous une confirmation unique
+     * se déplace en bloc, jamais par fraction.
      *
-     * @return array{0: Reservation, 1: bool} [nouveau créneau, report tardif]
+     * @return array{0: SessionReservation, 1: bool} [nouvelle session, report tardif]
      * @throws ReservationImpossibleException
      */
-    public function reporter(Reservation $reservation, \DateTimeImmutable $nouvelleDate): array
+    public function reporter(SessionReservation $session, \DateTimeImmutable $nouvelleDate): array
     {
-        // Garde d'état : seule une réservation planifiée peut être reportée.
-        // Même raison que pour l'annulation : éviter d'agir deux fois sur un
-        // créneau déjà clos (annulé, effectué) ou déjà reporté.
-        if (ReservationStatut::Planifiee !== $reservation->getStatut()) {
+        if (ReservationStatut::Planifiee !== $session->getStatut()) {
             throw new ReservationImpossibleException(
-                'Cette réservation ne peut pas être reportée (elle est déjà '.$reservation->getStatut()->value.').'
+                'Cette réservation ne peut pas être reportée (elle est déjà '.$session->getStatut()->value.').'
             );
         }
 
-        // Le retard se calcule sur l'ANCIENNE date (celle qu'on abandonne tardivement).
-        $delai = $reservation->getDateDebut()->diff(new \DateTimeImmutable());
+        // Le retard se calcule sur l'ANCIENNE date (celle qu'on abandonne).
+        $delai = $session->getDateDebut()->diff(new \DateTimeImmutable());
         $reportTardif = !$delai->invert && $delai->days < 3;
 
-        // On marque l'ancien créneau « reporté » AVANT de créer le nouveau, pour
-        // qu'il ne soit pas compté dans le quota de réalisations pendant la
-        // création. En cas d'échec, on restaure son statut (rien ne change).
-        $statutInitial = $reservation->getStatut();
-        $reservation->setStatut(ReservationStatut::Reportee);
+        // On marque l'ancienne session « reportée » AVANT de créer la nouvelle,
+        // pour qu'elle ne compte pas dans le quota pendant la création. En cas
+        // d'échec, on restaure son statut.
+        $statutInitial = $session->getStatut();
+        $session->setStatut(ReservationStatut::Reportee);
         $this->em->flush();
 
         try {
-            $nouveau = $this->creerSession(
-                $reservation->getProjet(),
-                $reservation->getMachine(),
-                $reservation->getType(),
+            $nouvelle = $this->creerSession(
+                $session->getProjet(),
+                $session->getType(),
                 $nouvelleDate,
-                $reservation->getNbPersonnesPrevues(),
+                $session->getNbPersonnes(),
+                $session->getDureeMinutes(),
+                $session->getMachines(),
             );
         } catch (\Throwable $e) {
-            // Échec : on rétablit l'ancien créneau tel qu'il était.
-            $reservation->setStatut($statutInitial);
+            $session->setStatut($statutInitial);
             $this->em->flush();
             throw $e;
         }
 
-        return [$nouveau, $reportTardif];
+        return [$nouvelle, $reportTardif];
     }
 
     /**
-     * Annule une session. Renvoie true si l'annulation est tardive (< 3 jours),
-     * à traiter en sanction par l'appelant (BF_6.2).
+     * Annule une session entière (toutes ses machines). Renvoie true si
+     * l'annulation est tardive (< 3 jours), à traiter en sanction par
+     * l'appelant (BF_6.2).
+     *
+     * @throws ReservationImpossibleException
      */
-    public function annuler(Reservation $reservation): bool
+    public function annuler(SessionReservation $session): bool
     {
-        // Garde d'état : seule une réservation planifiée peut être annulée.
-        // Sans cette vérification, annuler une réservation déjà annulée (double
-        // clic, requête rejouée) repasserait par le calcul de délai et pourrait
-        // infliger une seconde sanction pour le même créneau. On agit donc une
-        // seule fois, depuis le seul état où l'annulation a un sens.
-        if (ReservationStatut::Planifiee !== $reservation->getStatut()) {
+        // Garde d'état : seule une session planifiée peut être annulée. Sans
+        // cela, annuler une session déjà annulée (double clic, requête rejouée)
+        // repasserait par le calcul de délai et pourrait infliger une seconde
+        // sanction pour le même créneau. On agit une seule fois.
+        if (ReservationStatut::Planifiee !== $session->getStatut()) {
             throw new ReservationImpossibleException(
-                'Cette réservation ne peut pas être annulée (elle est déjà '.$reservation->getStatut()->value.').'
+                'Cette réservation ne peut pas être annulée (elle est déjà '.$session->getStatut()->value.').'
             );
         }
 
-        $reservation->setStatut(ReservationStatut::Annulee);
+        $session->setStatut(ReservationStatut::Annulee);
         $this->em->flush();
 
-        $delai = $reservation->getDateDebut()->diff(new \DateTimeImmutable());
+        $delai = $session->getDateDebut()->diff(new \DateTimeImmutable());
 
         return !$delai->invert && $delai->days < 3; // début dans moins de 3 jours
     }

@@ -48,10 +48,13 @@ Légende : (G) GET, (P) POST, (G/P) les deux sur la même route.
 | `projet_index`, `projet_show` | G | Consulter ses projets |
 | `projet_new` | G/P | Déposer un projet |
 | `projet_resoumettre` | P | Re-soumettre un projet refusé |
-| `reservation_creer` | G | Afficher le wizard de réservation |
-| `reservation_preparation`, `reservation_realisation_ajouter`, `reservation_realisation_retirer`, `reservation_etape`, `reservation_confirmer` | P | Étapes du wizard (chaque action modifie le panier ou crée les réservations) |
-| `reservation_disponibilite` | G | Fragment des créneaux libres (consultation) |
+| `reservation_creer` | G | Afficher la page de réservation (calendrier, créneaux, panier) |
+| `reservation_ajouter`, `reservation_retirer` | P | Ajouter un créneau au panier, en retirer un |
+| `reservation_verifier` | G | Page de vérification avant confirmation |
+| `reservation_confirmer` | P | Confirmer le panier (crée les réservations sous verrou) |
+| `reservation_disponibilite` | G | Fragments AJAX : densités du mois (JSON), créneaux du jour, machines d'un créneau |
 | `reservation_annuler`, `reservation_reporter` | P | Annuler ou reporter un créneau |
+| `reservation_reporter_page` | G | Page de report dédiée (calendrier + créneaux libres) |
 | `plan_telecharger` | G | Télécharger le plan d'un projet |
 | `calendrier_vue` | G | Voir le calendrier |
 | `app_notifications` | G | Lire ses notifications |

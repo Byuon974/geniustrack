@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\Projet;
-use App\Entity\Reservation;
+use App\Entity\SessionReservation;
 use App\Form\DemandeProjetType;
 use App\Repository\ProjetRepository;
 use App\Security\Voter\ProjetVoter;
@@ -108,23 +108,24 @@ class ProjetController extends AbstractController
     #[Route('/reservations/{id}/annuler', name: 'reservation_annuler', methods: ['POST'])]
     public function annulerReservation(
         Request $request,
-        Reservation $reservation,
+        SessionReservation $session,
         ReservationService $reservationService,
         \App\Service\SanctionService $sanctionService,
     ): Response {
-        $projet = $reservation->getProjet();
+        $projet = $session->getProjet();
         $this->denyAccessUnlessGranted(ProjetVoter::EDIT, $projet);
 
-        if ($this->isCsrfTokenValid('annuler'.$reservation->getId(), $request->request->getString('_token'))) {
+        if ($this->isCsrfTokenValid('annuler'.$session->getId(), $request->request->getString('_token'))) {
             try {
-                // BF_3.11 : annulation. Le service signale si une sanction est due,
-                // et refuse d'annuler une réservation qui n'est plus planifiée.
-                $sanctionDue = $reservationService->annuler($reservation);
+                // BF_3.11 : annulation de la session entière (toutes ses machines).
+                // Le service signale si une sanction est due, et refuse d'annuler
+                // une session qui n'est plus planifiée.
+                $sanctionDue = $reservationService->annuler($session);
                 if ($sanctionDue) {
                     // BF_6.2 : applique réellement la sanction (cumul, désactivation à 5).
                     $desactive = $sanctionService->sanctionner(
                         $projet->getEtudiant(),
-                        sprintf('Annulation tardive (réservation #%d)', $reservation->getId()),
+                        sprintf('Annulation tardive (réservation #%d)', $session->getId()),
                     );
                     if ($desactive) {
                         $this->addFlash('error', 'Annulation tardive : seuil de sanctions atteint, votre compte est désactivé.');
@@ -142,17 +143,33 @@ class ProjetController extends AbstractController
         return $this->redirectToRoute('projet_show', ['id' => $projet->getId()]);
     }
 
+    #[Route('/reservations/{id}/reporter', name: 'reservation_reporter_page', methods: ['GET'])]
+    public function pageReportReservation(SessionReservation $session): Response
+    {
+        $projet = $session->getProjet();
+        $this->denyAccessUnlessGranted(ProjetVoter::EDIT, $projet);
+
+        // Page dédiée de report : calendrier + créneaux (anti-vandalisme, aucune
+        // saisie de date libre). La durée du créneau d'origine est verrouillée.
+        return $this->render('reservation/reporter.html.twig', [
+            'session' => $session,
+            'projet' => $projet,
+            'dureeMinutes' => $session->getDureeMinutes(),
+            'jourInitial' => $session->getDateDebut()->format('Y-m-d'),
+        ]);
+    }
+
     #[Route('/reservations/{id}/reporter', name: 'reservation_reporter', methods: ['POST'])]
     public function reporterReservation(
         Request $request,
-        Reservation $reservation,
+        SessionReservation $session,
         ReservationService $reservationService,
         \App\Service\SanctionService $sanctionService,
     ): Response {
-        $projet = $reservation->getProjet();
+        $projet = $session->getProjet();
         $this->denyAccessUnlessGranted(ProjetVoter::EDIT, $projet);
 
-        if ($this->isCsrfTokenValid('reporter'.$reservation->getId(), $request->request->getString('_token'))) {
+        if ($this->isCsrfTokenValid('reporter'.$session->getId(), $request->request->getString('_token'))) {
             $nouvelleDateStr = $request->request->getString('nouvelle_date');
             if ('' === $nouvelleDateStr) {
                 $this->addFlash('error', 'Veuillez indiquer une nouvelle date.');
@@ -161,9 +178,9 @@ class ProjetController extends AbstractController
             }
 
             try {
-                // BF_3.12 : report = ancien créneau « reporté » + nouveau créneau.
+                // BF_3.12 : report = ancienne session « reportée » + nouvelle session.
                 [, $reportTardif] = $reservationService->reporter(
-                    $reservation,
+                    $session,
                     new \DateTimeImmutable($nouvelleDateStr),
                 );
 
@@ -171,7 +188,7 @@ class ProjetController extends AbstractController
                     // BF_6.2 : un report tardif est sanctionné comme une annulation tardive.
                     $desactive = $sanctionService->sanctionner(
                         $projet->getEtudiant(),
-                        sprintf('Report tardif (réservation #%d)', $reservation->getId()),
+                        sprintf('Report tardif (réservation #%d)', $session->getId()),
                     );
                     $this->addFlash('error', $desactive
                         ? 'Report tardif : seuil de sanctions atteint, votre compte est désactivé.'

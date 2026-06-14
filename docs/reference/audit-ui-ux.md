@@ -68,8 +68,9 @@ choisir jour + durée → créneaux du jour (nb de machines libres, matin/après
   sur une proposition serveur, machines en cases à cocher (aucune date au clavier).
 - État porté par un panier sérialisable en session, par projet ; chaque action
   (ajout, retrait, confirmation) est un POST distinct avec son jeton CSRF.
-- Un créneau à N machines produit N réservations (une par machine, même horaire),
-  créées via `ReservationService` à la confirmation (capacité, quota, verrou).
+- Un créneau à plusieurs machines produit une seule session portant une
+  occupation par machine, créée via `ReservationService` à la confirmation
+  (type, capacité, quota, verrou) ; l'effectif et le type sont saisis une fois.
 - **Mobile-first** (DEC-092) : empilement composition puis panier, grille deux
   colonnes au-delà de 860px, barre « Confirmer » sticky dans la zone du pouce,
   cibles tactiles 44-48px.
@@ -79,6 +80,14 @@ choisir jour + durée → créneaux du jour (nb de machines libres, matin/après
 > Le détail métier (règles, invariants, concurrence, principes du wizard maison)
 > vit dans `docs/explications/reservation.md`. Cette section ne garde que le
 > raisonnement UI/UX qui a conduit du stepper à la page unique.
+
+> Précision (DEC-099) : « stepper » désigne ici le tunnel multi-étapes
+> abandonné, à ne pas confondre avec le compteur « moins / plus » réintroduit
+> depuis pour le seul nombre de personnes. L'ergonomie du sélecteur a évolué
+> (calendrier mensuel inline à pastilles de densité, créneaux en liste, trois
+> colonnes sans défilement de page, page de report dédiée), mais le choix de
+> fond reste la page unique : la refonte porte sur la présentation et
+> l'interaction, jamais sur le métier.
 
 ### Mécanisme à NE PAS ajouter
 Le wireframe n'en abuse pas, mais par principe : pas de sauvegarde temps réel à

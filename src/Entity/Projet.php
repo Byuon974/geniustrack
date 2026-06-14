@@ -55,9 +55,9 @@ class Projet
     #[ORM\ManyToMany(targetEntity: Machine::class)]
     private Collection $machines;
 
-    /** @var Collection<int, Reservation> */
-    #[ORM\OneToMany(targetEntity: Reservation::class, mappedBy: 'projet', cascade: ['persist', 'remove'])]
-    private Collection $reservations;
+    /** @var Collection<int, SessionReservation> */
+    #[ORM\OneToMany(targetEntity: SessionReservation::class, mappedBy: 'projet', cascade: ['persist', 'remove'])]
+    private Collection $sessions;
 
     /** Plans importés à la soumission (BF_3.7). */
     #[ORM\OneToMany(targetEntity: PlanProjet::class, mappedBy: 'projet', cascade: ['persist', 'remove'])]
@@ -69,7 +69,7 @@ class Projet
     public function __construct()
     {
         $this->machines = new ArrayCollection();
-        $this->reservations = new ArrayCollection();
+        $this->sessions = new ArrayCollection();
         $this->plans = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
     }
@@ -203,26 +203,33 @@ class Projet
         return $this;
     }
 
-    /** @return Collection<int, Reservation> */
-    public function getReservations(): Collection
+    /** @return Collection<int, SessionReservation> */
+    public function getSessions(): Collection
     {
-        return $this->reservations;
+        return $this->sessions;
+    }
+
+    public function addSession(SessionReservation $session): self
+    {
+        if (!$this->sessions->contains($session)) {
+            $this->sessions->add($session);
+            $session->setProjet($this);
+        }
+
+        return $this;
+    }
+
+    public function removeSession(SessionReservation $session): self
+    {
+        $this->sessions->removeElement($session);
+
+        return $this;
     }
 
     /** @return Collection<int, PlanProjet> */
     public function getPlans(): Collection
     {
         return $this->plans;
-    }
-
-    public function addReservation(Reservation $reservation): self
-    {
-        if (!$this->reservations->contains($reservation)) {
-            $this->reservations->add($reservation);
-            $reservation->setProjet($this);
-        }
-
-        return $this;
     }
 
     public function getCreatedAt(): \DateTimeImmutable

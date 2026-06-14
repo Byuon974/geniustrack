@@ -1,5 +1,7 @@
 # Conception : finaliser le wizard de réservation pour le test (Jean Dupont)
 
+> Note d'aboutissement (DEC-099) : ce document de travail décrit l'état du parcours au moment de sa finalisation fonctionnelle. L'ergonomie a depuis été refondue (calendrier mensuel inline à pastilles de densité en remplacement de la liste déroulante de jours, créneaux en liste de style agenda, disposition trois colonnes sans défilement de page, compteur de personnes, page de report dédiée réutilisant le sélecteur). Le métier décrit ci-dessous reste exact et inchangé ; seules la présentation et l'interaction ont évolué. Voir DEC-099 au journal des décisions et `docs/explications/calendrier-disponibilite.md`.
+
 Document de travail fusionnant `conception-dashboard.md` et `TRAVAIL-RESTANT.md`, recentré sur un objectif unique : **rendre le wizard de réservation fonctionnel pour un jeu d'essai avec le compte étudiant Jean Dupont**. Établi après audit du code réel (`ReservationController`, `DisponibiliteController`, `DisponibiliteService`, `wizard.html.twig`, partiels AJAX, `creneau_picker_controller.js`, `ChargerDemoCommand`, `Makefile`).
 
 ## 1. État réel après audit (ce qui est déjà fait)
@@ -38,7 +40,7 @@ L'ancien `TRAVAIL-RESTANT` signalait une durée par défaut de 30 min figée. Da
 4. Les créneaux du jour s'affichent groupés matin / après-midi, avec le nombre de machines libres ; la pause 12 h-13 h est exclue, la fermeture 16 h 30 respectée.
 5. Cliquer un créneau libre → cocher une ou plusieurs machines → Ajouter au panier.
 6. Composer un second créneau (vérifier le plafond `MAX_CRENEAUX`).
-7. Confirmer → redirection vers le projet, flash de succès, sessions créées (une par machine).
+7. Confirmer → redirection vers le projet, flash de succès, session créée (une occupation par machine cochée).
 
 Cas limites à éprouver avec les projets dédiés : projet brouillon → réservation refusée ; « [Test] Créneau saturé » → capacité atteinte gérée proprement ; quota de 4 sessions de réalisation.
 

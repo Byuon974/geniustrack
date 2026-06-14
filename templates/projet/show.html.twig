@@ -6,11 +6,12 @@
     {libelle: projet.titre, url: null}
 ]}) }}{% endblock %}
 {% block body %}
-{# Créneaux planifiés (statut « planifiee ») : base des compteurs de synthèse et
-   de la liste. Calculés une fois ici pour éviter de re-filtrer dans le gabarit. #}
-{% set planifies = projet.reservations|filter(r => r.statut.value == 'planifiee') %}
-{% set nbRealisations = projet.reservations|filter(
-    r => r.type.value == 'realisation' and r.statut.value not in ['annulee', 'reportee']
+{# Sessions planifiées (statut « planifiee ») : base des compteurs de synthèse
+   et de la liste. Calculées une fois ici pour éviter de re-filtrer. Une session
+   est un créneau de groupe (une à plusieurs machines en parallèle). #}
+{% set planifies = projet.sessions|filter(s => s.statut.value == 'planifiee') %}
+{% set nbRealisations = projet.sessions|filter(
+    s => s.type.value == 'realisation' and s.statut.value not in ['annulee', 'reportee']
 )|length %}
 
 <div class="page-header">
@@ -54,6 +55,7 @@
     {# Synthèse : rend visibles des informations métier déjà calculées côté
        serveur mais jamais montrées (quota de sessions, prochaine échéance). #}
     {% set prochaine = planifies|sort((a, b) => a.dateDebut <=> b.dateDebut)|first %}
+    {% set joursCourts = {1: 'lun.', 2: 'mar.', 3: 'mer.', 4: 'jeu.', 5: 'ven.', 6: 'sam.', 7: 'dim.'} %}
     <div class="resa-synthese">
         <div class="resa-stat">
             <span class="resa-stat__label">Créneaux planifiés</span>
@@ -62,18 +64,18 @@
         <div class="resa-stat">
             <span class="resa-stat__label">Prochaine session</span>
             <span class="resa-stat__valeur resa-stat__valeur--date">
-                {{ prochaine.dateDebut|date('d/m') }}
+                {{ joursCourts[prochaine.dateDebut|date('N')] }} {{ prochaine.dateDebut|date('d/m') }}
                 <small>{{ prochaine.dateDebut|date('H\\hi') }}</small>
             </span>
         </div>
         <div class="resa-stat">
             <span class="resa-stat__label">Sessions de réalisation</span>
-            <span class="resa-stat__valeur">{{ nbRealisations }} <small>/ {{ constant('App\\Entity\\Projet::MAX_SESSIONS_REALISATION') }}</small></span>
+            <span class="resa-stat__valeur">{{ nbRealisations }} <small>/ {{ constant('App\\Entity\\SessionReservation::MAX_SESSIONS_REALISATION') }}</small></span>
         </div>
     </div>
 {% endif %}
 
-{% if projet.reservations is not empty %}
+{% if projet.sessions is not empty %}
     <div class="resa-liste-tete">
         <h2 class="section-title">Mes créneaux</h2>
         {% if projet.statut.value in ['valide', 'en_cours'] %}
@@ -82,16 +84,19 @@
     </div>
 
     <div class="resa-cartes">
-        {% for r in projet.reservations %}
-            <div class="resa-carte resa-carte--{{ r.statut.value }}">
+        {% for s in projet.sessions %}
+            <div class="resa-carte resa-carte--{{ s.statut.value }}">
                 <div class="resa-carte__icone" aria-hidden="true">
                     {{ include('components/icon.html.twig', {name: 'wrench'}) }}
                 </div>
                 <div class="resa-carte__corps">
-                    <div class="resa-carte__machine">{{ r.machine.nom }}</div>
+                    <div class="resa-carte__machine">
+                        {{ s.machines|map(m => m.nom)|join(', ') }}
+                        <span class="resa-carte__type">· {{ s.type.libelle }}</span>
+                    </div>
                     <div class="resa-carte__quand">
-                        {{ r.dateDebut|date('d/m/Y') }} · {{ r.dateDebut|date('H\\hi') }} → {{ r.dateFin|date('H\\hi') }}
-                        · {{ r.nbPersonnesPrevues }} pers.
+                        {{ s.dateDebut|date('d/m/Y') }} · {{ s.dateDebut|date('H\\hi') }} → {{ s.dateFin|date('H\\hi') }}
+                        · {{ s.nbPersonnes }} pers.
                     </div>
                 </div>
                 {% set varianteStatut = {
@@ -99,21 +104,17 @@
                     'annulee': 'danger', 'reportee': 'neutre'
                 } %}
                 {{ include('components/badge.html.twig', {
-                    variante: varianteStatut[r.statut.value]|default('neutre'),
-                    label: r.statut.libelle
+                    variante: varianteStatut[s.statut.value]|default('neutre'),
+                    label: s.statut.libelle
                 }) }}
-                {% if r.statut.value == 'planifiee' %}
+                {% if s.statut.value == 'planifiee' %}
                     <div class="resa-carte__actions">
-                        <form method="post" action="{{ path('reservation_reporter', {id: r.id}) }}" class="inline-form report-form">
-                            <input type="hidden" name="_token" value="{{ csrf_token('reporter' ~ r.id) }}">
-                            <input type="datetime-local" name="nouvelle_date" required aria-label="Nouvelle date pour ce créneau">
-                            <button type="submit" class="btn btn--sm">Reporter</button>
-                        </form>
-                        <form method="post" action="{{ path('reservation_annuler', {id: r.id}) }}"
+                        <a href="{{ path('reservation_reporter_page', {id: s.id}) }}" class="btn btn--sm">Reporter</a>
+                        <form method="post" action="{{ path('reservation_annuler', {id: s.id}) }}"
                               data-controller="confirm" data-confirm-message-value="Ce créneau de réservation sera annulé."
                               data-confirm-titre-value="Annuler ce créneau ?" data-confirm-variante-value="danger"
                               data-confirm-libelle-value="Annuler le créneau" class="inline-form">
-                            <input type="hidden" name="_token" value="{{ csrf_token('annuler' ~ r.id) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('annuler' ~ s.id) }}">
                             <button type="submit" class="btn btn--sm btn--danger">Annuler</button>
                         </form>
                     </div>

@@ -19,6 +19,7 @@
                 <div class="resa-revue__quand">
                     {{ include('components/icon.html.twig', {name: 'calendar'}) }}
                     {{ c.debut|date('d/m/Y') }} · {{ c.debut|date('H\\hi') }} → {{ debut|date_modify('+' ~ c.duree ~ ' minutes')|date('H\\hi') }}
+                    <span class="resa-revue__type">· {{ c.type == 'preparation' ? 'RDV de préparation' : 'Réalisation' }}</span>
                 </div>
                 <div class="resa-revue__machines">
                     {{ include('components/icon.html.twig', {name: 'wrench'}) }}

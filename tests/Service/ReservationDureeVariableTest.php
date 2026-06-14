@@ -7,6 +7,7 @@ namespace App\Tests\Service;
 use App\Entity\Machine;
 use App\Entity\Projet;
 use App\Entity\Reservation;
+use App\Entity\SessionReservation;
 use App\Enum\MachineEtat;
 use App\Enum\ProjetStatut;
 use App\Enum\ProjetType;
@@ -16,13 +17,11 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
- * Prouve le comportement du parcours de réservation refondu (DEC-090) :
- * durée de session variable propagée de bout en bout, et réservation de
- * plusieurs machines sur un même créneau (une réservation par machine).
+ * Prouve le comportement du parcours de réservation sur le modèle « session » :
+ * durée de session variable portée par la session, et plusieurs machines sur un
+ * même créneau réunies dans UNE session (une occupation par machine).
  *
- * Ces tests transforment en preuve exécutable les réserves « à confirmer à
- * l'écran » du parcours multi-machines. Tournent sur SQLite en mémoire
- * (.env.test), schéma créé à la volée comme les autres tests de service.
+ * Tournent sur SQLite en mémoire (.env.test), schéma créé à la volée.
  */
 class ReservationDureeVariableTest extends KernelTestCase
 {
@@ -62,9 +61,6 @@ class ReservationDureeVariableTest extends KernelTestCase
 
     private function creerMachine(string $nom): Machine
     {
-        // Durée propre à la machine volontairement différente des durées de
-        // session testées, pour prouver que c'est bien la durée de SESSION qui
-        // est retenue, pas celle de la machine.
         $machine = (new Machine())
             ->setNom($nom)
             ->setType('impression_3d')
@@ -77,9 +73,8 @@ class ReservationDureeVariableTest extends KernelTestCase
     }
 
     /**
-     * La durée choisie pour la session (90 min) est portée par la réservation,
-     * et non la durée par défaut de la machine (30 min). La date de fin reflète
-     * la durée de session.
+     * La durée choisie pour la session (90 min) est portée par la session, et
+     * la date de fin en découle.
      */
     public function testDureeDeSessionEstPropagee(): void
     {
@@ -87,35 +82,18 @@ class ReservationDureeVariableTest extends KernelTestCase
         $machine = $this->creerMachine('Imprimante A');
         $debut = new \DateTimeImmutable('+2 days 10:00');
 
-        $reservation = $this->service->creerSession(
-            $projet, $machine, ReservationType::Realisation, $debut, 2, dureeMinutes: 90
+        $session = $this->service->creerSession(
+            $projet, ReservationType::Realisation, $debut, 2, 90, [$machine]
         );
 
-        self::assertSame(90, $reservation->getDureeMinutes());
-        self::assertEquals($debut->modify('+90 minutes'), $reservation->getDateFin());
+        self::assertSame(90, $session->getDureeMinutes());
+        self::assertEquals($debut->modify('+90 minutes'), $session->getDateFin());
     }
 
     /**
-     * Sans durée de session explicite, on retombe sur la durée propre à la
-     * machine (compatibilité ascendante voulue par le service).
-     */
-    public function testDureeParDefautRetombeSurLaMachine(): void
-    {
-        $projet = $this->creerProjetValide();
-        $machine = $this->creerMachine('Imprimante B'); // 30 min
-        $debut = new \DateTimeImmutable('+2 days 10:00');
-
-        $reservation = $this->service->creerSession(
-            $projet, $machine, ReservationType::Realisation, $debut, 1
-        );
-
-        self::assertSame(30, $reservation->getDureeMinutes());
-    }
-
-    /**
-     * Plusieurs machines cochées sur un même créneau : autant de réservations
-     * distinctes, même début, même durée. C'est le cœur du parcours
-     * multi-machines (le service est appelé une fois par machine cochée).
+     * Plusieurs machines sur un même créneau : UNE session, autant d'occupations
+     * que de machines, même début, même durée, effectif compté une fois. C'est
+     * le cœur du parcours multi-machines.
      */
     public function testReservationMultiMachinesSurUnMemeCreneau(): void
     {
@@ -125,32 +103,30 @@ class ReservationDureeVariableTest extends KernelTestCase
         $m3 = $this->creerMachine('Imprimante 3D');
         $debut = new \DateTimeImmutable('+3 days 14:00');
 
-        $r1 = $this->service->creerSession($projet, $m1, ReservationType::Realisation, $debut, 1, dureeMinutes: 60);
-        $r2 = $this->service->creerSession($projet, $m2, ReservationType::Realisation, $debut, 1, dureeMinutes: 60);
-        $r3 = $this->service->creerSession($projet, $m3, ReservationType::Realisation, $debut, 1, dureeMinutes: 60);
+        $session = $this->service->creerSession(
+            $projet, ReservationType::Realisation, $debut, 1, 60, [$m1, $m2, $m3]
+        );
 
-        // Trois réservations bien distinctes.
-        self::assertNotSame($r1->getId(), $r2->getId());
-        self::assertNotSame($r2->getId(), $r3->getId());
+        // Une session, trois occupations distinctes, mêmes créneau et durée.
+        self::assertCount(3, $session->getOccupations());
+        self::assertEquals($debut, $session->getDateDebut());
+        self::assertSame(60, $session->getDureeMinutes());
 
-        // Toutes au même créneau, même durée, machines différentes.
-        foreach ([$r1, $r2, $r3] as $r) {
-            self::assertEquals($debut, $r->getDateDebut());
-            self::assertSame(60, $r->getDureeMinutes());
-        }
-        self::assertSame($m1->getId(), $r1->getMachine()->getId());
-        self::assertSame($m2->getId(), $r2->getMachine()->getId());
-        self::assertSame($m3->getId(), $r3->getMachine()->getId());
+        // Les trois machines sont bien celles cochées.
+        $ids = array_map(static fn (Machine $m) => $m->getId(), $session->getMachines());
+        sort($ids);
+        $attendus = [$m1->getId(), $m2->getId(), $m3->getId()];
+        sort($attendus);
+        self::assertSame($attendus, $ids);
 
-        // Au total, trois réservations persistées sur ce créneau.
+        // Trois occupations persistées au total.
         $compte = $this->em->getRepository(Reservation::class)->count([]);
         self::assertSame(3, $compte);
     }
 
     /**
      * Une même machine ne peut pas être réservée deux fois sur un créneau qui
-     * se chevauche : la seconde tentative est refusée. Garde-fou du
-     * multi-machines (on ne coche pas deux fois la même machine).
+     * se chevauche : la seconde session est refusée.
      */
     public function testMemeMachineDeuxFoisSurCreneauChevauchantRefusee(): void
     {
@@ -158,13 +134,13 @@ class ReservationDureeVariableTest extends KernelTestCase
         $machine = $this->creerMachine('Découpe laser');
         $debut = new \DateTimeImmutable('+3 days 14:00');
 
-        $this->service->creerSession($projet, $machine, ReservationType::Realisation, $debut, 1, dureeMinutes: 120);
+        $this->service->creerSession($projet, ReservationType::Realisation, $debut, 1, 120, [$machine]);
 
         $this->expectException(\App\Service\Exception\ReservationImpossibleException::class);
         // Chevauche le créneau précédent (commence 60 min après, dure 120).
         $this->service->creerSession(
-            $projet, $machine, ReservationType::Realisation,
-            $debut->modify('+60 minutes'), 1, dureeMinutes: 120
+            $projet, ReservationType::Realisation,
+            $debut->modify('+60 minutes'), 1, 120, [$machine]
         );
     }
 }

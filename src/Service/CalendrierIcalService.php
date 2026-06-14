@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Entity\Reservation;
+use App\Entity\SessionReservation;
 
 /**
  * Génère un flux iCal (.ics) du planning FabLab (BF_3.1).
  *
  * Format iCalendar (RFC 5545) produit à la main : un VCALENDAR contenant un
- * VEVENT par réservation. Zéro dépendance : le format est un texte simple et
- * stable, cohérent avec la ligne du projet (pas de bundle pour ce besoin).
+ * VEVENT par session de réservation. Zéro dépendance : le format est un texte
+ * simple et stable, cohérent avec la ligne du projet (pas de bundle pour ce
+ * besoin).
  *
  * « Synchroniser » = exposer ce flux à une URL ; Google/Outlook/Apple Calendar
  * s'y abonnent et le re-récupèrent périodiquement. Le calendrier externe reste
@@ -22,11 +23,11 @@ class CalendrierIcalService
     private const PRODID = '-//GeniusLab//Planning FabLab//FR';
 
     /**
-     * Construit le flux iCal complet pour un ensemble de réservations.
+     * Construit le flux iCal complet pour un ensemble de sessions.
      *
-     * @param Reservation[] $reservations
+     * @param SessionReservation[] $sessions
      */
-    public function genererFlux(array $reservations): string
+    public function genererFlux(array $sessions): string
     {
         $lignes = [
             'BEGIN:VCALENDAR',
@@ -38,8 +39,8 @@ class CalendrierIcalService
             'X-WR-TIMEZONE:Indian/Reunion', // La Réunion (UTC+4)
         ];
 
-        foreach ($reservations as $reservation) {
-            $lignes = array_merge($lignes, $this->evenement($reservation));
+        foreach ($sessions as $session) {
+            $lignes = array_merge($lignes, $this->evenement($session));
         }
 
         $lignes[] = 'END:VCALENDAR';
@@ -49,28 +50,30 @@ class CalendrierIcalService
     }
 
     /**
-     * Un VEVENT pour une réservation.
+     * Un VEVENT pour une session de réservation. Une session pouvant porter
+     * plusieurs machines, le résumé les liste toutes.
      *
      * @return string[]
      */
-    private function evenement(Reservation $reservation): array
+    private function evenement(SessionReservation $session): array
     {
-        $projet = $reservation->getProjet();
-        $machine = $reservation->getMachine();
+        $projet = $session->getProjet();
+        $noms = array_map(static fn ($m) => $m->getNom(), $session->getMachines());
+        $machinesLibelle = [] === $noms ? 'Machines' : implode(', ', $noms);
 
-        $resume = sprintf('%s : %s', $machine->getNom(), $reservation->getType()->libelle());
+        $resume = sprintf('%s : %s', $machinesLibelle, $session->getType()->libelle());
         $description = sprintf(
             'Projet : %s (%d personne(s))',
             $projet->getTitre(),
-            $reservation->getNbPersonnesPrevues(),
+            $session->getNbPersonnes(),
         );
 
         return [
             'BEGIN:VEVENT',
-            'UID:reservation-'.$reservation->getId().'@geniuslab.cci.re',
+            'UID:session-'.$session->getId().'@geniuslab.cci.re',
             'DTSTAMP:'.$this->formatUtc(new \DateTimeImmutable()),
-            'DTSTART:'.$this->formatUtc($reservation->getDateDebut()),
-            'DTEND:'.$this->formatUtc($reservation->getDateFin()),
+            'DTSTART:'.$this->formatUtc($session->getDateDebut()),
+            'DTEND:'.$this->formatUtc($session->getDateFin()),
             'SUMMARY:'.$this->echapper($resume),
             'DESCRIPTION:'.$this->echapper($description),
             'LOCATION:'.$this->echapper('GeniusLab : Campus CCI Nord'),

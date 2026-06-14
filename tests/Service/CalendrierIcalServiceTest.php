@@ -7,6 +7,7 @@ namespace App\Tests\Service;
 use App\Entity\Machine;
 use App\Entity\Projet;
 use App\Entity\Reservation;
+use App\Entity\SessionReservation;
 use App\Entity\User;
 use App\Enum\MachineEtat;
 use App\Enum\ProjetType;
@@ -20,25 +21,27 @@ use PHPUnit\Framework\TestCase;
  */
 class CalendrierIcalServiceTest extends TestCase
 {
-    private function reservation(): Reservation
+    private function session(): SessionReservation
     {
         $user = (new User())->setEmail('e@cci.re')->setNom('X')->setPrenom('Y')->setPassword('x');
         $machine = (new Machine())->setNom('Imprimante 3D')->setType('impression_3d')
             ->setDureeCreneauMinutes(60)->setEtat(MachineEtat::Active);
         $projet = (new Projet())->setTitre('Mon projet')->setType(ProjetType::Personnel)->setEtudiant($user);
 
-        return (new Reservation())
-            ->setProjet($projet)
-            ->setMachine($machine)
+        $session = (new SessionReservation())
             ->setType(ReservationType::Realisation)
-            ->setDateDebut(new \DateTimeImmutable('2026-07-01 10:00', new \DateTimeZone('Indian/Reunion')))
-            ->setNbPersonnesPrevues(2)
+            ->definirCreneau(new \DateTimeImmutable('2026-07-01 10:00', new \DateTimeZone('Indian/Reunion')), 60)
+            ->setNbPersonnes(2)
             ->setStatut(ReservationStatut::Planifiee);
+        $projet->addSession($session);
+        $session->addOccupation((new Reservation())->setMachine($machine));
+
+        return $session;
     }
 
     public function testFluxBienForme(): void
     {
-        $flux = (new CalendrierIcalService())->genererFlux([$this->reservation()]);
+        $flux = (new CalendrierIcalService())->genererFlux([$this->session()]);
 
         // Enveloppe VCALENDAR.
         self::assertStringContainsString('BEGIN:VCALENDAR', $flux);

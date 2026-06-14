@@ -8,11 +8,13 @@ Tout passe par `ReservationService` : aucun contrôleur ne crée, ne modifie ou 
 
 ## 1. Modèle mental
 
-Une réservation est un créneau pendant lequel un étudiant occupe une machine pour un projet. Deux types existent (DEC-013) : la préparation (accompagnement, mise au point) et la réalisation (usage machine effectif). Le statut suit un cycle : planifiée, effectuée, annulée, reportée.
+Une réservation est une **session** : un groupe d'étudiants occupe un créneau (un début et une durée) pour y utiliser une ou plusieurs machines en parallèle, dans le cadre d'un projet. Deux types existent (DEC-013) : la préparation (accompagnement, mise au point) et la réalisation (usage machine effectif). Le statut suit un cycle : planifiée, effectuée, annulée, reportée.
+
+Le modèle distingue l'enveloppe de l'occupation (DEC-100). L'entité `SessionReservation` porte ce qui est commun à la visite : le projet, le type, le créneau (début, fin, durée), l'effectif (nombre de personnes), le statut. Chaque machine utilisée est une `Reservation`, simple occupation rattachée à la session, qui ne porte que la machine. L'effectif, le type, le créneau et le statut se lisent sur la session, source unique de vérité : il n'existe pas d'occupation sans session, ni d'effectif dupliqué d'une machine à l'autre.
 
 > Une réservation n'est jamais créée à la main. Elle passe par `ReservationService::creerSession()`, qui applique toutes les règles dans une transaction. Court-circuiter le service, c'est court-circuiter la capacité, le quota et le verrou de concurrence.
 
-La durée d'un créneau n'est pas saisie : elle est dérivée de la machine. `setDateDebut()` calcule `dateFin` en ajoutant la durée de créneau de la machine. La machine doit donc être définie avant la date.
+La durée du créneau n'est pas dérivée de la machine : elle est choisie au moment de réserver (de 30 minutes à 4 heures, en liste fermée) et portée par la session, qui la propage à toutes ses occupations. `definirCreneau()` pose début, fin et durée de façon cohérente sur la session.
 
 ### Ce que le logiciel archive, et ce qu'il n'archive pas
 
@@ -29,28 +31,29 @@ Ordre   Règle                              Effet si violée
 ─────   ──────────────────────────────     ────────────────────────────────
 0       projet validé ou en cours          refus : projet à valider d'abord
                                             (BF_3.3)
-1       machine réservable                 refus : machine en maintenance
-                                            ou hors service (BF_3.8)
-2       quota de réalisations par projet   refus : maximum de sessions atteint
-3       machine active (re-vérifiée         refus, sous verrou
-        sous verrou)
-4       capacité 15 personnes               refus : places restantes affichées
+1       quota de réalisations par projet   refus : maximum de sessions atteint
+        (préparation non plafonnée)        (la préparation ne compte pas)
+2       chaque machine réservable et        refus, sous verrou par machine
+        libre sur le créneau (BF_3.8)
+3       capacité 15 personnes               refus : places restantes affichées
         sur le créneau (BF_3.9)
 ```
 
-La règle 0 garantit qu'on ne réserve que sur un projet approuvé : portée dans le service (et non plus seulement à l'écran), elle tient quel que soit le point d'entrée. La règle 1 est une vérification rapide hors transaction (cas le plus fréquent, inutile de verrouiller pour le rejeter). Les règles 3 et 4 sont rejouées à l'intérieur de la transaction, sous verrou, parce que l'état de la base a pu changer entre la vérification rapide et l'écriture.
+La règle 0 garantit qu'on ne réserve que sur un projet approuvé : portée dans le service (et non plus seulement à l'écran), elle tient quel que soit le point d'entrée. Les machines sont verrouillées une à une (verrou pessimiste), et la capacité du créneau est lue sous verrou, parce que l'état de la base a pu changer entre la vérification rapide et l'écriture.
 
 Les actions d'annulation et de report vérifient d'abord l'état de la réservation : seule une réservation planifiée peut être annulée ou reportée. Cette garde évite d'agir deux fois sur un créneau déjà clos, ce qui, pour l'annulation, pourrait sinon infliger une seconde sanction pour le même créneau.
 
 ### La capacité de 15 personnes (BF_3.9, DEC-010)
 
-La constante `Reservation::CAPACITE_MAX_FABLAB = 15` plafonne le nombre de personnes simultanément présentes sur un créneau. À la création, le service additionne les personnes déjà prévues sur le créneau et le nombre demandé : si la somme dépasse 15, il refuse et indique les places restantes.
+La constante `SessionReservation::CAPACITE_MAX_FABLAB = 15` plafonne le nombre de personnes simultanément présentes sur un créneau. L'effectif étant porté une seule fois par la session (et non par chaque machine), le service additionne les personnes des sessions qui chevauchent le créneau et le nombre demandé : si la somme dépasse 15, il refuse et indique les places restantes. Une session à trois machines pour sept personnes consomme sept places, pas vingt et une.
 
-### Le quota de sessions de réalisation (DEC-011)
+### Le quota de sessions de réalisation (DEC-011, DEC-100)
 
-Un projet est limité à `Projet::MAX_SESSIONS_REALISATION` sessions de réalisation. Le comptage exclut les réservations annulées et reportées :
+Un projet est limité à `SessionReservation::MAX_SESSIONS_REALISATION` sessions de réalisation. Le comptage ne retient que les sessions de type réalisation, et exclut les annulées et reportées :
 
 > Un créneau abandonné (annulé ou reporté) ne consomme pas de session. Sans cette exclusion, reporter une réservation ferait monter le compteur à tort et bloquerait un projet légitime.
+
+La préparation n'est pas plafonnée : le quota du benchmark vise les sessions de fabrication, et aucun système de réservation observé ne plafonne un sous-type d'accompagnement. Le type de chaque session est choisi par l'étudiant au moment de réserver, et il est homogène pour toute la session.
 
 ---
 
@@ -58,9 +61,9 @@ Un projet est limité à `Projet::MAX_SESSIONS_REALISATION` sessions de réalisa
 
 Le pic d'écritures à l'ouverture des créneaux est le moment critique : plusieurs étudiants tentent de réserver le même créneau en même temps. Sans protection, deux réservations concurrentes peuvent franchir ensemble le plafond de 15.
 
-> La transaction verrouille la MACHINE (verrou pessimiste en écriture) avant de lire la capacité du créneau. Deux requêtes concurrentes sur la même machine sont ainsi sérialisées : la seconde attend que la première ait fini, et relit une capacité à jour.
+> La transaction verrouille chaque MACHINE de la session (verrou pessimiste en écriture) avant de lire la capacité du créneau. Deux sessions concurrentes touchant une même machine sont ainsi sérialisées : la seconde attend que la première ait fini, et relit une capacité à jour.
 
-Le choix de verrouiller la machine plutôt que le créneau est délibéré : le créneau n'existe pas encore comme ligne verrouillable au moment de la lecture, alors que la machine est une ligne stable. Verrouiller la machine ferme la fenêtre de concurrence sans table de verrous dédiée.
+Le choix de verrouiller la machine plutôt que le créneau est délibéré : le créneau n'existe pas comme ligne verrouillable au moment de la lecture, alors que la machine est une ligne stable. Verrouiller les machines de la session ferme la fenêtre de concurrence sans table de verrous dédiée.
 
 C'est précisément cette concurrence d'écriture qui a motivé le choix de PostgreSQL plutôt que SQLite (DEC-002) : SQLite n'autorise qu'un seul écrivain à la fois, ce qui transforme le verrou en goulot global.
 
@@ -70,7 +73,7 @@ C'est précisément cette concurrence d'écriture qui a motivé le choix de Post
 
 ### Annulation (BF_3.11)
 
-`annuler()` passe la réservation en statut annulée et renvoie un booléen : l'annulation est tardive si le créneau débute dans moins de trois jours. L'appelant (le contrôleur de projet) traduit ce signal en sanction de l'étudiant.
+`annuler()` passe la session entière (donc toutes ses machines) en statut annulée et renvoie un booléen : l'annulation est tardive si le créneau débute dans moins de trois jours. L'appelant (le contrôleur de projet) traduit ce signal en sanction de l'étudiant.
 
 ```
 Délai avant le créneau     Annulation        Conséquence
@@ -83,7 +86,9 @@ La séparation des responsabilités est nette : le service de réservation déte
 
 ### Report (BF_3.12)
 
-`reporter()` déplace une réservation à une nouvelle date. Comme l'annulation, il signale si le report est tardif (moins de trois jours), à traiter en sanction par l'appelant. Le créneau d'origine est libéré, ce qui n'augmente pas le quota (le report ne consomme pas de session).
+`reporter()` déplace une session entière à une nouvelle date : l'ancienne session est marquée reportée, une nouvelle est créée à la nouvelle date avec les mêmes machines, le même type, le même effectif et la même durée. Comme l'annulation, il signale si le report est tardif (moins de trois jours), à traiter en sanction par l'appelant. Le créneau d'origine est libéré, ce qui n'augmente pas le quota (le report ne consomme pas de session).
+
+L'annulation comme le report agissent sur la session entière, jamais sur une seule de ses machines : ce qui a été réservé sous une confirmation unique se déplace ou s'annule en bloc. Garder une machine et en lâcher une autre se fait en annulant la session et en en recréant une.
 
 ---
 
@@ -103,7 +108,9 @@ D'abord, l'implémentation sur le mécanisme de formulaires multi-étapes natif 
 
 ### Le parcours retenu
 
-Sur une seule page : choisir un jour et une durée, voir les créneaux du jour avec, pour chacun, le nombre de machines libres (groupés matin et après-midi), cliquer un créneau, cocher une ou plusieurs machines à utiliser en parallèle, indiquer le nombre de personnes, ajouter au panier ; répéter au besoin, puis confirmer. Un créneau associé à N machines produit N réservations au même horaire.
+Sur une seule page disposée en trois colonnes de hauteur bornée (modèle Cal.com, Calendly) : à gauche un calendrier mensuel inline dont chaque jour porte une pastille de densité (libre, chargé, complet), au centre les créneaux du jour choisi en liste de style agenda (heure et nombre de machines libres), à droite le panier des créneaux déjà composés. Choisir un jour dans le calendrier charge ses créneaux ; cliquer un créneau fait basculer le panneau de droite vers les machines libres de ce créneau, à cocher, avec un stepper pour le nombre de personnes et le bouton d'ajout. On ajoute au panier, on recommence au besoin, puis on confirme. Un créneau associé à plusieurs machines produit une seule session portant autant d'occupations que de machines : l'effectif et le type sont saisis une fois pour la session.
+
+La page ne défile pas : seules les listes internes (créneaux, machines, panier) défilent dans leur colonne, et le pied du panneau de droite reste ancré en bas pour que cocher une machine ne déplace rien. Sous 880px (mobile), les colonnes s'empilent et la barre d'action sticky garde la confirmation à portée du pouce (DEC-092). Le détail de cette ergonomie (calendrier à densités, créneaux en liste, stepper, disposition sans défilement, page de report jumelle) est consigné en DEC-099 et dans `../explications/calendrier-disponibilite.md`.
 
 ### Ce qui rend ce parcours solide et protégé
 
@@ -113,7 +120,7 @@ Les principes ci-dessous, dégagés pendant la mise au point, garantissent la ro
 
 - **Des actions explicites, une par transition.** L'ajout d'un créneau, son retrait et la confirmation sont des actions distinctes du contrôleur, chacune en POST et porteuse de son propre jeton anti-CSRF. Rien n'est implicite.
 
-- **Une saisie entièrement guidée (anti-vandalisme).** Jour et durée se choisissent dans des listes fermées ; le créneau par un clic sur une proposition valide générée par le serveur ; les machines en cases à cocher. Aucune saisie de date au clavier, aucune durée arbitraire : le contrôleur rejette toute machine inactive, toute durée hors de la liste proposée, tout nombre de personnes hors capacité. Une classe entière d'erreurs et d'abus est éliminée en amont.
+- **Une saisie entièrement guidée (anti-vandalisme).** Le jour se choisit par un clic dans le calendrier (jamais au clavier) ; la durée dans une liste fermée ; le créneau par un clic sur une proposition valide générée par le serveur ; les machines en cases à cocher ; le nombre de personnes par un stepper borné. Le report suit la même règle : une page dédiée réutilise le calendrier et les créneaux, sans aucun champ de date libre. Le contrôleur rejette toute machine inactive, toute durée hors de la liste proposée, tout nombre de personnes hors capacité. Une classe entière d'erreurs et d'abus est éliminée en amont.
 
 - **L'information partagée est anonymisée.** L'aperçu de disponibilité montre l'état d'un créneau (libre, occupé, complet) sans révéler qui a réservé.
 
@@ -125,6 +132,7 @@ La leçon transversale : le parcours est solide quand chaque responsabilité est
 
 ## Points clés à retenir
 
+- Une réservation est une session (projet, type, créneau, effectif, statut) portant une à plusieurs occupations machine : l'effectif et le type sont sur la session, jamais dupliqués par machine.
 - Toute réservation passe par `ReservationService` : court-circuiter le service contourne capacité, quota et verrou.
 - Capacité 15 et machine active sont revérifiées sous verrou : la vérification rapide hors transaction ne suffit pas à garantir l'invariant.
 - Le verrou porte sur la machine, pas sur le créneau : c'est la ligne stable qui sérialise les écritures concurrentes.

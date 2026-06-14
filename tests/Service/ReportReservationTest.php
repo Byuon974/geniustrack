@@ -6,6 +6,7 @@ namespace App\Tests\Service;
 
 use App\Entity\Machine;
 use App\Entity\Projet;
+use App\Entity\SessionReservation;
 use App\Entity\User;
 use App\Enum\MachineEtat;
 use App\Enum\ProjetType;
@@ -53,7 +54,7 @@ class ReportReservationTest extends KernelTestCase
     {
         [$projet, $machine] = $this->fixtures();
         $dans10jours = new \DateTimeImmutable('+10 days 10:00');
-        $original = $this->service->creerSession($projet, $machine, ReservationType::Realisation, $dans10jours, 1);
+        $original = $this->service->creerSession($projet, ReservationType::Realisation, $dans10jours, 1, 60, [$machine]);
 
         $nouvelleDate = new \DateTimeImmutable('+15 days 10:00');
         [$nouveau, $tardif] = $this->service->reporter($original, $nouvelleDate);
@@ -69,10 +70,10 @@ class ReportReservationTest extends KernelTestCase
         [$projet, $machine] = $this->fixtures();
         // 4 réalisations = quota max. On en reporte une : doit rester possible.
         $reservations = [];
-        for ($i = 1; $i <= Projet::MAX_SESSIONS_REALISATION; ++$i) {
+        for ($i = 1; $i <= SessionReservation::MAX_SESSIONS_REALISATION; ++$i) {
             $reservations[] = $this->service->creerSession(
-                $projet, $machine, ReservationType::Realisation,
-                new \DateTimeImmutable("+$i days 10:00"), 1
+                $projet, ReservationType::Realisation,
+                new \DateTimeImmutable("+$i days 10:00"), 1, 60, [$machine]
             );
         }
 
@@ -87,7 +88,7 @@ class ReportReservationTest extends KernelTestCase
     {
         [$projet, $machine] = $this->fixtures();
         $dans2jours = new \DateTimeImmutable('+2 days 10:00');
-        $original = $this->service->creerSession($projet, $machine, ReservationType::Realisation, $dans2jours, 1);
+        $original = $this->service->creerSession($projet, ReservationType::Realisation, $dans2jours, 1, 60, [$machine]);
 
         [, $tardif] = $this->service->reporter($original, new \DateTimeImmutable('+20 days 10:00'));
 

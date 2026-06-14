@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Repository\MouvementStockRepository;
-use App\Repository\ReservationRepository;
+use App\Repository\SessionReservationRepository;
 use App\Service\SupervisionService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -30,7 +30,7 @@ final class SupervisionController extends AbstractController
     #[Route('/supervision/{annee}', name: 'pilotage_supervision', requirements: ['annee' => '\d{4}'], defaults: ['annee' => null], methods: ['GET'])]
     public function index(
         ?int $annee,
-        ReservationRepository $reservations,
+        SessionReservationRepository $reservations,
         MouvementStockRepository $mouvements,
         SupervisionService $supervision,
     ): Response {

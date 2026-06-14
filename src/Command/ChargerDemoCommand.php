@@ -9,6 +9,7 @@ use App\Entity\MouvementStock;
 use App\Entity\Projet;
 use App\Entity\Reservation;
 use App\Entity\Sanction;
+use App\Entity\SessionReservation;
 use App\Entity\User;
 use App\Enum\ProjetStatut;
 use App\Enum\ProjetType;
@@ -185,10 +186,12 @@ class ChargerDemoCommand extends Command
     }
 
     /**
-     * Crée une série dense de réservations FUTURES et planifiées, pour que le
-     * calendrier (qui n'affiche que les réservations à venir et planifiées) soit
-     * bien rempli : deux types (préparation/réalisation), plusieurs machines,
-     * étalées sur les trois prochaines semaines, à des horaires ouvrés.
+     * Peuple le jeu de réservations de démonstration, pensé pour faire ressortir
+     * les scénarios à l'écran : un historique dense et contrasté par machine
+     * (les barres d'utilisation montrent les trois niveaux), des créneaux à venir
+     * variés en type et durée, des créneaux posés aujourd'hui (indicateur du
+     * jour non vide), des sessions multi-machines (un groupe sur plusieurs
+     * machines), et des statuts variés (annulée, reportée).
      */
     private function chargerReservations(SymfonyStyle $io): void
     {
@@ -210,7 +213,7 @@ class ChargerDemoCommand extends Command
         }
 
         // Déjà peuplé ? On ne duplique pas.
-        if ($this->em->getRepository(Reservation::class)->count([]) > 0) {
+        if ($this->em->getRepository(SessionReservation::class)->count([]) > 0) {
             $io->note('Réservations déjà présentes : chargement ignoré.');
 
             return;
@@ -242,18 +245,60 @@ class ChargerDemoCommand extends Command
 
             $debut = (new \DateTimeImmutable(sprintf('+%d days', $jours)))->setTime($heure, $minute);
 
-            // definirCreneau pose début, fin et durée stockée de façon cohérente
-            // (créneau à durée variable, comme le wizard de réservation).
-            $resa = (new Reservation())
-                ->setProjet($projet)
-                ->setMachine($machine)
-                ->setType($type)
-                ->setStatut(ReservationStatut::Planifiee)
-                ->definirCreneau($debut, $duree)
-                ->setNbPersonnesPrevues($nb);
-            $this->em->persist($resa);
+            $this->creerSessionDemo($projet, $machine, $type, ReservationStatut::Planifiee, $debut, $duree, $nb);
             ++$cree;
         }
+
+        // Créneaux AUJOURD'HUI : sans cela, l'indicateur « Créneaux du jour » du
+        // tableau de bord affiche 0. On en pose quelques-uns à des heures encore
+        // à venir dans la journée (sinon ils basculeraient en passé selon l'heure
+        // d'exécution). Le pied de journée (16h, 17h) reste futur en pratique.
+        $aujourdhui = new \DateTimeImmutable('today');
+        $creneauxDuJour = [
+            [10, 0, ReservationType::Realisation, 2, 90],
+            [14, 0, ReservationType::Preparation, 1, 30],
+            [16, 0, ReservationType::Realisation, 3, 60],
+        ];
+        foreach ($creneauxDuJour as $i => [$h, $min, $type, $nb, $duree]) {
+            $projet = $projets[$i % \count($projets)];
+            $machine = $machines[($i + 2) % \count($machines)];
+            $debut = $aujourdhui->setTime($h, $min);
+            $this->creerSessionDemo($projet, $machine, $type, ReservationStatut::Planifiee, $debut, $duree, $nb);
+            ++$cree;
+        }
+
+        // Sessions MULTI-MACHINES : un groupe occupe plusieurs machines en
+        // parallèle sur un même créneau (cœur du modèle session). Machines
+        // distinctes pour éviter toute collision sur le créneau.
+        if (\count($machines) >= 3) {
+            $this->creerSessionMultiDemo(
+                $projets[0], [$machines[0], $machines[1], $machines[2]],
+                ReservationType::Realisation, ReservationStatut::Planifiee,
+                (new \DateTimeImmutable('+6 days'))->setTime(10, 0), 120, 5
+            );
+            ++$cree;
+            $this->creerSessionMultiDemo(
+                $projets[1 % \count($projets)], [$machines[1], $machines[3 % \count($machines)]],
+                ReservationType::Realisation, ReservationStatut::Planifiee,
+                (new \DateTimeImmutable('+11 days'))->setTime(14, 0), 90, 3
+            );
+            ++$cree;
+        }
+
+        // Statuts VARIÉS : une session annulée et une session reportée, pour que
+        // ces états apparaissent dans les listes et le calendrier de démo.
+        $this->creerSessionDemo(
+            $projets[0], $machines[0], ReservationType::Realisation,
+            ReservationStatut::Annulee,
+            (new \DateTimeImmutable('+7 days'))->setTime(11, 0), 60, 2
+        );
+        ++$cree;
+        $this->creerSessionDemo(
+            $projets[1 % \count($projets)], $machines[1 % \count($machines)], ReservationType::Realisation,
+            ReservationStatut::Reportee,
+            (new \DateTimeImmutable('+9 days'))->setTime(13, 0), 90, 2
+        );
+        ++$cree;
 
         // Historique : réservations passées réparties sur les mois écoulés de
         // l'année en cours. Sans cet historique, la supervision (taux machines,
@@ -263,7 +308,7 @@ class ChargerDemoCommand extends Command
         $cree += $this->chargerHistoriqueReservations($projets, $machines);
 
         $this->em->flush();
-        $io->success(sprintf('%d réservation(s) chargée(s) (futures + historique).', $cree));
+        $io->success(sprintf('%d réservation(s) chargée(s) : historique dense, créneaux du jour, sessions multi-machines, statuts variés.', $cree));
     }
 
     /**
@@ -278,46 +323,96 @@ class ChargerDemoCommand extends Command
     private function chargerHistoriqueReservations(array $projets, array $machines): int
     {
         $maintenant = new \DateTimeImmutable('today');
-        $moisCourant = (int) $maintenant->format('n');
         $annee = (int) $maintenant->format('Y');
+        $moisCourant = (int) $maintenant->format('n');
 
         // Durées plausibles (minutes) et heures d'ouverture (8h-16h30, pas 30).
         $durees = [60, 90, 120, 150, 180, 240];
-        $heures = [[8, 30], [9, 0], [10, 30], [13, 0], [14, 0], [15, 30]];
+        $heures = [[8, 30], [9, 0], [10, 30], [11, 30], [13, 0], [14, 0], [15, 0], [15, 30]];
+
+        // Profil d'intensité par machine (poids relatif), pour que les barres
+        // d'utilisation du tableau de bord montrent les trois niveaux : des
+        // machines très sollicitées (forte), d'autres moyennes, d'autres rares
+        // (faible). La clé est le type de machine, robuste au réordonnancement.
+        $poidsParType = [
+            'graveuse_laser' => 10, // la plus demandée
+            'impression_3d' => 8,
+            'resine' => 5,
+            'plotteur' => 4,
+            'flocage' => 2,
+            'iot' => 1,             // la moins demandée
+        ];
+
+        // Construit une roue pondérée : chaque machine apparaît autant de fois
+        // que son poids, ce qui rend le tirage proportionnel à l'intensité voulue.
+        $roue = [];
+        foreach ($machines as $m) {
+            $poids = $poidsParType[$m->getType()] ?? 3;
+            for ($p = 0; $p < $poids; ++$p) {
+                $roue[] = $m;
+            }
+        }
+        if ([] === $roue) {
+            $roue = $machines;
+        }
 
         $cree = 0;
-        // Pour chaque mois déjà écoulé (de janvier au mois courant inclus).
+        $tirage = 0; // curseur déterministe sur la roue (seed reproductible)
+
+        // 1) Historique de fond, réparti sur tous les mois écoulés de l'année.
+        //    Volume croissant vers les mois récents pour une tendance réaliste.
         for ($mois = 1; $mois <= $moisCourant; ++$mois) {
-            // Nombre de réservations du mois : croissant et varié, plafonné.
-            $nbDuMois = 3 + ($mois % 4);
+            $nbDuMois = 30 + $mois * 3; // dense et croissant (ex. janvier 33, juin 48)
 
             for ($k = 0; $k < $nbDuMois; ++$k) {
-                $jour = 2 + (($k * 5 + $mois * 3) % 24);   // jour 2..25, réparti
+                $jour = 1 + (($k * 3 + $mois * 5) % 27); // 1..27, bien réparti
                 [$h, $min] = $heures[($k + $mois) % \count($heures)];
 
-                // Si on est sur le mois courant, ne pas dépasser aujourd'hui.
                 $date = (new \DateTimeImmutable(sprintf('%d-%02d-%02d', $annee, $mois, $jour)))->setTime($h, $min);
                 if ($date >= $maintenant) {
-                    continue;
+                    continue; // jamais dans le futur
                 }
 
-                $machine = $machines[($k + $mois) % \count($machines)];
+                $machine = $roue[$tirage % \count($roue)];
+                ++$tirage;
                 $projet = $projets[($k + $mois) % \count($projets)];
                 $nb = 1 + (($k + $mois) % 5); // 1..5 personnes
 
-                // Une prépa sur trois (30 min imposées), sinon réalisation à durée variable.
-                $estPrepa = (0 === $k % 3);
+                $estPrepa = (0 === $k % 4);
                 $type = $estPrepa ? ReservationType::Preparation : ReservationType::Realisation;
                 $duree = $estPrepa ? 30 : $durees[($k + $mois) % \count($durees)];
 
-                $resa = (new Reservation())
-                    ->setProjet($projet)
-                    ->setMachine($machine)
-                    ->setType($type)
-                    ->setStatut(ReservationStatut::Effectuee)
-                    ->definirCreneau($date, $duree)
-                    ->setNbPersonnesPrevues($nb);
-                $this->em->persist($resa);
+                $this->creerSessionDemo($projet, $machine, $type, ReservationStatut::Effectuee, $date, $duree, $nb);
+                ++$cree;
+            }
+        }
+
+        // 2) Surcouche RÉCENTE : densifie spécifiquement les 30 derniers jours,
+        //    fenêtre exacte des barres « Utilisation des machines » du tableau de
+        //    bord. Sans cela, l'usage récent serait trop dilué pour contraster.
+        for ($j = 1; $j <= 28; ++$j) {
+            $date = $maintenant->modify(sprintf('-%d days', $j));
+            // 0 à 3 réservations par jour, plus nombreuses en semaine.
+            $estWeekend = \in_array((int) $date->format('N'), [6, 7], true);
+            $parJour = $estWeekend ? ($j % 2) : (1 + ($j % 3));
+
+            for ($k = 0; $k < $parJour; ++$k) {
+                [$h, $min] = $heures[($j + $k) % \count($heures)];
+                $quand = $date->setTime($h, $min);
+                if ($quand >= $maintenant) {
+                    continue;
+                }
+
+                $machine = $roue[$tirage % \count($roue)];
+                ++$tirage;
+                $projet = $projets[($j + $k) % \count($projets)];
+                $nb = 1 + (($j + $k) % 4);
+
+                $estPrepa = (0 === ($j + $k) % 5);
+                $type = $estPrepa ? ReservationType::Preparation : ReservationType::Realisation;
+                $duree = $estPrepa ? 30 : $durees[($j + $k) % \count($durees)];
+
+                $this->creerSessionDemo($projet, $machine, $type, ReservationStatut::Effectuee, $quand, $duree, $nb);
                 ++$cree;
             }
         }
@@ -334,6 +429,68 @@ class ChargerDemoCommand extends Command
      * Le créneau est volontairement placé loin des réservations de démo (dans
      * trois semaines, à 8h) pour éviter toute interférence de capacité.
      */
+    /**
+     * Crée une session de démo (une machine) en posant directement les entités,
+     * sans passer par le service (contexte de seed, pas de validation métier).
+     * La session porte le créneau, le type, l'effectif et le statut ; une
+     * occupation rattache la machine.
+     */
+    private function creerSessionDemo(
+        Projet $projet,
+        \App\Entity\Machine $machine,
+        ReservationType $type,
+        ReservationStatut $statut,
+        \DateTimeImmutable $debut,
+        int $dureeMinutes,
+        int $nbPersonnes,
+    ): void {
+        $session = (new SessionReservation())
+            ->setType($type)
+            ->setStatut($statut)
+            ->definirCreneau($debut, $dureeMinutes)
+            ->setNbPersonnes($nbPersonnes);
+        $projet->addSession($session);
+
+        $occupation = (new Reservation())->setMachine($machine);
+        $session->addOccupation($occupation);
+
+        $this->em->persist($session);
+        $this->em->persist($occupation);
+    }
+
+    /**
+     * Crée une session de démo occupant PLUSIEURS machines en parallèle (un
+     * groupe sur un même créneau), avec une occupation par machine. Illustre le
+     * cœur du modèle « session » : l'effectif et le type sont portés une seule
+     * fois, quel que soit le nombre de machines.
+     *
+     * @param list<\App\Entity\Machine> $machines
+     */
+    private function creerSessionMultiDemo(
+        Projet $projet,
+        array $machines,
+        ReservationType $type,
+        ReservationStatut $statut,
+        \DateTimeImmutable $debut,
+        int $dureeMinutes,
+        int $nbPersonnes,
+    ): void {
+        $session = (new SessionReservation())
+            ->setType($type)
+            ->setStatut($statut)
+            ->definirCreneau($debut, $dureeMinutes)
+            ->setNbPersonnes($nbPersonnes);
+        $projet->addSession($session);
+
+        foreach ($machines as $machine) {
+            $occupation = (new Reservation())->setMachine($machine);
+            $session->addOccupation($occupation);
+            $this->em->persist($occupation);
+        }
+
+        $this->em->persist($session);
+    }
+
     private function chargerCreneauSature(SymfonyStyle $io): void
     {
         $projet = $this->projets->findOneBy(['titre' => '[Test] Créneau saturé']);
@@ -353,11 +510,10 @@ class ChargerDemoCommand extends Command
         // est atteinte sans qu'une seule réservation dépasse la limite par ligne.
         $repartition = [8, 7];
 
-        // Idempotence : si une réservation existe déjà sur ce créneau pour ce projet,
+        // Idempotence : si une session existe déjà sur ce créneau pour ce projet,
         // on considère le cas limite déjà chargé.
-        $existante = $this->em->getRepository(Reservation::class)->findOneBy([
+        $existante = $this->em->getRepository(SessionReservation::class)->findOneBy([
             'projet' => $projet,
-            'machine' => $machine,
             'dateDebut' => $debut,
         ]);
         if (null !== $existante) {
@@ -365,14 +521,9 @@ class ChargerDemoCommand extends Command
         }
 
         foreach ($repartition as $nb) {
-            $resa = (new Reservation())
-                ->setProjet($projet)
-                ->setMachine($machine)
-                ->setType(ReservationType::Realisation)
-                ->setStatut(ReservationStatut::Planifiee)
-                ->definirCreneau($debut, 60)
-                ->setNbPersonnesPrevues($nb);
-            $this->em->persist($resa);
+            // Plusieurs sessions sur le MÊME créneau et la même machine cumulent
+            // l'effectif jusqu'à la capacité : chaque session porte son effectif.
+            $this->creerSessionDemo($projet, $machine, ReservationType::Realisation, ReservationStatut::Planifiee, $debut, 60, $nb);
         }
 
         $this->em->flush();

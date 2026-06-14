@@ -7,7 +7,7 @@ namespace App\Controller;
 use App\Dto\PanierReservation;
 use App\Entity\Machine;
 use App\Entity\Projet;
-use App\Entity\Reservation;
+use App\Entity\SessionReservation;
 use App\Enum\ProjetStatut;
 use App\Enum\ReservationType;
 use App\Repository\MachineRepository;
@@ -198,6 +198,7 @@ final class ReservationController extends AbstractController
         $debut = (string) $request->request->get('debut');
         $duree = $request->request->getInt('duree');
         $personnes = $request->request->getInt('personnes', 1);
+        $typeSoumis = (string) $request->request->get('type', ReservationType::Realisation->value);
         /** @var list<int> $machinesSoumises */
         $machinesSoumises = array_map('intval', (array) $request->request->all('machines'));
 
@@ -209,7 +210,13 @@ final class ReservationController extends AbstractController
             return null;
         }
 
-        if ($personnes < 1 || $personnes > Reservation::CAPACITE_MAX_FABLAB) {
+        if ($personnes < 1 || $personnes > SessionReservation::CAPACITE_MAX_FABLAB) {
+            return null;
+        }
+
+        // Type en liste fermée (anti-vandalisme) : préparation ou réalisation.
+        $type = ReservationType::tryFrom($typeSoumis);
+        if (null === $type) {
             return null;
         }
 
@@ -233,6 +240,7 @@ final class ReservationController extends AbstractController
             'debut' => $debutDate->format('Y-m-d\TH:i'),
             'duree' => $duree,
             'personnes' => $personnes,
+            'type' => $type->value,
             'machines' => $machines,
         ];
     }
@@ -253,35 +261,41 @@ final class ReservationController extends AbstractController
      */
     private function creerDepuisPanier(Projet $projet, PanierReservation $panier): void
     {
-        $sessions = [];
+        $lots = [];
         foreach ($panier->creneaux as $creneau) {
             $debut = \DateTimeImmutable::createFromFormat('Y-m-d\TH:i', (string) $creneau['debut']);
             if (false === $debut) {
                 throw new ReservationImpossibleException('Créneau invalide.');
             }
 
-            $premiere = true;
+            $type = ReservationType::tryFrom((string) ($creneau['type'] ?? ReservationType::Realisation->value));
+            if (null === $type) {
+                throw new ReservationImpossibleException('Type de session invalide.');
+            }
+
+            // Les machines du créneau, résolues en entités. L'effectif est porté
+            // UNE fois par la session, plus de ligne à 0 : le service crée une
+            // occupation par machine, toutes rattachées à la même session.
+            $machines = [];
             foreach ($creneau['machines'] as $machineId) {
                 $machine = $this->machines->find((int) $machineId);
                 if (null === $machine) {
                     throw new ReservationImpossibleException('Machine introuvable.');
                 }
-
-                $sessions[] = [
-                    'projet' => $projet,
-                    'machine' => $machine,
-                    'type' => ReservationType::Realisation,
-                    'debut' => $debut,
-                    // Effectif compté une fois par créneau : la 1re machine porte
-                    // l'effectif réel, les suivantes 0 (même groupe, déjà compté).
-                    'nbPersonnes' => $premiere ? (int) $creneau['personnes'] : 0,
-                    'duree' => (int) $creneau['duree'],
-                ];
-                $premiere = false;
+                $machines[] = $machine;
             }
+
+            $lots[] = [
+                'projet' => $projet,
+                'type' => $type,
+                'debut' => $debut,
+                'nbPersonnes' => (int) $creneau['personnes'],
+                'duree' => (int) $creneau['duree'],
+                'machines' => $machines,
+            ];
         }
 
-        $this->reservationService->creerSessionsLot($sessions);
+        $this->reservationService->creerSessionsLot($lots);
 
         try {
             $this->workflow->demarrer($projet);

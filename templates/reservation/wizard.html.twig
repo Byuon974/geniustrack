@@ -12,103 +12,123 @@
 
     {{ include('reservation/_stepper.html.twig', {courante: 1}) }}
 
-    <div class="reservation__corps">
-        {# ── Composer un créneau ── #}
-        <section class="resa-composer">
-            <p class="section-sub">Choisissez un créneau, cochez les machines à utiliser en parallèle, puis ajoutez au panier. Recommencez autant que nécessaire.</p>
+    <form method="post" action="{{ path('reservation_ajouter', {id: projet.id}) }}"
+          class="resa-wizard"
+          data-controller="creneau-picker"
+          data-creneau-picker-url-value="{{ path('reservation_disponibilite') }}"
+          data-creneau-picker-jour-initial-value="{{ 'now'|date('Y-m-d') }}"
+          data-creneau-picker-target="form">
+        <input type="hidden" name="_token" value="{{ csrf_token('reservation_ajouter') }}">
+        <input type="hidden" name="debut" data-creneau-picker-target="champDebut">
+        <input type="hidden" name="duree" data-creneau-picker-target="champDuree">
+        <input type="hidden" name="jour" data-creneau-picker-target="champJour">
+        <input type="hidden" name="personnes" value="1" data-creneau-picker-target="champPersonnes">
 
-            <form method="post" action="{{ path('reservation_ajouter', {id: projet.id}) }}"
-                  data-controller="creneau-picker"
-                  data-creneau-picker-url-value="{{ path('reservation_disponibilite') }}"
-                  data-creneau-picker-target="form">
-                <input type="hidden" name="_token" value="{{ csrf_token('reservation_ajouter') }}">
-                <input type="hidden" name="debut" data-creneau-picker-target="champDebut">
-                <input type="hidden" name="duree" data-creneau-picker-target="champDuree">
+        {# ── Colonne 1 : calendrier + durée ── #}
+        <div class="resa-col resa-col--cal">
+            <div class="cal-tete">
+                <button type="button" class="cal-nav" aria-label="Mois précédent"
+                        data-action="creneau-picker#moisPrecedent">{{ include('components/icon.html.twig', {name: 'chevron-left', size: 18}) }}</button>
+                <span class="cal-mois" data-creneau-picker-target="moisLabel">…</span>
+                <button type="button" class="cal-nav" aria-label="Mois suivant"
+                        data-action="creneau-picker#moisSuivant">{{ include('components/icon.html.twig', {name: 'chevron-right', size: 18}) }}</button>
+            </div>
 
-                <div class="creneau-tete">
-                    <div class="champ">
-                        <label for="resa-jour">Jour</label>
-                        <select id="resa-jour" name="jour"
-                                data-creneau-picker-target="jour"
-                                data-action="change->creneau-picker#rafraichirCreneaux">
-                            {% for i in 0..30 %}
-                                {% set j = "now"|date_modify("+" ~ i ~ " days") %}
-                                <option value="{{ j|date('Y-m-d') }}">{{ j|date('d/m/Y') }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="champ">
-                        <label for="resa-duree">Durée</label>
-                        <select id="resa-duree"
-                                data-creneau-picker-target="duree"
-                                data-action="change->creneau-picker#rafraichirCreneaux">
-                            {% for d in dureesProposees %}
-                                <option value="{{ d }}">{{ (d // 60) > 0 ? (d // 60) ~ ' h ' : '' }}{{ (d % 60) > 0 ? (d % 60) ~ ' min' : '' }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="champ">
-                        <label for="resa-personnes">Personnes</label>
-                        <select id="resa-personnes" name="personnes">
-                            {% for n in 1..15 %}<option value="{{ n }}">{{ n }}</option>{% endfor %}
-                        </select>
-                    </div>
-                </div>
+            <div class="cal" data-creneau-picker-target="calendrier" aria-busy="true">
+                <p class="cat">Chargement du calendrier…</p>
+            </div>
 
-                {# Zone des créneaux du jour (chargée par AJAX, clic = choisir). #}
-                <div class="creneau-dispo" data-creneau-picker-target="zoneCreneaux"
-                     data-action="click->creneau-picker#choisirCreneau">
-                    <p class="cat">Choisissez un jour et une durée pour voir les créneaux.</p>
-                </div>
+            <div class="champ champ--duree">
+                <label for="resa-duree">Durée</label>
+                <select id="resa-duree"
+                        data-creneau-picker-target="duree"
+                        data-action="change->creneau-picker#changerDuree">
+                    {% for d in dureesProposees %}
+                        <option value="{{ d }}">{{ (d // 60) > 0 ? (d // 60) ~ ' h ' : '' }}{{ (d % 60) > 0 ? (d % 60) ~ ' min' : '' }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-                {# Zone des machines du créneau choisi (chargée par AJAX). #}
-                <div class="machines-bloc" data-creneau-picker-target="zoneMachines" hidden>
-                    <p class="cat">Choisissez un créneau pour voir les machines libres.</p>
-                </div>
+            <div class="champ champ--type">
+                <label for="resa-type">Type de session</label>
+                <select id="resa-type" name="type">
+                    <option value="realisation">Réalisation</option>
+                    <option value="preparation">RDV de préparation</option>
+                </select>
+            </div>
 
-                <button type="submit" class="btn btn--primary resa-ajouter" data-creneau-picker-target="boutonAjouter" hidden>
-                    + Ajouter ce créneau au panier
-                </button>
-            </form>
-        </section>
+            <button type="button" class="cal-aujourdhui" data-action="creneau-picker#aujourdhui">
+                {{ include('components/icon.html.twig', {name: 'calendar', size: 15}) }} Aujourd'hui
+            </button>
 
-        {# ── Panier des créneaux ── #}
-        <section class="resa-panier">
-            <h2 class="resa-panier__titre">Votre réservation{{ panier.creneaux is not empty ? ' · ' ~ panier.creneaux|length ~ ' créneau' ~ (panier.creneaux|length > 1 ? 'x' : '') : '' }}</h2>
+            <div class="cal-legende">
+                <span><span class="cal-pt cal-pt--libre"></span> Libre</span>
+                <span><span class="cal-pt cal-pt--charge"></span> Chargé</span>
+                <span><span class="cal-pt cal-pt--complet"></span> Complet</span>
+            </div>
+        </div>
 
-            {% if panier.estVide %}
-                <p class="resa-panier__vide">Aucun créneau pour l'instant. Composez-en un ci-dessus.</p>
-            {% else %}
-                {% for c in panier.creneaux %}
-                    {% set d = c.debut|date('Y-m-d\\TH:i')|date('U') %}
-                    <div class="resa-ligne">
-                        <div>
-                            <div class="resa-ligne__quand">{{ c.debut|date('d/m/Y · H\\hi') }} → {{ c.debut|date('Y-m-d\\TH:i')|date_modify('+' ~ c.duree ~ ' minutes')|date('H\\hi') }}</div>
-                            <div class="resa-ligne__machines">
-                                {% for mid in c.machines %}
-                                    {% for m in machinesDispo %}
-                                        {% if m.id == mid %}<span class="resa-vignette">{{ m.nom }}</span>{% endif %}
-                                    {% endfor %}
-                                {% endfor %}
-                                · {{ c.personnes }} pers.
+        {# ── Colonne 2 : créneaux du jour ── #}
+        <div class="resa-col resa-col--creneaux">
+            <p class="resa-jour" data-creneau-picker-target="jourLabel">Choisissez un jour</p>
+            <div class="creneau-dispo" data-creneau-picker-target="zoneCreneaux"
+                 data-action="click->creneau-picker#choisirCreneau">
+                <p class="cat">Choisissez un jour dans le calendrier pour voir les créneaux.</p>
+            </div>
+        </div>
+
+        {# ── Colonne 3 : panier (par défaut) OU machines du créneau choisi ── #}
+        <div class="resa-col resa-col--droit">
+            {# Panier (rendu serveur), visible tant qu'aucun créneau n'est en cours de composition. #}
+            <div class="resa-panier" data-resa-panier>
+                <h2 class="resa-panier__titre">{{ include('components/icon.html.twig', {name: 'calendar', size: 16}) }} Votre réservation{{ panier.creneaux is not empty ? ' · ' ~ panier.creneaux|length : '' }}</h2>
+
+                {% if panier.estVide %}
+                    <p class="resa-panier__vide">Aucun créneau pour l'instant. Choisissez une date puis un horaire.</p>
+                {% else %}
+                    <div class="resa-panier__liste">
+                        {% for c in panier.creneaux %}
+                            <div class="resa-ligne">
+                                <div class="resa-ligne__corps">
+                                    <div class="resa-ligne__quand">{{ c.debut|date('d/m') }} · {{ c.debut|date('H\\hi') }}</div>
+                                    <div class="resa-ligne__machines">
+                                        {{ c.machines|length }} machine{{ c.machines|length > 1 ? 's' : '' }} · {{ c.personnes }} pers.
+                                    </div>
+                                </div>
+                                <form method="post" action="{{ path('reservation_retirer', {id: projet.id, index: loop.index0}) }}">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('reservation_retirer') }}">
+                                    <button type="submit" class="resa-ligne__retirer" aria-label="Retirer ce créneau">{{ include('components/icon.html.twig', {name: 'x', size: 14}) }}</button>
+                                </form>
                             </div>
-                        </div>
-                        <form method="post" action="{{ path('reservation_retirer', {id: projet.id, index: loop.index0}) }}">
-                            <input type="hidden" name="_token" value="{{ csrf_token('reservation_retirer') }}">
-                            <button type="submit" class="resa-ligne__retirer">Retirer</button>
-                        </form>
+                        {% endfor %}
                     </div>
-                {% endfor %}
+                    <a href="{{ path('reservation_verifier', {id: projet.id}) }}" class="btn btn--primary resa-confirmer">Vérifier et confirmer</a>
+                {% endif %}
+            </div>
 
-                <a href="{{ path('reservation_verifier', {id: projet.id}) }}" class="btn btn--primary resa-confirmer resa-confirmer--inline">Vérifier et confirmer</a>
-            {% endif %}
-        </section>
-    </div>
+            {# Machines du créneau choisi (chargées par AJAX), masquées par défaut. #}
+            <div class="machines-bloc" data-creneau-picker-target="zoneMachines" hidden>
+                <p class="cat">Choisissez un créneau pour voir les machines libres.</p>
+            </div>
+
+            {# Pied : stepper personnes + bouton ajouter, ancré en bas. #}
+            <div class="resa-col__pied" data-resa-pied hidden data-creneau-picker-target="boutonAjouter">
+                <div class="champ champ--personnes">
+                    <label>Personnes</label>
+                    <div class="stepper-num">
+                        <button type="button" aria-label="Une personne de moins" data-action="creneau-picker#personnesMoins">{{ include('components/icon.html.twig', {name: 'minus', size: 16}) }}</button>
+                        <span class="stepper-num__val" data-creneau-picker-target="valeurPersonnes">1</span>
+                        <button type="button" aria-label="Une personne de plus" data-action="creneau-picker#personnesPlus">{{ include('components/icon.html.twig', {name: 'plus', size: 16}) }}</button>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn--primary resa-ajouter">
+                    {{ include('components/icon.html.twig', {name: 'plus', size: 16}) }} Ajouter
+                </button>
+            </div>
+        </div>
+    </form>
 
     {# ── Barre d'action sticky (mobile) ── #}
-    {# Toujours rendue, masquée par CSS tant que le panier est vide ou sur desktop.
-       Garde l'action « Confirmer » à portée du pouce quand le panier, empilé
-       sous la composition, sort de l'écran (RETEX CTA sticky e-commerce). #}
     {% if not panier.estVide %}
         <div class="resa-sticky">
             <div class="resa-sticky__resume">

@@ -1,0 +1,69 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Reporter un créneau : {{ projet.titre }}{% endblock %}
+{% block fil_ariane %}{{ include("components/fil_ariane.html.twig", {segments: [{libelle: "Mon espace", url: null}, {libelle: "Mes projets", url: path("projet_index")}, {libelle: projet.titre, url: path("projet_show", {id: projet.id})}, {libelle: "Reporter", url: null}]}) }}{% endblock %}
+
+{% block body %}
+<div class="reservation">
+    <div class="reservation__header">
+        <h1>Reporter ce créneau</h1>
+        <span class="cat">{{ session.machines|map(m => m.nom)|join(", ") }} · {{ session.type.libelle }} · actuellement {{ session.dateDebut|date("d/m/Y") }} · {{ session.dateDebut|date("H\\hi") }} → {{ session.dateFin|date("H\\hi") }}</span>
+    </div>
+
+    <form method="post" action="{{ path('reservation_reporter', {id: session.id}) }}"
+          class="resa-report"
+          data-controller="report-picker"
+          data-report-picker-url-value="{{ path('reservation_disponibilite') }}"
+          data-report-picker-jour-initial-value="{{ jourInitial }}"
+          data-report-picker-duree-value="{{ dureeMinutes }}">
+        <input type="hidden" name="_token" value="{{ csrf_token('reporter' ~ session.id) }}">
+        <input type="hidden" name="nouvelle_date" data-report-picker-target="champDate" required>
+
+        {# ── Colonne 1 : calendrier ── #}
+        <div class="resa-col resa-col--cal">
+            <div class="cal-tete">
+                <button type="button" class="cal-nav" aria-label="Mois précédent"
+                        data-action="report-picker#moisPrecedent">{{ include('components/icon.html.twig', {name: 'chevron-left', size: 18}) }}</button>
+                <span class="cal-mois" data-report-picker-target="moisLabel">…</span>
+                <button type="button" class="cal-nav" aria-label="Mois suivant"
+                        data-action="report-picker#moisSuivant">{{ include('components/icon.html.twig', {name: 'chevron-right', size: 18}) }}</button>
+            </div>
+            <div class="cal" data-report-picker-target="calendrier" aria-busy="true">
+                <p class="cat">Chargement du calendrier…</p>
+            </div>
+            <button type="button" class="cal-aujourdhui" data-action="report-picker#aujourdhui">
+                {{ include('components/icon.html.twig', {name: 'calendar', size: 15}) }} Aujourd'hui
+            </button>
+            <p class="resa-report__duree">La durée ({{ (dureeMinutes // 60) > 0 ? (dureeMinutes // 60) ~ ' h ' : '' }}{{ (dureeMinutes % 60) > 0 ? (dureeMinutes % 60) ~ ' min' : '' }}) reste inchangée.</p>
+            <div class="cal-legende">
+                <span><span class="cal-pt cal-pt--libre"></span> Libre</span>
+                <span><span class="cal-pt cal-pt--charge"></span> Chargé</span>
+                <span><span class="cal-pt cal-pt--complet"></span> Complet</span>
+            </div>
+        </div>
+
+        {# ── Colonne 2 : créneaux libres du jour ── #}
+        <div class="resa-col resa-col--creneaux">
+            <p class="resa-jour" data-report-picker-target="jourLabel">Choisissez un jour</p>
+            <div class="creneau-dispo" data-report-picker-target="zoneCreneaux"
+                 data-action="click->report-picker#choisirCreneau">
+                <p class="cat">Choisissez un jour dans le calendrier pour voir les créneaux libres.</p>
+            </div>
+        </div>
+
+        {# ── Colonne 3 : récapitulatif + confirmation ── #}
+        <div class="resa-col resa-col--droit">
+            <div class="resa-panier">
+                <h2 class="resa-panier__titre">{{ include('components/icon.html.twig', {name: 'calendar', size: 16}) }} Nouveau créneau</h2>
+                <div class="resa-panier__liste">
+                    <p class="resa-report__choix" data-report-picker-target="recap">Aucun créneau choisi pour l'instant.</p>
+                </div>
+            </div>
+            <div class="resa-col__pied">
+                <a href="{{ path('projet_show', {id: projet.id}) }}" class="btn btn--ghost" style="flex:1">{{ include('components/icon.html.twig', {name: 'arrowLeft', size: 16}) }} Annuler</a>
+                <button type="submit" class="btn btn--primary" style="flex:1.4" data-report-picker-target="boutonConfirmer" disabled>Confirmer le report</button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

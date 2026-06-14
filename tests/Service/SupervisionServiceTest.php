@@ -101,7 +101,7 @@ class SupervisionServiceTest extends KernelTestCase
         $mardi = new \DateTimeImmutable('next tuesday');
         $debut = $mardi->setTime(10, 0);
         $this->reservation->creerSession(
-            $projet, $machine, ReservationType::Realisation, $debut, 1, dureeMinutes: 120
+            $projet, ReservationType::Realisation, $debut, 1, 120, [$machine]
         );
 
         // Fenêtre [mardi 00:00, mercredi 00:00[ = un seul jour ouvré.
@@ -126,9 +126,9 @@ class SupervisionServiceTest extends KernelTestCase
 
         $mardi = new \DateTimeImmutable('next tuesday');
         // Faible : 60 min. Forte : 240 min (deux créneaux de 120).
-        $this->reservation->creerSession($projet, $faible, ReservationType::Realisation, $mardi->setTime(9, 0), 1, dureeMinutes: 60);
-        $this->reservation->creerSession($projet, $forte, ReservationType::Realisation, $mardi->setTime(9, 0), 1, dureeMinutes: 120);
-        $this->reservation->creerSession($projet, $forte, ReservationType::Realisation, $mardi->setTime(13, 0), 1, dureeMinutes: 120);
+        $this->reservation->creerSession($projet, ReservationType::Realisation, $mardi->setTime(9, 0), 1, 60, [$faible]);
+        $this->reservation->creerSession($projet, ReservationType::Realisation, $mardi->setTime(9, 0), 1, 120, [$forte]);
+        $this->reservation->creerSession($projet, ReservationType::Realisation, $mardi->setTime(13, 0), 1, 120, [$forte]);
 
         $finFenetre = $mardi->setTime(0, 0)->modify('+1 day');
         $lignes = $this->supervision->tauxUtilisationMachines($mardi->setTime(0, 0), $finFenetre);

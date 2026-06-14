@@ -125,11 +125,16 @@ DemandeFichier
   id, projet, nom_fichier, chemin, type (plan_impression...)
   → BF_3.7 import de plans 3D/résine
 
-Reservation (= une session)
-  id, projet, machine, type (preparation|realisation),
-  date_debut, date_fin, statut (planifiee|effectuee|annulee|reportee),
-  nb_personnes_prevues (→ contrainte 15 max, BF_3.9)
-  → un Projet a 1 RDV de prépa + 1 à 4 sessions de réalisation
+SessionReservation (l'enveloppe de la réservation)
+  id, projet, type (preparation|realisation),
+  date_debut, date_fin, duree_minutes,
+  statut (planifiee|effectuee|annulee|reportee),
+  nb_personnes (→ contrainte 15 max sur le créneau, BF_3.9)
+  → un Projet a des sessions de préparation (illimitées) + 1 à 4 de réalisation
+
+Reservation (occupation d'une machine dans une session)
+  id, session, machine
+  → le créneau, le type, l'effectif et le statut vivent sur la session
 
 Notification
   id, destinataire (User), type, contenu, lu, envoye_email, created_at
@@ -143,11 +148,12 @@ JournalActivite
 ```
 
 ### Relations clés
-- `Projet 1-N Reservation` (multi-sessions)
+- `Projet 1-N SessionReservation` (multi-sessions)
+- `SessionReservation 1-N Reservation` (occupations machine, en cascade)
 - `Projet N-N Machine`
 - `Projet N-1 User` (étudiant) + `Projet N-1 User` (valideur)
 - `Reservation N-1 Machine`
-- Contrainte applicative : somme des `nb_personnes_prevues` sur un créneau ≤ 15.
+- Contrainte applicative : somme des `nb_personnes` des sessions chevauchant un créneau ≤ 15.
 
 ### Note sur les statuts de projet
 Machine à états explicite, à inscrire en enum PHP 8.1+ :

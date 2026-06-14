@@ -198,7 +198,10 @@
             {% for type, messages in app.flashes %}
                 {% set classe = type == 'error' ? 'alert--error' : 'alert--' ~ type %}
                 {% for message in messages %}
-                    <div class="alert {{ classe }}">{{ message }}</div>
+                    <div class="alert {{ classe }} alert--dismiss" data-controller="dismiss">
+                        <span class="alert__texte">{{ message }}</span>
+                        <button type="button" class="alert__fermer" aria-label="Fermer ce message" data-action="dismiss#fermer">{{ include('components/icon.html.twig', {name: 'x', size: 16}) }}</button>
+                    </div>
                 {% endfor %}
             {% endfor %}
             {% block body %}{% endblock %}

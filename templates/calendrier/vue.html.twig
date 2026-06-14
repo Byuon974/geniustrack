@@ -63,9 +63,10 @@
                     <div class="cal-evts">
                         {% for r in evenements|slice(0, 2) %}
                             {% set estPrepa = r.type == constant('App\\Enum\\ReservationType::Preparation') %}
+                            {% set nomsMachines = r.machines|map(m => m.nom)|join(', ') %}
                             <span class="cal-evt {{ estPrepa ? 'cal-evt--prepa' : 'cal-evt--real' }}"
-                                  title="{{ r.dateDebut|date('H:i') }} {{ r.machine.nom }} : {{ r.projet.titre }}">
-                                {{ r.dateDebut|date('H\\h') }} {{ r.machine.nom }}
+                                  title="{{ r.dateDebut|date('H:i') }} {{ nomsMachines }} : {{ r.projet.titre }}">
+                                {{ r.dateDebut|date('H\\h') }} {{ nomsMachines }}
                             </span>
                         {% endfor %}
                         {% if evenements|length > 2 %}
@@ -98,10 +99,10 @@
                 <tr>
                     <td>{{ r.dateDebut|date('d/m/Y') }}</td>
                     <td>{{ r.dateDebut|date('H:i') }} &ndash; {{ r.dateFin|date('H:i') }}</td>
-                    <td>{{ r.machine.nom }}</td>
+                    <td>{{ r.machines|map(m => m.nom)|join(', ') }}</td>
                     <td>{{ r.projet.titre }}</td>
                     <td><span class="cal-pastille" style="background:{{ estPrepa ? '#1d4e6f' : '#b34e14' }};" aria-hidden="true"></span>{{ r.type.libelle }}</td>
-                    <td class="num">{{ r.nbPersonnesPrevues }}</td>
+                    <td class="num">{{ r.nbPersonnes }}</td>
                 </tr>
             {% endfor %}
             </tbody>

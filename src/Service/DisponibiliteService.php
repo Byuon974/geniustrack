@@ -6,9 +6,10 @@ namespace App\Service;
 
 use App\Entity\Machine;
 use App\Repository\MachineRepository;
-use App\Entity\Reservation;
+use App\Entity\SessionReservation;
 use App\Entity\User;
 use App\Repository\ReservationRepository;
+use App\Repository\SessionReservationRepository;
 
 /**
  * Calcule l'état « libre / occupé » des créneaux d'une machine sur une journée,
@@ -54,6 +55,7 @@ final class DisponibiliteService
 
     public function __construct(
         private readonly ReservationRepository $reservations,
+        private readonly SessionReservationRepository $sessions,
         private readonly MachineRepository $machinesRepo,
     ) {
     }
@@ -88,9 +90,9 @@ final class DisponibiliteService
             $debut = $jour->setTime(intdiv($m, 60), $m % 60);
             $fin = $debut->modify(sprintf('+%d minutes', $dureeMinutes));
 
-            $occupe = $this->reservations->sommePersonnesSurCreneau($debut, $fin);
-            $restant = max(0, Reservation::CAPACITE_MAX_FABLAB - $occupe);
-            $mien = $this->reservations->etudiantOccupeCreneau($utilisateur, $debut, $fin);
+            $occupe = $this->sessions->sommePersonnesSurCreneau($debut, $fin);
+            $restant = max(0, SessionReservation::CAPACITE_MAX_FABLAB - $occupe);
+            $mien = $this->sessions->etudiantOccupeCreneau($utilisateur, $debut, $fin);
 
             $etat = match (true) {
                 $mien => 'mien',
@@ -159,6 +161,68 @@ final class DisponibiliteService
         }
 
         return $creneaux;
+    }
+
+    /**
+     * Densité de disponibilité par jour pour un mois donné, destinée au
+     * calendrier de réservation : chaque cellule du calendrier porte une
+     * pastille (libre / chargé / complet) calculée d'après les créneaux du
+     * jour pour la durée envisagée. Le détail chiffré n'est pas exposé ici —
+     * seul l'état synthétique l'est, conformément au principe free/busy.
+     *
+     * Les jours passés et ceux sans aucun créneau ouvrable (week-ends si
+     * fermés, jours entièrement complets) sont marqués « indispo » afin que le
+     * calendrier les désactive d'un coup d'œil.
+     *
+     * @return array<string, array{etat: string, creneauxLibres: int}> indexé par 'Y-m-d'
+     */
+    public function densitesDuMois(
+        int $annee,
+        int $mois,
+        int $dureeMinutes,
+        User $utilisateur,
+    ): array {
+        if (!\in_array($dureeMinutes, self::dureesProposees(), true)) {
+            $dureeMinutes = self::PAS_MINUTES;
+        }
+
+        $premier = (new \DateTimeImmutable())->setDate($annee, $mois, 1)->setTime(0, 0);
+        $nbJours = (int) $premier->format('t');
+        $aujourdhui = (new \DateTimeImmutable('today'));
+
+        $densites = [];
+        for ($j = 1; $j <= $nbJours; ++$j) {
+            $jour = $premier->setDate($annee, $mois, $j);
+            $cle = $jour->format('Y-m-d');
+
+            // Les jours passés sont indisponibles sans calcul.
+            if ($jour < $aujourdhui) {
+                $densites[$cle] = ['etat' => 'indispo', 'creneauxLibres' => 0];
+                continue;
+            }
+
+            $creneaux = $this->creneauxAvecMachinesLibres($jour, $dureeMinutes, $utilisateur);
+            $total = \count($creneaux);
+            $libres = 0;
+            foreach ($creneaux as $c) {
+                if ($c['machinesLibres'] > 0) {
+                    ++$libres;
+                }
+            }
+
+            // Synthèse : aucun créneau ouvrable -> indispo ; tous pris -> complet ;
+            // moins de la moitié des créneaux encore ouverts -> chargé ; sinon libre.
+            $etat = match (true) {
+                0 === $total => 'indispo',
+                0 === $libres => 'complet',
+                $libres * 2 < $total => 'charge',
+                default => 'libre',
+            };
+
+            $densites[$cle] = ['etat' => $etat, 'creneauxLibres' => $libres];
+        }
+
+        return $densites;
     }
 
     /**

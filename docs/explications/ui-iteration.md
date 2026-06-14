@@ -148,7 +148,13 @@ Aboutissement (DEC-090, DEC-092) : la réflexion est allée plus loin que le rem
 
 ---
 
-## Ce que ces itérations ont en commun
+## Itération 12 : le sélecteur de date, du menu déroulant au calendrier
+
+Problème observé : sur captures de l'application réelle, le sélecteur de jour du parcours de réservation était une liste déroulante, et les créneaux des pavés-boutons colorés en grille. Trois griefs concordants sont remontés en revue de maquette : la liste déroulante de dates est chronophage pour un choix qui s'étale sur des semaines, les pavés colorés font peu professionnel, et le parcours débordait la hauteur d'écran, le faisant défiler comme une page ordinaire au lieu de tenir d'un seul tenant.
+
+Décision (DEC-099) : refonte de l'ergonomie sans toucher au métier. La liste déroulante laisse place à un calendrier mensuel inline où chaque jour porte une pastille de densité (libre, chargé, complet), calculée côté serveur et révélée d'un coup d'œil ; le nombre de places n'apparaît qu'au survol, pour garder la cellule épurée. Les pavés deviennent une liste verticale de style agenda. La page adopte une grille à trois colonnes de hauteur bornée, sur le modèle de Cal.com et Calendly : seules les listes internes défilent, la page ne bouge pas, et le pied du panneau de droite est ancré pour qu'une interaction (cocher une machine) ne déplace jamais la mise en page. Le menu du nombre de personnes devient un compteur, conforme aux retours d'expérience sur les saisies de petites quantités. Le report, jusque-là un champ de date au clavier sur la fiche projet, gagne une page dédiée réutilisant le même sélecteur.
+
+Leçon : chaque grief s'est résolu par un pattern établi plutôt que par une invention. Le calendrier qui porte sa propre densité supprime une lecture en fusionnant deux informations qui demandaient deux regards (où sont les jours, lesquels sont libres). La discipline « sans défilement » ne tient pas par des hauteurs fixes empilées au hasard, mais par une règle simple : une seule surface borne la hauteur, et tout ce qui peut grandir défile à l'intérieur. La refonte la plus visible de l'interface n'a pas touché une seule règle de capacité, de quota ou de verrou : présentation et métier sont restés étanches, ce qui a rendu le changement sûr.
 
 - Le déclencheur est toujours une observation concrète (capture de l'application réelle), jamais une intuition abstraite.
 - La correction s'appuie sur les tokens et composants existants, elle n'invente pas de valeur nouvelle sans raison.

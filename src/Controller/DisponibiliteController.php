@@ -47,6 +47,25 @@ class DisponibiliteController extends AbstractController
             $duree = DisponibiliteService::PAS_MINUTES;
         }
 
+        // Mode « densités du mois » : JSON des états par jour pour le calendrier.
+        $moisParam = (string) $request->query->get('fb_mois', '');
+        if ('' !== $moisParam) {
+            $ancre = \DateTimeImmutable::createFromFormat('Y-m', $moisParam);
+            if (false === $ancre) {
+                return new Response('', Response::HTTP_BAD_REQUEST);
+            }
+
+            return $this->json([
+                'mois' => $ancre->format('Y-m'),
+                'jours' => $disponibilite->densitesDuMois(
+                    (int) $ancre->format('Y'),
+                    (int) $ancre->format('n'),
+                    $duree,
+                    $utilisateur,
+                ),
+            ]);
+        }
+
         // Mode « machines d'un creneau » si un debut precis est fourni.
         $creneauParam = (string) $request->query->get('fb_creneau', '');
         if ('' !== $creneauParam) {

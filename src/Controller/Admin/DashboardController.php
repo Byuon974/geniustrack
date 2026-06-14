@@ -7,7 +7,7 @@ namespace App\Controller\Admin;
 use App\Repository\ConsommableRepository;
 use App\Repository\JournalActiviteRepository;
 use App\Repository\ProjetRepository;
-use App\Repository\ReservationRepository;
+use App\Repository\SessionReservationRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -34,7 +34,7 @@ class DashboardController extends AbstractController
     #[Route('/pilotage/tableau-de-bord', name: 'pilotage_dashboard', methods: ['GET'])]
     #[IsGranted('ROLE_FORMATEUR')]
     public function dashboard(
-        ReservationRepository $reservations,
+        SessionReservationRepository $reservations,
         ProjetRepository $projets,
         ConsommableRepository $stocks,
         \App\Repository\MachineRepository $machines,

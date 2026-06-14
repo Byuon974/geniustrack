@@ -14,18 +14,18 @@ Empêcher deux écritures concurrentes de franchir ensemble un plafond (la capac
 
 ### Implémentation
 
-Dans `ReservationService::creerSession()`, la création s'effectue dans une transaction qui verrouille la machine avant de lire la capacité du créneau :
+Dans `ReservationService::creerSession()`, la création s'effectue dans une transaction qui verrouille chaque machine de la session avant de lire la capacité du créneau :
 
 ```php
 $this->em->lock($machine, LockMode::PESSIMISTIC_WRITE);
 // ... re-vérification de la disponibilité machine sous verrou ...
-$dejaPresents = $this->reservations->sommePersonnesSurCreneau($debut, $fin, verrouiller: true);
-if ($dejaPresents + $nbPersonnes > Reservation::CAPACITE_MAX_FABLAB) {
+$dejaPresents = $this->sessions->sommePersonnesSurCreneau($debut, $fin, verrouiller: true);
+if ($dejaPresents + $nbPersonnes > SessionReservation::CAPACITE_MAX_FABLAB) {
     throw new ReservationImpossibleException(/* places restantes */);
 }
 ```
 
-Le repository propage le verrou jusqu'à la requête de comptage via un paramètre `verrouiller`. Le calcul du chevauchement de créneaux utilise la règle des intervalles semi-ouverts (début avant fin et fin après début).
+Le repository propage le verrou jusqu'à la requête de comptage via un paramètre `verrouiller`. L'effectif étant porté par la session (et non par chaque machine), il est compté une seule fois quel que soit le nombre de machines. Le calcul du chevauchement de créneaux utilise la règle des intervalles semi-ouverts (début avant fin et fin après début).
 
 ### Justification (RETEX)
 

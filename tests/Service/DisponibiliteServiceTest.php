@@ -149,7 +149,7 @@ class DisponibiliteServiceTest extends KernelTestCase
 
         // On occupe m1 à 10h00 pour 60 min.
         $this->reservation->creerSession(
-            $projet, $m1, ReservationType::Realisation, $debut10h, 1, dureeMinutes: 60
+            $projet, ReservationType::Realisation, $debut10h, 1, 60, [$m1]
         );
 
         // Après : plus qu'une machine libre à 10h00.

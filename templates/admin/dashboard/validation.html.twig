@@ -52,10 +52,10 @@
             {{ include('components/empty.html.twig', {message: 'Aucune session planifiée.'}) }}
         {% else %}
             <div class="dash-demandes">
-                {% for reservation in prochainesSessions|slice(0, 6) %}
+                {% for session in prochainesSessions|slice(0, 6) %}
                     <a href="{{ path('calendrier_vue') }}" class="dash-demande">
-                        <span style="flex:1;">{{ reservation.machine.nom }}</span>
-                        <span class="dash-demande__type">{{ reservation.dateDebut|date('d/m H\\hi') }}</span>
+                        <span style="flex:1;">{{ session.machines|map(m => m.nom)|join(', ') }}</span>
+                        <span class="dash-demande__type">{{ session.dateDebut|date('d/m H\\hi') }}</span>
                     </a>
                 {% endfor %}
             </div>

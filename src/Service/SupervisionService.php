@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Repository\ReservationRepository;
+use App\Repository\SessionReservationRepository;
 
 /**
  * Supervision analytique du laboratoire.
@@ -28,7 +28,7 @@ final class SupervisionService
     public const SEUIL_ELEVE = 50;
 
     public function __construct(
-        private readonly ReservationRepository $reservations,
+        private readonly SessionReservationRepository $reservations,
     ) {
     }
 

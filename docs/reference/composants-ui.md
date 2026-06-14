@@ -166,7 +166,8 @@ lucide) dans le dictionnaire `paths` du composant.
 ```
 home, arrowLeft, clock, search, image, zap, clipboard, printer, calendar,
 bell, book, award, barChart, pieChart, fileText, archive, ban, layout, pkg,
-wrench, shield, settings, helpCircle, eye, logout, user, plus, menu
+wrench, shield, settings, helpCircle, eye, logout, user, plus, menu,
+chevron-left, chevron-right, minus, x
 ```
 
 ---

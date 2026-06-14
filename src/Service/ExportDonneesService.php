@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Repository\MouvementStockRepository;
-use App\Repository\ReservationRepository;
+use App\Repository\SessionReservationRepository;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
@@ -33,7 +33,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 final class ExportDonneesService
 {
     public function __construct(
-        private readonly ReservationRepository $reservations,
+        private readonly SessionReservationRepository $reservations,
         private readonly MouvementStockRepository $mouvements,
         private readonly SupervisionService $supervision,
     ) {
@@ -129,18 +129,23 @@ final class ExportDonneesService
         $entetes = ['Date de début', 'Date de fin', 'Durée (min)', 'Machine', 'Projet', 'Type de projet', 'Étudiant', 'Personnes', 'Statut'];
         $lignes = [];
 
-        foreach ($this->reservations->entrePeriode($debut, $fin) as $r) {
-            $lignes[] = [
-                $r->getDateDebut()->format('Y-m-d H:i'),
-                $r->getDateFin()->format('Y-m-d H:i'),
-                $r->getDureeMinutes(),
-                $r->getMachine()->getNom(),
-                $r->getProjet()->getTitre(),
-                $r->getProjet()->getType()->libelle(),
-                $r->getProjet()->getEtudiant()->getNomComplet(),
-                $r->getNbPersonnesPrevues(),
-                $r->getStatut()->libelle(),
-            ];
+        foreach ($this->reservations->entrePeriode($debut, $fin) as $session) {
+            // Une ligne par machine occupée : l'analyse par machine reste
+            // possible, et les données communes (créneau, effectif, statut)
+            // proviennent de la session.
+            foreach ($session->getOccupations() as $occupation) {
+                $lignes[] = [
+                    $session->getDateDebut()->format('Y-m-d H:i'),
+                    $session->getDateFin()->format('Y-m-d H:i'),
+                    $session->getDureeMinutes(),
+                    $occupation->getMachine()->getNom(),
+                    $session->getProjet()->getTitre(),
+                    $session->getProjet()->getType()->libelle(),
+                    $session->getProjet()->getEtudiant()->getNomComplet(),
+                    $session->getNbPersonnes(),
+                    $session->getStatut()->libelle(),
+                ];
+            }
         }
 
         return ['entetes' => $entetes, 'lignes' => $lignes];

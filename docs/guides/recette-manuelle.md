@@ -82,7 +82,7 @@ Vérifie les trois limites et leurs messages.
 
 Vérifie le créneau souple : heure de début au pas de 30 minutes, durée réglable, et blocage des créneaux qu'une session longue recouvre.
 
-1. En étudiant, sur un projet validé, lancer le wizard de réservation et atteindre l'étape « Créneaux ».
+1. En étudiant, sur un projet validé, lancer la page de réservation et choisir un jour dans le calendrier.
 2. Vérifier que l'heure de début se choisit au pas de 30 minutes (08:00, 08:30, 09:00...) et que le dernier début proposé ne fait pas dépasser la fermeture (16h30) compte tenu de la durée.
 3. Choisir une durée de plusieurs heures et confirmer : la réservation couvre bien la plage début + durée.
 4. Tenter une seconde réservation dont le créneau chevauche la première sur la même machine : elle doit être refusée (machine déjà réservée sur ce créneau).
@@ -125,3 +125,52 @@ Ces trois scénarios correspondent au jeu d'essai de la fonctionnalité la plus 
 1. Repérer le créneau saturé chargé par la démonstration : dans trois semaines à 8h00, sur la première machine active, déjà occupé par 15 personnes (deux réservations de 8 et 7).
 2. Avec le projet « [Test] Créneau saturé », tenter de réserver ce même créneau pour 1 personne de plus.
 3. Résultat attendu : la réservation est refusée pour capacité atteinte, et la capacité du créneau reste à 15.
+
+## 12. Sélecteur de réservation et report (DEC-099)
+
+Vérifie l'ergonomie du sélecteur de date refondu et la page de report dédiée.
+
+### 12.1 Calendrier à densités et sélection
+
+1. En étudiant, sur un projet validé, ouvrir la page de réservation.
+2. Vérifier que le calendrier mensuel s'affiche, que les jours passés sont désactivés, et que chaque jour réservable porte une pastille (verte, ambre ou contour vide selon la disponibilité).
+3. Survoler un jour ou le sélectionner : le nombre de créneaux libres apparaît ; il n'est pas affiché en permanence dans la cellule.
+4. Cliquer un jour : la liste des créneaux du jour se charge au centre. Cliquer un créneau libre : le panneau de droite bascule du panier vers les machines libres, avec le compteur de personnes et le bouton d'ajout.
+5. Vérifier que cocher une machine ne déplace pas la mise en page, et que la page ne défile pas (seules les listes internes défilent). Régler le nombre de personnes avec le compteur (de 1 à 15).
+
+### 12.2 Report d'un créneau
+
+1. Sur la page d'un projet ayant une réservation planifiée, cliquer « Reporter ».
+2. Résultat attendu : une page dédiée s'ouvre avec le même calendrier et la même liste de créneaux, la durée d'origine rappelée et verrouillée, aucun champ de date à saisir au clavier.
+3. Choisir un nouveau jour puis un créneau libre : le récapitulatif se met à jour et le bouton « Confirmer le report » s'active.
+4. Confirmer. Résultat attendu : la réservation est déplacée, le créneau d'origine libéré. Un report à moins de trois jours déclenche une sanction (BF_6.2), conformément à la règle métier inchangée.
+
+### 12.3 Bandeau de confirmation fermable
+
+1. Après une confirmation de réservation, vérifier que le bandeau de succès affiche une croix de fermeture et qu'un clic dessus le retire.
+
+## 13. Choix du type et réservation multi-machines (DEC-100)
+
+Vérifie le modèle « session » : le type préparation/réalisation est choisi à la réservation, l'effectif est compté une fois pour la session, et report comme annulation portent sur la session entière.
+
+### 13.1 Choix du type à la réservation
+
+1. En étudiant, sur un projet validé, lancer la page de réservation et choisir un jour puis un créneau libre.
+2. Vérifier la présence du sélecteur « Type de session » (Réalisation par défaut, ou RDV de préparation).
+3. Composer un créneau de type « préparation », cocher une machine, ajouter au panier, confirmer.
+   - Attendu : la session apparaît sur la page projet avec la mention « préparation ».
+4. Composer autant de sessions de réalisation que le quota l'autorise, puis une de plus.
+   - Attendu : la réalisation excédentaire est refusée (quota atteint), mais une session de préparation reste possible (la préparation n'est pas plafonnée).
+
+### 13.2 Plusieurs machines sur un même créneau (une session)
+
+1. Composer un créneau, cocher plusieurs machines libres, indiquer un nombre de personnes, confirmer.
+   - Attendu : une seule session est créée sur la page projet, listant toutes les machines cochées.
+2. Vérifier sur le créneau que la capacité consommée correspond au nombre de personnes saisi une fois, pas multiplié par le nombre de machines (composer une autre réservation sur le même créneau et constater que les places restantes décroissent du bon montant).
+
+### 13.3 Report et annulation au niveau de la session
+
+1. Sur une session à plusieurs machines, lancer le report : choisir un nouveau créneau et confirmer.
+   - Attendu : toutes les machines de la session se déplacent ensemble vers la nouvelle date ; l'ancienne session passe « reportée ».
+2. Sur une autre session à plusieurs machines, annuler.
+   - Attendu : la session entière passe « annulée », toutes ses machines libérées en même temps.

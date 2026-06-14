@@ -127,7 +127,7 @@ Cette hiérarchie applique le principe de moindre privilège : chaque rôle ne d
 
 **Soumettre et faire valider un projet.** L'étudiant crée un projet, y joint ses plans (fichiers 3D, PDF), et le soumet. La soumission le fait passer de l'état brouillon à l'état « en attente », ce qui notifie le valideur compétent (formateur pour un projet pédagogique, BDE pour un projet personnel). Le valideur examine la demande sur une page de détail qui présente la description, les machines demandées et les plans téléchargeables, puis valide ou refuse avec un motif communiqué à l'étudiant.
 
-**Réserver un créneau machine.** Une fois son projet validé, l'étudiant ouvre la page de réservation. Il choisit un jour et une durée de session (de trente minutes à quatre heures), consulte la disponibilité des créneaux de la journée (affichage de type « libre / occupé / complet » avec le nombre de machines libres, sans révéler le détail des réservations d'autrui), sélectionne un créneau, coche une ou plusieurs machines à utiliser en parallèle, puis ajoute le créneau à son panier ; il peut en composer plusieurs avant de confirmer. Le système vérifie en temps réel la capacité du créneau (limite de 15 personnes simultanées au FabLab) et empêche toute double-réservation de la même machine sur un créneau qui se chevauche, une session longue bloquant l'ensemble des créneaux qu'elle recouvre.
+**Réserver un créneau machine.** Une fois son projet validé, l'étudiant ouvre la page de réservation. Il choisit un jour dans un calendrier mensuel (où chaque jour signale d'un coup d'œil s'il est libre, chargé ou complet) et une durée de session (de trente minutes à quatre heures), consulte la disponibilité des créneaux de la journée (affichage de type « libre / occupé / complet » avec le nombre de machines libres, sans révéler le détail des réservations d'autrui), sélectionne un créneau, coche une ou plusieurs machines à utiliser en parallèle, puis ajoute le créneau à son panier ; il peut en composer plusieurs avant de confirmer. Le système vérifie en temps réel la capacité du créneau (limite de 15 personnes simultanées au FabLab) et empêche toute double-réservation de la même machine sur un créneau qui se chevauche, une session longue bloquant l'ensemble des créneaux qu'elle recouvre.
 
 **Annuler ou reporter une réservation.** L'étudiant peut annuler ou reporter une réservation planifiée. Une annulation tardive (moins de trois jours avant le créneau) déclenche une sanction. Au bout d'un certain nombre de sanctions, le compte est désactivé.
 
@@ -157,7 +157,7 @@ Les spécifications fonctionnelles se concrétisent dans un ensemble de règles 
 | Acteur principal | L'étudiant |
 | Préconditions | L'étudiant est authentifié ; il possède un projet validé |
 | Déclencheur | L'étudiant ouvre la page de réservation de son projet |
-| Scénario nominal | 1. Il choisit un jour et une durée. 2. Le système affiche les créneaux du jour avec, pour chacun, le nombre de machines libres. 3. Il sélectionne un créneau libre, coche une ou plusieurs machines à utiliser en parallèle et indique le nombre de personnes, puis ajoute le créneau au panier (répétable). 4. À la confirmation, le système vérifie les règles de gestion sous verrou pour chaque machine. 5. Les réservations sont enregistrées au statut « planifiée » (une par machine). 6. Une confirmation est affichée. |
+| Scénario nominal | 1. Il choisit un jour et une durée. 2. Le système affiche les créneaux du jour avec, pour chacun, le nombre de machines libres. 3. Il sélectionne un créneau libre, choisit le type (préparation ou réalisation), coche une ou plusieurs machines à utiliser en parallèle et indique le nombre de personnes, puis ajoute le créneau au panier (répétable). 4. À la confirmation, le système vérifie les règles de gestion sous verrou pour chaque machine. 5. Une session est enregistrée au statut « planifiée », portant une occupation par machine cochée. 6. Une confirmation est affichée. |
 | Scénarios alternatifs | 4a. Le projet n'est pas validé : refus. 4b. La machine est hors service : refus. 4c. Le créneau est complet : refus, places restantes affichées. 4d. Le quota de sessions est atteint : refus. |
 | Postconditions | La capacité du créneau est diminuée du nombre de personnes ; la réservation apparaît dans le tableau de bord de l'étudiant et dans le planning. |
 
@@ -312,7 +312,7 @@ La réservation enchaîne des décisions liées : choisir un créneau, les machi
 
 Cette première approche a buté sur une série de difficultés irréductibles dans le délai du projet : désynchronisation entre l'étape affichée et le contenu réellement rendu, impossibilité de prendre en compte un rendu personnalisé des créneaux à cause du partage de données entre étapes, et persistance d'une saisie de date au clavier que la conception voulait précisément interdire. Le diagnostic, posé après audit, a conclu que le composant natif était trop récent et trop peu documenté pour la personnalisation que le métier exigeait.
 
-La décision d'ingénierie fut double. D'abord, abandonner le composant natif au profit d'une solution « maison » dont on maîtrise chaque ligne (état en session, actions explicites, créneaux pré-générés cliquables). Ensuite, et c'est le point décisif, reconnaître que la tâche elle-même ne justifiait pas un tunnel à étapes : une fois retiré le rendez-vous de préparation (qui relève de l'humain, pas du logiciel), il ne restait qu'une saisie atomique aux champs simples et connus d'avance. Les retours d'expérience confirment qu'un assistant à deux ou trois étapes est trop maigre, et qu'une **page unique** convertit mieux dans ce cas, surtout sur mobile. Le parcours final est donc une page unique : choisir un jour et une durée, voir les créneaux du jour avec le nombre de machines libres, cliquer un créneau, cocher les machines, ajouter au panier, confirmer. Un créneau à plusieurs machines produit autant de réservations parallèles.
+La décision d'ingénierie fut double. D'abord, abandonner le composant natif au profit d'une solution « maison » dont on maîtrise chaque ligne (état en session, actions explicites, créneaux pré-générés cliquables). Ensuite, et c'est le point décisif, reconnaître que la tâche elle-même ne justifiait pas un tunnel à étapes : une fois retiré le rendez-vous de préparation (qui relève de l'humain, pas du logiciel), il ne restait qu'une saisie atomique aux champs simples et connus d'avance. Les retours d'expérience confirment qu'un assistant à deux ou trois étapes est trop maigre, et qu'une **page unique** convertit mieux dans ce cas, surtout sur mobile. Le parcours final est donc une page unique disposée en trois colonnes sans défilement (sur le modèle des plateformes de réservation de référence comme Cal.com et Calendly) : un calendrier mensuel dont chaque jour porte une pastille de disponibilité, la liste des créneaux du jour choisi, et le panier des créneaux composés. On clique un jour, on clique un créneau, on choisit le type (préparation ou réalisation), on coche les machines, on règle le nombre de personnes par un compteur, on ajoute au panier, on confirme. Le report d'un créneau emprunte le même sélecteur, sur une page dédiée, plutôt qu'une saisie de date au clavier. Un créneau à plusieurs machines forme une seule session portant une occupation par machine : l'effectif et le type sont saisis une fois pour la session, jamais dupliqués par machine.
 
 Ce double virage assumé illustre une compétence à part entière : savoir reconnaître qu'une dépendance, même fournie par le framework, coûte parfois plus qu'elle ne rapporte, et qu'une structure d'interface présupposée (le tunnel) n'est pas toujours la bonne.
 
@@ -360,7 +360,9 @@ Le modèle relationnel s'organise autour de l'utilisateur, du projet et de la r�
 
 **Machine** (`Machine`) : nom, description, photo, type (espace machine), durée de créneau en minutes, état (active, maintenance, hors service).
 
-**Reservation** (`Reservation`) : projet, machine, type (préparation ou réalisation), date de début, date de fin, durée en minutes, statut (planifiée, effectuée, annulée, reportée), nombre de personnes prévues.
+**SessionReservation** (`SessionReservation`) : l'enveloppe d'une réservation. Projet, type (préparation ou réalisation), date de début, date de fin, durée en minutes, statut (planifiée, effectuée, annulée, reportée), nombre de personnes. Porte une à plusieurs occupations machine.
+
+**Reservation** (`Reservation`) : l'occupation d'une machine au sein d'une session. Ne porte que sa session et la machine ; le créneau, le type, l'effectif et le statut se lisent sur la session.
 
 **PlanProjet** (`PlanProjet`) : projet rattaché, nom du fichier stocké, nom d'origine, date de création.
 
@@ -378,8 +380,9 @@ Les relations entre entités sont les suivantes :
 
 - Un **utilisateur** peut posséder plusieurs **projets** (relation un-à-plusieurs via `etudiant`), et peut être le valideur de plusieurs projets (via `valideur`).
 - Un **projet** est rattaché à un et un seul étudiant, référence éventuellement un valideur, et peut concerner plusieurs **machines** (relation plusieurs-à-plusieurs).
-- Un **projet** possède plusieurs **réservations** et plusieurs **plans** (relations un-à-plusieurs, avec suppression en cascade : supprimer un projet supprime ses plans et réservations).
-- Une **réservation** porte sur un **projet** et une **machine** (deux relations plusieurs-à-un).
+- Un **projet** possède plusieurs **sessions de réservation** et plusieurs **plans** (relations un-à-plusieurs, avec suppression en cascade : supprimer un projet supprime ses plans et ses sessions).
+- Une **session de réservation** porte sur un **projet** (relation plusieurs-à-un) et regroupe une ou plusieurs **occupations** (relation un-à-plusieurs, en cascade : supprimer une session supprime ses occupations).
+- Une **occupation** (`Reservation`) rattache une **session** à une **machine** (deux relations plusieurs-à-un).
 - Une **sanction** vise un étudiant et référence son auteur (deux relations vers `User`).
 - Une **notification** vise un destinataire (relation plusieurs-à-un vers `User`).
 
@@ -408,14 +411,25 @@ Les relations entre entités sont les suivantes :
    1│    │ 1
         │    └──────────────┐
    *│                   │ *
- ┌────▼───────┐   ┌───────▼──────┐        ┌──────────────┐
- │ PlanProjet │   │ Reservation  │ *    1 │   Machine    │
- │────────────│   │──────────────│────────│──────────────│
- │ fichier    │   │ dateDebut    │        │ nom          │
- │ nomOriginal│   │ dateFin      │        │ type         │
- └────────────┘   │ statut       │        │ etat         │
-                  │ nbPersonnes  │        │ dureeCreneau │
-                  └──────────────┘        └──────────────┘
+ ┌────▼───────┐   ┌──────────▼────────┐
+ │ PlanProjet │   │ SessionReservation│
+ │────────────│   │───────────────────│
+ │ fichier    │   │ type              │
+ │ nomOriginal│   │ dateDebut         │
+ └────────────┘   │ dateFin           │
+                  │ statut            │
+                  │ nbPersonnes       │
+                  └─────────┬─────────┘
+                       1│
+                       │ *
+                  ┌──────────▼────────┐        ┌──────────────┐
+                  │ Reservation       │ *    1 │   Machine    │
+                  │ (occupation)      │────────│──────────────│
+                  │───────────────────│        │ nom          │
+                  │ session           │        │ type         │
+                  │ machine           │        │ etat         │
+                  └───────────────────┘        │ dureeCreneau │
+                                               └──────────────┘
         Projet ─*──*─ Machine (machines souhaitées du projet)
 ```
 
@@ -499,7 +513,7 @@ return match ($attribute) {
 
 #### 6.2.1 La détection de chevauchement de créneaux (requête d'accès aux données)
 
-Le cœur de la réservation repose sur une requête qui calcule combien de personnes occupent déjà une machine sur un créneau donné. La difficulté est de détecter correctement le **chevauchement** de deux créneaux, et non seulement leur égalité.
+Le cœur de la réservation repose sur une requête qui calcule combien de personnes occupent déjà le FabLab sur un créneau donné. L'effectif étant porté par la session (et non par chaque machine), la somme se calcule directement sur les sessions. La difficulté est de détecter correctement le **chevauchement** de deux créneaux, et non seulement leur égalité.
 
 ```php
 public function sommePersonnesSurCreneau(
@@ -507,45 +521,58 @@ public function sommePersonnesSurCreneau(
     \DateTimeImmutable $fin,
     bool $verrouiller = false,
 ): int {
-    $qb = $this->createQueryBuilder('r')
-        ->select('COALESCE(SUM(r.nbPersonnesPrevues), 0)')
-        ->where('r.statut IN (:actifs)')
-        // chevauchement d'intervalles semi-ouverts : r.debut < fin ET r.fin > debut
-        ->andWhere('r.dateDebut < :fin')
-        ->andWhere('r.dateFin > :debut')
+    // Verrou pessimiste (DEC-098) : PostgreSQL interdit FOR UPDATE sur un
+    // agrégat. On verrouille d'abord les lignes de session concernées par une
+    // requête sans agrégat, PUIS on calcule la somme sans verrou.
+    if ($verrouiller) {
+        $this->createQueryBuilder('sl')
+            ->select('sl.id')
+            ->where('sl.statut IN (:actifs)')
+            ->andWhere('sl.dateDebut < :fin')
+            ->andWhere('sl.dateFin > :debut')
+            ->setParameter('actifs', [
+                ReservationStatut::Planifiee->value,
+                ReservationStatut::Effectuee->value,
+            ])
+            ->setParameter('debut', $debut)
+            ->setParameter('fin', $fin)
+            ->getQuery()
+            ->setLockMode(LockMode::PESSIMISTIC_WRITE)
+            ->getResult();
+    }
+
+    return (int) $this->createQueryBuilder('s')
+        ->select('COALESCE(SUM(s.nbPersonnes), 0)')
+        ->where('s.statut IN (:actifs)')
+        // chevauchement d'intervalles semi-ouverts : s.debut < fin ET s.fin > debut
+        ->andWhere('s.dateDebut < :fin')
+        ->andWhere('s.dateFin > :debut')
         ->setParameter('actifs', [
             ReservationStatut::Planifiee->value,
             ReservationStatut::Effectuee->value,
         ])
         ->setParameter('debut', $debut)
-        ->setParameter('fin', $fin);
-
-    $query = $qb->getQuery();
-
-    if ($verrouiller) {
-        // Verrou pessimiste : bloque les écritures concurrentes sur les lignes
-        // lues jusqu'à la fin de la transaction, empêchant le dépassement de capacité.
-        $query->setLockMode(LockMode::PESSIMISTIC_WRITE);
-    }
-
-    return (int) $query->getSingleScalarResult();
+        ->setParameter('fin', $fin)
+        ->getQuery()
+        ->getSingleScalarResult();
 }
 ```
 
-**Argumentation.** La condition de chevauchement `dateDebut < fin ET dateFin > debut` est la formule correcte pour des intervalles semi-ouverts : deux créneaux qui se touchent (l'un finit quand l'autre commence) ne se chevauchent pas, ce qui est le comportement attendu pour des créneaux successifs. La requête ne compte que les réservations actives (planifiées ou effectuées), excluant les annulées : une annulation ne doit pas faire paraître un créneau occupé. L'option de verrou pessimiste prépare la sécurisation de la concurrence (voir 6.2.2). **Compétence démontrée :** développer des composants d'accès aux données et dans le langage d'une base de données.
+**Argumentation.** La condition de chevauchement `dateDebut < fin ET dateFin > debut` est la formule correcte pour des intervalles semi-ouverts : deux créneaux qui se touchent (l'un finit quand l'autre commence) ne se chevauchent pas, ce qui est le comportement attendu pour des créneaux successifs. La requête ne compte que les sessions actives (planifiées ou effectuées), excluant les annulées et reportées : une session abandonnée ne doit pas faire paraître un créneau occupé. Le verrou pessimiste, posé sur des lignes (et non sur l'agrégat, interdit par PostgreSQL), sécurise la concurrence (voir 6.2.2). **Compétence démontrée :** développer des composants d'accès aux données et dans le langage d'une base de données.
 
 #### 6.2.2 La gestion de la concurrence : cœur métier sécurisé
 
-La fonctionnalité la plus représentative du projet est la création d'une réservation. Elle concentre les règles métier, la gestion de la concurrence et la défense en profondeur.
+La fonctionnalité la plus représentative du projet est la création d'une réservation. Elle concentre les règles métier, la gestion de la concurrence et la défense en profondeur. Une réservation est une session : un créneau, un type, un effectif, et une à plusieurs machines occupées.
 
 ```php
 public function creerSession(
     Projet $projet,
-    Machine $machine,
-    \DateTimeImmutable $debut,
     ReservationType $type,
+    \DateTimeImmutable $debut,
     int $nbPersonnes,
-): Reservation {
+    int $dureeMinutes,
+    array $machines,
+): SessionReservation {
     // Règle 0 : on ne réserve que sur un projet validé ou en cours.
     // Cette garde est portée dans le service, et non seulement dans le
     // contrôleur : la règle métier doit tenir quel que soit le point d'entrée.
@@ -555,23 +582,21 @@ public function creerSession(
         );
     }
 
-    // Règle 1 : la machine doit être réservable (ni en maintenance, ni hors service).
-    if (!$machine->estReservable()) {
-        throw new ReservationImpossibleException(/* ... */);
-    }
-
-    // Règle 2 : quota de sessions de réalisation par projet.
-    // On exclut les réservations annulées et reportées du décompte.
+    // Règle 1 : quota de sessions de RÉALISATION par projet (la préparation
+    // n'est pas plafonnée). On exclut les sessions annulées et reportées.
     // ...
 
-    // Transaction atomique : verrou pessimiste sur la lecture de capacité,
-    // puis insertion. Aucune réservation concurrente ne peut s'intercaler.
+    // Règle 2 : chaque machine doit être réservable et libre sur le créneau ;
+    // on la verrouille (verrou pessimiste) avant de lire la capacité.
+    // Règle 3 : capacité 15, effectif de la session compté une seule fois.
+
+    // Transaction atomique : une session + ses occupations, tout ou rien.
     $this->em->getConnection()->beginTransaction();
     // ...
 }
 ```
 
-**Argumentation.** Cet extrait illustre trois principes. La **défense en profondeur** : la règle « projet validé » est portée par le service, au plus près des données, et non seulement par l'écran. Un audit a révélé que cette règle n'existait initialement que dans le contrôleur, ce qui la rendait contournable par tout autre point d'entrée ; elle a été ramenée dans le service. La **gestion de la concurrence** : la vérification de capacité et l'insertion se font dans une transaction sous verrou pessimiste, car deux réservations simultanées sur le dernier créneau libre constituent une situation de course que seule l'atomicité de la base peut résoudre de façon fiable. La **clarté des règles** : chaque règle est numérotée, commentée, et lève une exception métier explicite qui devient un message clair pour l'utilisateur. **Compétence démontrée :** développer des composants métier en intégrant les recommandations de sécurité.
+**Argumentation.** Cet extrait illustre trois principes. La **défense en profondeur** : la règle « projet validé » est portée par le service, au plus près des données, et non seulement par l'écran. Un audit a révélé que cette règle n'existait initialement que dans le contrôleur, ce qui la rendait contournable par tout autre point d'entrée ; elle a été ramenée dans le service. La **gestion de la concurrence** : la vérification de capacité et l'insertion se font dans une transaction sous verrou pessimiste posé sur chaque machine, car deux réservations simultanées sur le dernier créneau libre constituent une situation de course que seule l'atomicité de la base peut résoudre de façon fiable. La **clarté des règles** : chaque règle est numérotée, commentée, et lève une exception métier explicite qui devient un message clair pour l'utilisateur. **Compétence démontrée :** développer des composants métier en intégrant les recommandations de sécurité.
 
 ### 6.3 Activité type 3 : logiciel multicouche et sécurité
 

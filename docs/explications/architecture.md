@@ -98,8 +98,10 @@ User                compte (étudiant ou staff)               rôles RBAC, actif
                                                               relation vers sanctions
 Projet              demande de projet                        type, statut (machine à états),
                                                               étudiant, valideur, machines
-Reservation         créneau machine                          type (préparation/réalisation),
+SessionReservation  réservation (enveloppe)                  type (préparation/réalisation),
                                                               statut, dates, nb personnes
+Reservation         occupation d'une machine                 session, machine
+                    dans une session
 Machine             équipement du FabLab                     état, durée de créneau, photo
 Consommable         article de stock                         quantité, seuil, catégorie
 PlanProjet          fichier joint à un projet                BF_3.7, ex DemandeFichier
