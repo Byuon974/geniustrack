@@ -17,10 +17,42 @@ use Symfony\Component\String\Slugger\SluggerInterface;
  */
 class PlanUploadService
 {
+    /** Taille maximale d'un plan, en octets (25 Mo). Source unique, partagée par
+     *  la création (contrainte du formulaire) et l'ajout en modification. */
+    public const TAILLE_MAX_OCTETS = 25 * 1024 * 1024;
+
+    /** Types MIME acceptés pour un plan (modèles 3D, documents, images). */
+    public const MIME_TYPES_ACCEPTES = [
+        'application/sla', 'model/stl', 'application/octet-stream',
+        'application/pdf', 'image/svg+xml', 'application/zip',
+        'text/plain', 'application/vnd.ms-pki.stl',
+        'image/jpeg', 'image/png', 'image/webp',
+    ];
+
     public function __construct(
         private readonly string $repertoirePlans,
         private readonly SluggerInterface $slugger,
     ) {
+    }
+
+    /**
+     * Valide un fichier avant stockage : taille et type MIME. Renvoie un message
+     * d'erreur en français si le fichier est refusé, sinon null. Utilisé par
+     * l'ajout de plans en modification, pour appliquer côté serveur les mêmes
+     * règles que le formulaire de création (la validation client est une
+     * commodité contournable, pas une barrière).
+     */
+    public function valider(UploadedFile $fichier): ?string
+    {
+        if ($fichier->getSize() > self::TAILLE_MAX_OCTETS) {
+            return sprintf('« %s » dépasse 25 Mo.', $fichier->getClientOriginalName());
+        }
+        $mime = $fichier->getMimeType();
+        if (null !== $mime && !in_array($mime, self::MIME_TYPES_ACCEPTES, true)) {
+            return sprintf('« %s » : format non accepté.', $fichier->getClientOriginalName());
+        }
+
+        return null;
     }
 
     /**

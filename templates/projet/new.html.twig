@@ -9,6 +9,7 @@
 
 
 {{ form_start(form) }}
+    {{ form_errors(form) }}
     {# Un seul bloc « Matériel & détails » : les champs de détail (quantité,
        supports) rejoignent le matériel au lieu d'une colonne séparée qui se
        vide quand peu de champs s'appliquent. Colonne unique préservée dans
@@ -40,6 +41,7 @@
                                     label_plus: 'Une unité de plus',
                                     depart: form.quantite.vars.value|default(1)
                                 }) }}
+                                {{ form_errors(form.quantite) }}
                             </div>
                         {% endif %}
                         {% if form.support_flocage is defined or form.support_gravure is defined %}
@@ -55,8 +57,9 @@
                     {{ include('components/upload.html.twig', {
                         input_html: form_widget(form.plansFiles),
                         label: 'Plans / fichiers (optionnel)',
-                        formats: 'STL, OBJ, PDF, SVG, ZIP · 10 fichiers max, 25 Mo chacun, 80 Mo au total'
+                        formats: 'STL, OBJ, PDF, SVG, ZIP, JPEG, PNG, WebP · 10 fichiers max, 25 Mo chacun, 80 Mo au total'
                     }) }}
+                    {{ form_errors(form.plansFiles) }}
                 {% endif %}
             </div>
         </fieldset>

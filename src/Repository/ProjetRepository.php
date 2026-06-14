@@ -91,16 +91,15 @@ class ProjetRepository extends ServiceEntityRepository
     }
 
     /**
-     * Tous les projets, étudiant chargé en une requête (évite le N+1 dans la
-     * vue d'administration). Tri du plus récent au plus ancien.
+     * Tous les projets, du plus récent au plus ancien. L'étudiant est chargé à
+     * la demande par Doctrine (relation ManyToOne, peu coûteuse ici vu le volume
+     * d'un FabLab de campus).
      *
      * @return Projet[]
      */
     public function tousAvecEtudiant(): array
     {
         return $this->createQueryBuilder('p')
-            ->addSelect('e')
-            ->leftJoin('p.etudiant', 'e')
             ->orderBy('p.createdAt', 'DESC')
             ->getQuery()
             ->getResult();

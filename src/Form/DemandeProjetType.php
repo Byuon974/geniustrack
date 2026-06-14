@@ -66,7 +66,7 @@ class DemandeProjetType extends AbstractType
             // BF_3.7 : import de plans (multiple, non mappé : traité au controller).
             ->add('plansFiles', \Symfony\Component\Form\Extension\Core\Type\FileType::class, [
                 'label' => 'Plans / fichiers (impression 3D, découpe… : optionnel)',
-                'help' => 'Formats : STL, OBJ, PDF, SVG, ZIP. Jusqu\'à 10 fichiers, 25 Mo chacun, 80 Mo au total. Vous pouvez en sélectionner plusieurs à la fois.',
+                'help' => 'Formats : STL, OBJ, PDF, SVG, ZIP, JPEG, PNG, WebP. Jusqu\'à 10 fichiers, 25 Mo chacun, 80 Mo au total. Vous pouvez en sélectionner plusieurs à la fois.',
                 'mapped' => false,
                 'required' => false,
                 'multiple' => true,
@@ -111,12 +111,8 @@ class DemandeProjetType extends AbstractType
                             // (qui dépasse rarement 50 Mo), sans inviter les fichiers
                             // non optimisés. Aligné sur upload_max_filesize côté PHP.
                             maxSize: '25M',
-                            mimeTypes: [
-                                'application/sla', 'model/stl', 'application/octet-stream',
-                                'application/pdf', 'image/svg+xml', 'application/zip',
-                                'text/plain', 'application/vnd.ms-pki.stl',
-                            ],
-                            mimeTypesMessage: 'Formats acceptés : STL, OBJ, PDF, SVG, ZIP…',
+                            mimeTypes: \App\Service\PlanUploadService::MIME_TYPES_ACCEPTES,
+                            mimeTypesMessage: 'Formats acceptés : STL, OBJ, PDF, SVG, ZIP, JPEG, PNG, WebP.',
                         ),
                         // Les .zip sont acceptés (un étudiant peut grouper ses
                         // fichiers), mais inspectés contre les bombes de
@@ -150,8 +146,19 @@ class DemandeProjetType extends AbstractType
                     'mapped' => false, // stocké hors entité Projet (métadonnée de demande)
                     'attr' => ['min' => 1, 'max' => 10, 'inputmode' => 'numeric', 'data-stepper-target' => 'champ'],
                     'constraints' => [
-                        new Assert\Positive(message: 'La quantité doit être au moins de 1.'),
-                        new Assert\LessThanOrEqual(value: 10, message: 'La quantité ne peut pas dépasser {{ compared_value }}.'),
+                        // La quantité est une simple indication, facultative : un champ
+                        // vide ne doit JAMAIS faire échouer la demande. Optional ignore
+                        // la contrainte si rien n'est saisi ; Range ne borne que si une
+                        // valeur est fournie (RETEX : `required` ne valide pas côté
+                        // serveur, c'est la contrainte qui décide, et Positive seul
+                        // rejetterait le vide).
+                        new Assert\Optional([
+                            new Assert\Range(
+                                min: 1,
+                                max: 10,
+                                notInRangeMessage: 'La quantité doit être comprise entre {{ min }} et {{ max }}.',
+                            ),
+                        ]),
                     ],
                 ]);
             }

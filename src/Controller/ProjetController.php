@@ -355,20 +355,41 @@ class ProjetController extends AbstractController
 
         if ($this->isCsrfTokenValid('plan_ajouter'.$projet->getId(), $request->request->getString('_token'))) {
             $fichiers = $request->files->all('plans');
+            $dejaPresents = $projet->getPlans()->count();
+            $maxFichiers = 10;
             $ajoutes = 0;
+            $refuses = [];
+
             foreach ($fichiers as $fichier) {
                 if (null === $fichier) {
+                    continue;
+                }
+                // Plafond du nombre de plans, en comptant ceux déjà rattachés.
+                if ($dejaPresents + $ajoutes >= $maxFichiers) {
+                    $refuses[] = sprintf('« %s » : maximum %d fichiers atteint.', $fichier->getClientOriginalName(), $maxFichiers);
+                    continue;
+                }
+                // Mêmes règles de taille et de type qu'à la création (côté serveur).
+                $erreur = $plans->valider($fichier);
+                if (null !== $erreur) {
+                    $refuses[] = $erreur;
                     continue;
                 }
                 $nom = $plans->stocker($fichier);
                 $em->persist(new \App\Entity\PlanProjet($projet, $nom, $fichier->getClientOriginalName()));
                 ++$ajoutes;
             }
+
             if ($ajoutes > 0) {
                 $em->flush();
                 $journal->tracer($this->getUser(), 'Plan(s) ajouté(s)', $projet->getTitre());
                 $this->addFlash('success', $ajoutes > 1 ? 'Fichiers ajoutés.' : 'Fichier ajouté.');
-            } else {
+            }
+            if (!empty($refuses)) {
+                $this->addFlash('error', count($refuses) > 1
+                    ? count($refuses).' fichiers écartés : '.implode(' ', $refuses)
+                    : $refuses[0]);
+            } elseif (0 === $ajoutes) {
                 $this->addFlash('error', 'Aucun fichier reçu.');
             }
         }

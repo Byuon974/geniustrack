@@ -47,7 +47,7 @@ class Projet
     #[ORM\Column(length: 20, enumType: ProjetStatut::class)]
     private ProjetStatut $statut = ProjetStatut::Brouillon;
 
-    #[ORM\ManyToOne(inversedBy: 'projets')]
+    #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
     private User $etudiant;
 
