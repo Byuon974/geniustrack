@@ -29,8 +29,6 @@
                     data-action="datatable#trier">Nom <span class="dt-arrow" aria-hidden="true"></span></th>
                 <th class="dt-sortable" data-datatable-target="header" data-sort-key="type"
                     data-action="datatable#trier">Type <span class="dt-arrow" aria-hidden="true"></span></th>
-                <th class="dt-sortable" data-datatable-target="header" data-sort-key="duree"
-                    data-action="datatable#trier">Durée créneau <span class="dt-arrow" aria-hidden="true"></span></th>
                 <th class="dt-sortable" data-datatable-target="header" data-sort-key="etat"
                     data-action="datatable#trier">État <span class="dt-arrow" aria-hidden="true"></span></th>
                 <th class="actions-col">Actions</th>
@@ -42,11 +40,9 @@
                         data-recherche="{{ (machine.nom ~ ' ' ~ (machine.type|libelle_type_machine) ~ ' ' ~ machine.etat.libelle)|lower }}"
                         data-sort-nom="{{ machine.nom|lower }}"
                         data-sort-type="{{ (machine.type|libelle_type_machine)|lower }}"
-                        data-sort-duree="{{ machine.dureeCreneauMinutes }}"
                         data-sort-etat="{{ machine.etat.libelle|lower }}">
                         <td><span class="statut-pastille statut-pastille--{{ couleurEtat }}" aria-hidden="true"></span>{{ machine.nom }}</td>
                         <td>{{ machine.type|libelle_type_machine }}</td>
-                        <td>{{ machine.dureeCreneauMinutes }} min</td>
                         <td>
                             {{ include('components/badge.html.twig', {
                                 variante: machine.etat.value == 'active' ? 'succes' : (machine.etat.value == 'maintenance' ? 'alerte' : 'danger'),

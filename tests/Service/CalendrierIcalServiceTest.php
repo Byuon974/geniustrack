@@ -25,7 +25,7 @@ class CalendrierIcalServiceTest extends TestCase
     {
         $user = (new User())->setEmail('e@cci.re')->setNom('X')->setPrenom('Y')->setPassword('x');
         $machine = (new Machine())->setNom('Imprimante 3D')->setType('impression_3d')
-            ->setDureeCreneauMinutes(60)->setEtat(MachineEtat::Active);
+            ->setEtat(MachineEtat::Active);
         $projet = (new Projet())->setTitre('Mon projet')->setType(ProjetType::Personnel)->setEtudiant($user);
 
         $session = (new SessionReservation())

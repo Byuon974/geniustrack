@@ -34,10 +34,6 @@
                     {% else %}
                         {{ include('components/badge.html.twig', {couleur: 'amber', label: machine.etat.libelle}) }}
                     {% endif %}
-                    <span class="fiche-meta-item">
-                        {{ include('components/icon.html.twig', {name: 'clock', size: 15}) }}
-                        Créneau de {{ machine.dureeCreneauMinutes }} min
-                    </span>
                 </div>
             </div>
         </div>

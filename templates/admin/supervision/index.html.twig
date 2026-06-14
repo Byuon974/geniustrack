@@ -43,7 +43,7 @@
             {% endif %}
         </div>
         {% if reservationsParMois is empty %}
-            {{ include('components/empty.html.twig', {message: 'Aucune réservation sur cette période.'}) }}
+            {{ include('components/empty.html.twig', {message: 'Aucune réservation sur la période.'}) }}
         {% else %}
             {% set totaux = {} %}
             {% for r in reservationsParMois %}{% set totaux = totaux|merge({(r.mois): r.total}) %}{% endfor %}
@@ -81,7 +81,7 @@
             <span class="superv-tot">cumulé</span>
         </div>
         {% if stockParMois is empty %}
-            {{ include('components/empty.html.twig', {message: 'Aucun mouvement de stock sur cette période.'}) }}
+            {{ include('components/empty.html.twig', {message: 'Aucun mouvement de stock sur la période.'}) }}
         {% else %}
             {# Cumul progressif. Liste (indices 0..) car merge réindexe les clés. #}
             {% set cumul = 0 %}
@@ -128,7 +128,7 @@
     <section class="superv-bloc superv-bloc--machines">
         <h2 class="superv-titre">Taux d'utilisation des machines</h2>
         {% if tauxMachines is empty %}
-            {{ include('components/empty.html.twig', {message: 'Aucune donnée machine sur cette période.'}) }}
+            {{ include('components/empty.html.twig', {message: 'Aucune donnée machine sur la période.'}) }}
         {% else %}
             <div class="superv-mbars">
                 {% for m in tauxMachines %}
@@ -151,7 +151,7 @@
     <section class="superv-bloc superv-bloc--mouvements" data-controller="gallery-filter">
         <h2 class="superv-titre">Derniers mouvements de stock</h2>
         {% if mouvementsRecents is empty %}
-            {{ include('components/empty.html.twig', {message: 'Aucun mouvement enregistré pour le moment.'}) }}
+            {{ include('components/empty.html.twig', {message: 'Aucun mouvement enregistré.'}) }}
         {% else %}
             <div class="superv-filtres" role="group" aria-label="Filtrer par motif">
                 <button type="button" class="superv-chip is-active" aria-pressed="true"

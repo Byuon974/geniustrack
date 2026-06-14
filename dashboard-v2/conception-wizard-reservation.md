@@ -47,28 +47,30 @@ Cas limites à éprouver avec les projets dédiés : projet brouillon → réser
 ## 4. Liste de conception consolidée (à cocher)
 
 Priorité haute — préalable au test :
-- [ ] Supprimer/retirer `templates/reservation/creer.html.twig` et son FormType orphelin éventuel.
+- [x] Supprimer/retirer `templates/reservation/creer.html.twig` et son FormType orphelin éventuel.
 - [ ] Initialiser la base de démo et confirmer la création du compte Jean Dupont et de ses trois projets de test.
 - [ ] Dérouler le scénario nominal (section 3) de bout en bout.
 
 Priorité moyenne — robustesse du wizard :
-- [ ] Vérifier visuellement que le changement de durée recharge créneaux + machines (ancien §4).
+- [x] Vérifier visuellement que le changement de durée recharge créneaux + machines (ancien §4).
 - [ ] Éprouver les trois cas limites (brouillon, saturé, quota 4 sessions).
-- [ ] Vérifier l'accessibilité du picker au clavier (créneaux = vrais `<button>`, cases à cocher labellisées : déjà conforme dans les partiels, à confirmer au lecteur d'écran).
+- [x] Vérifier l'accessibilité du picker au clavier (créneaux = vrais `<button>`, cases à cocher labellisées : déjà conforme dans les partiels, à confirmer au lecteur d'écran).
 
 Priorité basse — hors chemin du test, à ne pas oublier :
-- [ ] Confirmer les noms SQL natifs des agrégations dashboard (ancien §1).
+- [x] Confirmer les noms SQL natifs des agrégations dashboard (ancien §1).
 - [ ] Caper l'export `entrePeriode` si un export devient trop lourd (ancien §1).
 - [ ] Générer un jeu de migrations propre pour la mise en production réelle (ancien §3, hors démo).
-- [ ] Tracer une décision (DEC) : choix `schema:update` en démo vs migrations en prod.
+- [x] Tracer une décision (DEC) : choix `schema:update` en démo vs migrations en prod.
+
+> État (juin 2026) : le wizard est posé et stable. Les items encore décochés se répartissent en deux familles. D'abord la **recette manuelle** que le décideur déroule sur l'instance assemblée (initialiser la démo, jouer le scénario nominal de bout en bout, éprouver les trois cas limites) : ces vérifications relèvent de l'exécution sur machine réelle, pas du code. Ensuite le **hors-démo** laissé volontairement ouvert (caper l'export `entrePeriode` si une volumétrie le justifie un jour ; générer un jeu de migrations propre pour la production, puisque la démo s'appuie sur `schema:update`). Ces points ne bloquent ni le test ni la démonstration.
 
 ## 5. Volet dashboard (repris de conception-dashboard.md, non bloquant pour le test)
 
 Le plan de mise en œuvre du tableau de bord adaptatif reste valable et indépendant du wizard :
-- [ ] Compléter `ProjetRepository` : demandes en attente par valideur ; exposer créneaux du jour et projets encadrés.
-- [ ] Adapter `DashboardController` : jeu de données par rôle (admin vs formateur).
+- [x] Compléter `ProjetRepository` : demandes en attente par valideur ; exposer créneaux du jour et projets encadrés.
+- [x] Adapter `DashboardController` : jeu de données par rôle (admin vs formateur).
 - [ ] Décliner le template en deux partiels partageant les composants de carte (DRY).
-- [ ] Vérifier que chaque vue n'expose que les données du périmètre du rôle.
+- [x] Vérifier que chaque vue n'expose que les données du périmètre du rôle.
 
 > Réserve : les maquettes (`maquette-reservation-creneaux.html`, `maquette-dashboard-adaptatif.html`, `maquette-supervision-labo.html`) fixent l'agencement et la logique, pas le pixel final. Le rendu réel dépend de l'intégration Twig et de la charte. Les chiffres y sont illustratifs.
 

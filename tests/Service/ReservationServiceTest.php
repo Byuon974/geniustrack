@@ -60,7 +60,6 @@ class ReservationServiceTest extends KernelTestCase
         $machine = (new Machine())
             ->setNom('Imprimante 3D')
             ->setType('impression_3d')
-            ->setDureeCreneauMinutes(120)
             ->setEtat($etat);
         $this->em->persist($machine);
         $this->em->flush();

@@ -12,7 +12,7 @@
 
 
 {% if projets is empty %}
-    {{ include('components/empty.html.twig', {message: 'Aucune demande en attente pour le moment.'}) }}
+    {{ include('components/empty.html.twig', {message: 'Aucune demande en attente.'}) }}
 {% else %}
     <div class="demande-file">
         {% for projet in projets %}

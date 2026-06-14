@@ -31,11 +31,6 @@ class Machine
     #[ORM\Column(length: 50)]
     private string $type;
 
-    // BF_3.10 : temps d'utilisation adapté à chaque machine.
-    #[ORM\Column]
-    #[Assert\Positive]
-    private int $dureeCreneauMinutes = 60;
-
     // BF_3.8 / BF_5.2 : état piloté par l'admin.
     #[ORM\Column(length: 20, enumType: MachineEtat::class)]
     private MachineEtat $etat = MachineEtat::Active;
@@ -89,18 +84,6 @@ class Machine
     public function setType(string $type): self
     {
         $this->type = $type;
-
-        return $this;
-    }
-
-    public function getDureeCreneauMinutes(): int
-    {
-        return $this->dureeCreneauMinutes;
-    }
-
-    public function setDureeCreneauMinutes(int $dureeCreneauMinutes): self
-    {
-        $this->dureeCreneauMinutes = $dureeCreneauMinutes;
 
         return $this;
     }

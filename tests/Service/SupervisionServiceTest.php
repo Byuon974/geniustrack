@@ -79,7 +79,6 @@ class SupervisionServiceTest extends KernelTestCase
         $m = (new Machine())
             ->setNom($nom)
             ->setType('impression_3d')
-            ->setDureeCreneauMinutes(60)
             ->setEtat(MachineEtat::Active);
         $this->em->persist($m);
         $this->em->flush();

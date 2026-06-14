@@ -23,7 +23,7 @@
 
 {% if articles is empty %}
     {{ include('components/empty.html.twig', {
-        message: 'Aucun article en stock pour le moment.',
+        message: 'Aucun article en stock.',
         action_label: 'Ajouter le premier',
         action_path: path('admin_stock_new')
     }) }}

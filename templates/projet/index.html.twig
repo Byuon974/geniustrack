@@ -39,7 +39,7 @@
                     data-sort-type="{{ projet.type.libelle|lower }}"
                     data-sort-statut="{{ projet.statut.libelle|lower }}"
                     data-sort-date="{{ projet.createdAt|date('Ymd') }}">
-                    <td><span class="statut-pastille statut-pastille--{{ projet.statut.couleur }}" aria-hidden="true"></span>{{ projet.titre }}</td>
+                    <td class="projet-titre-cell"><span class="statut-pastille statut-pastille--{{ projet.statut.couleur }}" aria-hidden="true"></span><span class="projet-titre-texte">{{ projet.titre }}</span></td>
                     <td>{{ projet.type.libelle }}</td>
                     <td>{{ include('components/badge.html.twig', {couleur: projet.statut.couleur, label: projet.statut.libelle}) }}</td>
                     <td>{{ projet.createdAt|date('d/m/Y') }}</td>

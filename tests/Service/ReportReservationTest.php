@@ -40,7 +40,7 @@ class ReportReservationTest extends KernelTestCase
         $u = (new User())->setEmail('e@cci.re')->setNom('X')->setPrenom('Y')
             ->setRoles(['ROLE_ETUDIANT'])->setPassword('x');
         $m = (new Machine())->setNom('Imprimante')->setType('impression_3d')
-            ->setDureeCreneauMinutes(60)->setEtat(MachineEtat::Active);
+            ->setEtat(MachineEtat::Active);
         $p = (new Projet())->setTitre('P')->setType(ProjetType::Personnel)->setEtudiant($u);
         $this->em->persist($u);
         $this->em->persist($m);

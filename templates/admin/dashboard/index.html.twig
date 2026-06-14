@@ -114,7 +114,7 @@
                 {% for projet in demandesATraiter %}
                     <a href="{{ path('demande_index') }}" class="dash-demande">
                         <span class="statut-pastille statut-pastille--amber" aria-hidden="true"></span>
-                        <span style="flex:1;">{{ projet.titre }}</span>
+                        <span class="dash-demande__titre">{{ projet.titre }}</span>
                         <span class="dash-demande__type">{{ projet.type.libelle }}</span>
                     </a>
                 {% endfor %}

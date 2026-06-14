@@ -187,3 +187,50 @@ Leçon : « fonctionnel » n'est pas « juste ». Une courbe qui trace le futur 
 - La recherche fonde la décision quand la question est tranchable (honnêteté des axes, tooltip contre étiquetage, densité sans défilement).
 - La correction réutilise les composants existants (ascenseur interne, contrôleur de filtre) plutôt qu'une invention.
 - Présentation et métier restent étanches : aucun calcul d'indicateur n'a été modifié.
+
+## Itération 15 : passe de microcopie (états vides, messages d'erreur)
+
+Problème observé : un audit des textes a révélé des états vides formulés différemment pour des situations identiques (« sur cette période » contre « sur la période », « pour le moment » ajouté de façon inégale, doublons « en stock » contre « en stock pour le moment »), et deux messages d'erreur jargonneux exposant des termes techniques à l'usager (« Jeton de sécurité invalide », « Action inconnue »).
+
+Décision : harmonisation sans sur-correction. Les états vides divergents sont ramenés à une formulation unique par situation ; les répétitions strictement identiques entre pages sont conservées, car elles sont cohérentes. Les tournures correctes en contexte (notifications, vitrine destinée à un administrateur technique) sont laissées telles quelles. Les deux messages d'erreur jargonneux sont reformulés en langage orienté cause et remède : le jeton de sécurité invalide devient « Votre session a expiré. Merci de recommencer. », l'action inconnue devient « Action non reconnue, aucune modification effectuée. ». Constat secondaire utile : les états vides des listes (machines, stock) portaient déjà un bouton d'appel à l'action, le composant d'état vide étant conçu comme une invitation à agir et non un cul-de-sac.
+
+Leçon : une passe de texte se mesure à sa retenue autant qu'à ses corrections. Harmoniser ne veut pas dire tout réécrire : on supprime les divergences inutiles, on garde les répétitions cohérentes et le jargon adapté à son audience. Le jargon visible par l'usager se traduit en cause et en action, pas en terme technique.
+
+## Itération 16 : la grille de cases qui se désalignait
+
+Problème observé : sur la page de nouvelle demande, la liste des machines à cocher se présentait en grille irrégulière. Au retour à la ligne, une case restait orpheline en fin de ligne et son libellé passait seul en dessous (« Station IoT / électronique » désaligné), au point de se mêler visuellement au champ de fichiers qui suivait.
+
+Décision : corriger à la racine, pas par un calage ponctuel. La cause était structurelle. Le champ « expanded » génère par défaut une suite plate (case, libellé, case, libellé…) que la feuille de style disposait en `flex-wrap` : rien ne liait une case à son libellé, d'où la rupture au passage à la ligne. La correction introduit un thème de formulaire qui enveloppe chaque choix dans un bloc solidaire case + libellé, et passe le conteneur en grille régulière. Le thème hérite du gabarit standard et ne redéfinit que le rendu des champs expanded, sans toucher aux autres champs. Bénéfice de bord : tous les formulaires à cases du projet (gestion des utilisateurs comprise) profitent du même rendu propre, sans intervention par page.
+
+Leçon : un désalignement n'est pas toujours un défaut de marge, c'est parfois un défaut de structure. Lier la case à son libellé une fois pour toutes, au niveau du thème, vaut mieux que dix correctifs de largeur fragiles. Et corriger au bon niveau profite à tout le reste sans effort supplémentaire.
+
+- Le déclencheur reste une observation concrète sur l'instance réelle.
+- La cause (structure plate, paires non liées) est établie avant tout correctif.
+- La correction réutilise le mécanisme standard des thèmes de formulaire, sans hack de largeur.
+- Le correctif est porté au niveau partagé, donc cohérent sur tous les formulaires à cases.
+
+## Itération 17 : la page de demande, protections de saisie et compaction
+
+Problème observé : la page de nouvelle demande étalait ses trois blocs sur toute la largeur, gâchant l'espace horizontal sur grand écran et allongeant la page sans raison. Surtout, les champs n'avaient pas de garde-fous : le titre n'avait pas de longueur validée (au-delà de la limite de colonne, l'insertion aurait échoué en erreur brute), la description était illimitée, et la quantité n'avait qu'un minimum côté navigateur, contournable, sans borne serveur.
+
+Décision : protéger d'abord, compacter ensuite, en suivant le RETEX. Côté protections, la validation vit à deux niveaux complémentaires : les attributs HTML (longueur maximale, bornes numériques) aident la saisie en direct mais restent contournables ; la vraie garantie est portée par les contraintes serveur, sur l'entité pour le titre (3 à 40 caractères) et la description (250 caractères au plus), et sur le formulaire pour la quantité (au moins 1, au plus 10). Les messages d'erreur sont explicites et en français. Côté mise en page, le RETEX distingue nettement le tableau de bord, que l'on garde sur un écran, du formulaire de saisie, qu'il ne faut pas comprimer : la colonne unique reste la règle dans chaque bloc, le scroll vertical modéré est légitime, et l'on déconseille de tout entasser, en particulier sur mobile. La compaction consiste donc à resserrer les espacements et à faire cohabiter, sur grand écran seulement, les deux blocs courts (matériel et détails) sur une même rangée, le bloc projet restant pleine largeur. Sur mobile, tout repasse en pile.
+
+Leçon : « tout sur un écran » est une règle de tableau de bord, pas de formulaire. Pour un formulaire, on réduit la hauteur en resserrant et en regroupant, jamais en sacrifiant la colonne unique ni la lisibilité. Et une protection de champ ne vaut que si elle existe côté serveur : l'attribut HTML est une commodité, pas une barrière.
+
+- Le déclencheur est une observation concrète sur l'instance réelle, doublée d'une exigence de robustesse des saisies.
+- La recherche tranche la question de la mise en page (formulaire contre tableau de bord) plutôt qu'une intuition.
+- La protection est posée au niveau serveur, l'attribut HTML ne servant que le confort de saisie.
+- La compaction préserve la colonne unique et le comportement mobile ; rien n'est comprimé.
+
+## Itération 18 : le filet anti-débordement étendu aux affichages de projet
+
+Problème observé : une demande au titre et à la description faits d'un mot interminable sans espaces (« TESTTESTTEST… », typique d'un test ou d'un vandalisme) débordait de sa carte sur la page de validation, le texte sortant à droite hors du cadre. Les protections de saisie posées juste avant empêchent d'en créer de nouvelles, mais les données déjà en base devaient s'afficher proprement.
+
+Décision : réutiliser le filet déjà établi dans le projet, pas en inventer un. La feuille de style portait déjà, sur les bannières, un `overflow-wrap: anywhere` commenté comme filet anti-vandalisme : un mot très long est coupé au lieu de déborder. Ce même filet est étendu aux trois endroits où un titre ou une description de projet s'affiche dans un cadre contraint : les cartes de la page de validation, les listes du tableau de bord, et le tableau des projets de l'espace étudiant. Dans les contextes en flex (carte, ligne de tableau de bord), le titre reçoit en plus la possibilité de rétrécir et l'élément voisin (badge, type) est protégé contre la compression. Dans le tableau, comme la largeur maximale d'une cellule est ignorée en disposition automatique, le titre est borné via un span interne.
+
+Leçon : un filet d'affichage et une protection de saisie sont deux lignes de défense distinctes et complémentaires. La saisie empêche de créer la donnée hostile ; l'affichage encaisse celle qui existe déjà. Et quand une solution est déjà adoptée quelque part, l'étendre vaut mieux que d'en créer une variante.
+
+- Le déclencheur est une observation concrète sur l'instance réelle.
+- La solution réutilise un mécanisme déjà présent et documenté dans le projet.
+- Le correctif est porté aux trois affichages à risque, pas seulement à celui signalé.
+- Affichage et saisie restent deux défenses séparées, chacune à sa place.

@@ -1,0 +1,29 @@
+{#
+  Thème de formulaire du projet.
+
+  Hérite du layout standard de Symfony (form_div_layout) et ne redéfinit que le
+  rendu des champs « expanded ». Tous les autres champs (texte, sélecteur, zone
+  de texte…) gardent leur rendu par défaut.
+
+  Champs « expanded » (cases à cocher / boutons radio multiples) : chaque choix
+  est enveloppé dans un bloc solidaire « case + libellé », de sorte que la case
+  et son texte ne se séparent jamais au retour à la ligne. Sans cela, la
+  structure plate générée par défaut (input, label, input, label…) laissait, au
+  passage à la ligne, une case orpheline en fin de ligne et son libellé seul en
+  dessous (grille de machines désalignée sur la page de demande).
+
+  La disposition en grille régulière est portée par la classe `.choix-cases`
+  (appliquée via `row_attr` sur les champs concernés). Voir app.css.
+#}
+{% use 'form_div_layout.html.twig' %}
+
+{% block choice_widget_expanded %}
+    <div {{ block('widget_container_attributes') }}>
+        {% for child in form %}
+            <div class="choix-case">
+                {{ form_widget(child) }}
+                {{ form_label(child, null, {translation_domain: choice_translation_domain}) }}
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}

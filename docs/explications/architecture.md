@@ -102,7 +102,7 @@ SessionReservation  réservation (enveloppe)                  type (préparation
                                                               statut, dates, nb personnes
 Reservation         occupation d'une machine                 session, machine
                     dans une session
-Machine             équipement du FabLab                     état, durée de créneau, photo
+Machine             équipement du FabLab                     état, type, photo
 Consommable         article de stock                         quantité, seuil, catégorie
 PlanProjet          fichier joint à un projet                BF_3.7, ex DemandeFichier
 ContenuVitrine      contenu éditable de la page publique     clé, valeur (texte ou image)

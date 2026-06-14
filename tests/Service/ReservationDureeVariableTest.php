@@ -64,7 +64,6 @@ class ReservationDureeVariableTest extends KernelTestCase
         $machine = (new Machine())
             ->setNom($nom)
             ->setType('impression_3d')
-            ->setDureeCreneauMinutes(30)
             ->setEtat(MachineEtat::Active);
         $this->em->persist($machine);
         $this->em->flush();

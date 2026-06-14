@@ -24,7 +24,7 @@ class HomeControllerTest extends WebTestCase
         // Une machine, aucun projet → la galerie doit être absente.
         $em->persist((new Machine())
             ->setNom('Imprimante 3D')->setType('impression_3d')
-            ->setDureeCreneauMinutes(120)->setEtat(MachineEtat::Active));
+            ->setEtat(MachineEtat::Active));
         $em->flush();
 
         $crawler = $client->request('GET', '/');

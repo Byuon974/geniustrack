@@ -14,6 +14,7 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
+use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormEvent;
@@ -34,8 +35,16 @@ class DemandeProjetType extends AbstractType
     {
         // ── Champs communs (doc de préparation : titre, description, type, machines) ──
         $builder
-            ->add('titre', TextType::class, ['label' => 'Titre du projet'])
-            ->add('description', TextareaType::class, ['label' => 'Description'])
+            ->add('titre', TextType::class, [
+                'label' => 'Titre du projet',
+                'attr' => ['maxlength' => 40, 'placeholder' => 'Ex. : Boîtier capteur température'],
+            ])
+            ->add('description', TextareaType::class, [
+                'label' => 'Description',
+                'required' => false,
+                'attr' => ['maxlength' => 250, 'rows' => 3],
+                'help' => '250 caractères maximum.',
+            ])
             ->add('type', EnumType::class, [
                 'class' => ProjetType::class,
                 'choice_label' => fn (ProjetType $t) => $t->libelle(),
@@ -134,7 +143,11 @@ class DemandeProjetType extends AbstractType
                     'label' => 'Quantité',
                     'required' => false,
                     'mapped' => false, // stocké hors entité Projet (métadonnée de demande)
-                    'attr' => ['min' => 1, 'inputmode' => 'numeric'],
+                    'attr' => ['min' => 1, 'max' => 10, 'inputmode' => 'numeric'],
+                    'constraints' => [
+                        new Assert\Positive(message: 'La quantité doit être au moins de 1.'),
+                        new Assert\LessThanOrEqual(value: 10, message: 'La quantité ne peut pas dépasser {{ compared_value }}.'),
+                    ],
                 ]);
             }
 

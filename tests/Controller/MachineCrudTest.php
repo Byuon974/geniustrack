@@ -48,7 +48,6 @@ class MachineCrudTest extends WebTestCase
         $client->submitForm('Créer', [
             'machine[nom]' => 'Imprimante 3D Prusa',
             'machine[type]' => 'impression_3d',
-            'machine[dureeCreneauMinutes]' => '120',
             'machine[etat]' => MachineEtat::Active->value,
         ]);
 
@@ -56,7 +55,6 @@ class MachineCrudTest extends WebTestCase
 
         $machine = $em->getRepository(Machine::class)->findOneBy(['nom' => 'Imprimante 3D Prusa']);
         self::assertNotNull($machine);
-        self::assertSame(120, $machine->getDureeCreneauMinutes());
     }
 
     public function testEtudiantNePeutPasAcceder(): void

@@ -85,7 +85,7 @@ Source : Livrable EC01 + matrice des exigences. ~30 besoins fonctionnels, 8 fami
 **Contraintes métier dures** (à ne jamais diluer) :
 - Max **15 personnes** simultanées dans le FabLab (BF_3.9) → contrainte sur le choix de créneau.
 - Machine en maintenance/HS = non réservable (BF_3.8).
-- Temps d'utilisation **adapté par machine** (BF_3.10).
+- Temps d'utilisation **adapté par machine** (BF_3.10). *Caduc depuis DEC-103 : la durée est désormais choisie par l'usager à la réservation (durée variable), le champ figé par machine a été retiré.*
 - Sanctions : report < 3 jours ouvrés, ou 5 reports cumulés (BF_6.2).
 - **RDV de préparation obligatoire** avant fabrication (benchmark : bloquant).
 - **Projets multi-sessions** : 1 à 4 créneaux par projet (benchmark : bloquant).
@@ -105,8 +105,9 @@ User
 
 Machine
   id, nom, description, photo, type (3D/résine/découpe/...),
-  duree_creneau_minutes, etat (active|maintenance|hors_service)
+  etat (active|maintenance|hors_service)
   → etat conditionne la réservabilité (BF_3.8)
+  → durée de créneau figée retirée (DEC-103) : la durée est choisie à la réservation
 
 Consommable / Stock
   id, nom, categorie (filament PLA/PETG/TPU, résine, pièces d'usure...),

@@ -23,10 +23,20 @@ class Projet
     private ?int $id = null;
 
     #[ORM\Column(length: 200)]
-    #[Assert\NotBlank]
+    #[Assert\NotBlank(message: 'Le titre est obligatoire.')]
+    #[Assert\Length(
+        min: 3,
+        max: 40,
+        minMessage: 'Le titre doit faire au moins {{ limit }} caractères.',
+        maxMessage: 'Le titre ne peut pas dépasser {{ limit }} caractères.',
+    )]
     private string $titre;
 
     #[ORM\Column(type: 'text', nullable: true)]
+    #[Assert\Length(
+        max: 250,
+        maxMessage: 'La description ne peut pas dépasser {{ limit }} caractères.',
+    )]
     private ?string $description = null;
 
     // Détermine le valideur (formateur vs BDE).

@@ -10,13 +10,11 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
-use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\Image;
-use Symfony\Component\Validator\Constraints\Positive;
 
 class MachineType extends AbstractType
 {
@@ -31,13 +29,6 @@ class MachineType extends AbstractType
             ->add('description', TextareaType::class, [
                 'label' => 'Description',
                 'required' => false,
-            ])
-            ->add('dureeCreneauMinutes', IntegerType::class, [
-                'label' => 'Durée d\'un créneau (minutes)',
-                // type="text" + inputmode : pas de flèches haut/bas (elles forcent
-                // à viser et n'aident pas), clavier numérique préservé sur mobile.
-                'attr' => ['min' => 1, 'inputmode' => 'numeric', 'type' => 'text'],
-                'constraints' => [new Positive()],
             ])
             ->add('etat', EnumType::class, [
                 'class' => MachineEtat::class,

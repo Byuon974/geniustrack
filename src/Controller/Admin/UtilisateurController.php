@@ -233,7 +233,7 @@ class UtilisateurController extends AbstractController
             return $this->redirectToRoute('admin_utilisateur_import');
         }
         if (!$this->isCsrfTokenValid('import', $request->request->getString('_token'))) {
-            $this->addFlash('error', 'Jeton de sécurité invalide.');
+            $this->addFlash('error', 'Votre session a expiré. Merci de recommencer.');
 
             return $this->redirectToRoute('admin_utilisateur_import');
         }
@@ -265,7 +265,7 @@ class UtilisateurController extends AbstractController
         JournalService $journal,
     ): Response {
         if (!$this->isCsrfTokenValid('batch', $request->request->getString('_token'))) {
-            $this->addFlash('error', 'Jeton de sécurité invalide.');
+            $this->addFlash('error', 'Votre session a expiré. Merci de recommencer.');
 
             return $this->redirectToRoute('admin_utilisateur_index');
         }
@@ -286,7 +286,7 @@ class UtilisateurController extends AbstractController
             default => null,
         };
         if (null === $actif) {
-            $this->addFlash('error', 'Action inconnue.');
+            $this->addFlash('error', 'Action non reconnue, aucune modification effectuée.');
 
             return $this->redirectToRoute('admin_utilisateur_index');
         }
