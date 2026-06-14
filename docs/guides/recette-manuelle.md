@@ -59,6 +59,9 @@ Vérifie que le valideur voit le détail et peut télécharger les plans.
    - Attendu : la page de détail affiche la description, les machines, et la liste des plans avec leur lien de téléchargement.
 3. Télécharger un plan.
    - Attendu : le téléchargement fonctionne (le valideur a le droit de lecture, pas seulement le propriétaire ou l'admin).
+4. Robustesse d'affichage : ouvrir une demande dont le titre ou la description serait fait d'un mot très long sans espaces.
+   - Attendu (liste) : titre et description sont coupés et limités à deux lignes, sans déborder de la carte ni provoquer de défilement horizontal. Le bouton « Examiner la demande » est bien visible.
+   - Attendu (page d'examen) : titre et description restent contenus dans le cadre, sans débordement.
 
 ## 6. Messages flash sur toutes les pages (DEC-066)
 
@@ -179,3 +182,20 @@ Vérifie le modèle « session » : le type préparation/réalisation est choisi
    - Attendu : toutes les machines de la session se déplacent ensemble vers la nouvelle date ; l'ancienne session passe « reportée ».
 2. Sur une autre session à plusieurs machines, annuler.
    - Attendu : la session entière passe « annulée », toutes ses machines libérées en même temps.
+
+## 14. Rétractation d'une demande et modification des fichiers (DEC-104)
+
+Vérifie qu'un étudiant peut revenir sur sa demande tant qu'elle n'est pas tranchée, et que les fichiers ne sont modifiables qu'à ce moment.
+
+1. En étudiant, soumettre une demande, puis ouvrir sa page de détail.
+   - Attendu : la demande est « en attente de validation », deux actions sont proposées, « Rétracter pour corriger » et « Supprimer la demande », chacune demandant confirmation.
+2. Cliquer « Rétracter pour corriger » et confirmer.
+   - Attendu : la demande repasse en brouillon, un message le confirme, et l'action apparaît au journal d'activité.
+3. Sur le brouillon, retirer un plan puis en ajouter un autre.
+   - Attendu : le retrait demande confirmation, l'ajout accepte un ou plusieurs fichiers, les deux actions sont tracées au journal.
+4. Cliquer « Soumettre la demande ».
+   - Attendu : la demande repasse en attente de validation.
+5. Faire valider la demande par le valideur, puis revenir sur la page de détail en étudiant.
+   - Attendu : les actions de rétractation et de modification des fichiers ne sont plus proposées (la demande a été tranchée). Une tentative d'accès direct aux routes de modification est refusée avec un message clair.
+6. Sur une demande en attente, cliquer « Supprimer la demande » et confirmer.
+   - Attendu : la demande disparaît, retour à la liste des projets, suppression tracée au journal.

@@ -213,7 +213,7 @@ Leçon : un désalignement n'est pas toujours un défaut de marge, c'est parfois
 
 Problème observé : la page de nouvelle demande étalait ses trois blocs sur toute la largeur, gâchant l'espace horizontal sur grand écran et allongeant la page sans raison. Surtout, les champs n'avaient pas de garde-fous : le titre n'avait pas de longueur validée (au-delà de la limite de colonne, l'insertion aurait échoué en erreur brute), la description était illimitée, et la quantité n'avait qu'un minimum côté navigateur, contournable, sans borne serveur.
 
-Décision : protéger d'abord, compacter ensuite, en suivant le RETEX. Côté protections, la validation vit à deux niveaux complémentaires : les attributs HTML (longueur maximale, bornes numériques) aident la saisie en direct mais restent contournables ; la vraie garantie est portée par les contraintes serveur, sur l'entité pour le titre (3 à 40 caractères) et la description (250 caractères au plus), et sur le formulaire pour la quantité (au moins 1, au plus 10). Les messages d'erreur sont explicites et en français. Côté mise en page, le RETEX distingue nettement le tableau de bord, que l'on garde sur un écran, du formulaire de saisie, qu'il ne faut pas comprimer : la colonne unique reste la règle dans chaque bloc, le scroll vertical modéré est légitime, et l'on déconseille de tout entasser, en particulier sur mobile. La compaction consiste donc à resserrer les espacements et à faire cohabiter, sur grand écran seulement, les deux blocs courts (matériel et détails) sur une même rangée, le bloc projet restant pleine largeur. Sur mobile, tout repasse en pile.
+Décision : protéger d'abord, compacter ensuite, en suivant le RETEX. Côté protections, la validation vit à deux niveaux complémentaires : les attributs HTML (longueur maximale, bornes numériques) aident la saisie en direct mais restent contournables ; la vraie garantie est portée par les contraintes serveur, sur l'entité pour le titre (3 à 40 caractères) et la description (250 caractères au plus), et sur le formulaire pour la quantité (au moins 1, au plus 10). Les messages d'erreur sont explicites et en français. Côté mise en page, le RETEX distingue nettement le tableau de bord, que l'on garde sur un écran, du formulaire de saisie, qu'il ne faut pas comprimer (Effortmark « long forms: scroll or tab? », documentation UX Mendix sur la colonne unique, étude Harms et al. 2015 sur les formulaires longs en mobile) : un formulaire qui scrolle un peu fonctionne bien (un écran complet, jusqu'à deux écrans de plus restent acceptables), la colonne unique reste la règle dans chaque bloc, et l'on déconseille de tout entasser, en particulier sur mobile où le scroll d'un formulaire long est la pire des méthodes face aux catégories tenant dans l'écran. La compaction consiste donc à resserrer les espacements et à faire cohabiter, sur grand écran seulement, les deux blocs courts (matériel et détails) sur une même rangée, le bloc projet restant pleine largeur. Sur mobile, tout repasse en pile.
 
 Leçon : « tout sur un écran » est une règle de tableau de bord, pas de formulaire. Pour un formulaire, on réduit la hauteur en resserrant et en regroupant, jamais en sacrifiant la colonne unique ni la lisibilité. Et une protection de champ ne vaut que si elle existe côté serveur : l'attribut HTML est une commodité, pas une barrière.
 
@@ -234,3 +234,42 @@ Leçon : un filet d'affichage et une protection de saisie sont deux lignes de d�
 - La solution réutilise un mécanisme déjà présent et documenté dans le projet.
 - Le correctif est porté aux trois affichages à risque, pas seulement à celui signalé.
 - Affichage et saisie restent deux défenses séparées, chacune à sa place.
+
+## Itération 19 : troncature des listes, page d'examen et bouton d'accès
+
+Problème observé : sur la page de validation, même après le filet de coupure de mot, une description faite d'un seul mot interminable s'étalait sur quatre lignes dans la carte. La page d'examen d'une demande, elle, débordait encore : titre et description sortaient du cadre à droite. Et le lien « Examiner la demande » était noyé en lien souligné au milieu d'une ligne de métadonnées, peu repérable.
+
+Décision : trois ajustements complémentaires. Pour la liste, on passe de la simple coupure de mot à une troncature multi-lignes : titre et description sont limités à deux lignes, le surplus est masqué avec une ellipse. C'est la différence entre couper un mot pour qu'il ne déborde pas et borner le nombre de lignes affichées. Pour la page d'examen, le filet de coupure est étendu au titre de l'en-tête de page et aux sections de détail, qui n'en bénéficiaient pas. Pour l'accès, le lien d'examen devient un bouton à part entière, au contour de la couleur primaire et précédé d'une icône, distinct des actions Valider et Refuser sans leur faire concurrence.
+
+Leçon : couper un mot et limiter le nombre de lignes sont deux besoins distincts. Le premier empêche le débordement horizontal, le second protège la hauteur d'une carte dans une liste. Une liste de cartes a tout intérêt à borner ses textes pour rester scannable, en renvoyant le détail complet à la page dédiée, dont l'accès doit être franc.
+
+- Le déclencheur est une observation concrète sur l'instance réelle.
+- La troncature multi-lignes complète le filet de coupure, elle ne le remplace pas.
+- Le filet d'affichage est porté partout où la donnée apparaît, page d'examen comprise.
+- L'action principale d'une carte (accéder au détail) est rendue explicite et repérable.
+
+## Itération 20 : refléter le cycle de vie de la demande dans la liste
+
+Problème observé : les actions de rétractation et de soumission n'existaient que sur la page de détail. Depuis la liste « Mes projets », rien ne signalait qu'un brouillon attendait d'être soumis, ni qu'une demande en attente pouvait être retirée. L'état le plus ambigu était le brouillon, visuellement proche d'une demande active alors qu'il n'était pas parti en validation.
+
+Décision : la liste signale et oriente, le détail porte les actions sensibles. Ce partage suit le RETEX des files d'approbation (Moxo, dvsum, et le principe NN/g de liste scannable où l'action principale prime) : une vue de liste rend l'état et la prochaine action lisibles d'un coup, sans devenir un panneau de commande. Sous le badge d'un brouillon, une mention « Non soumis » lève l'ambiguïté. Dans la colonne de droite, une action contextuelle par ligne, selon le statut : « Soumettre » pour un brouillon, « Gérer » pour une demande en attente, « Détail » seul pour le reste. Le bouton « Soumettre » mène à la page de détail plutôt que de soumettre directement, pour que l'étudiant vérifie ses fichiers avant l'envoi. Les actions à conséquence (rétracter, supprimer, modifier les fichiers) restent sur le détail, avec confirmation : les répartir dans chaque ligne de tableau alourdirait la lecture et rendrait les erreurs plus faciles, l'inverse du but recherché.
+
+Leçon : une liste doit rendre lisible l'état et la prochaine action de chaque élément, sans devenir un panneau de commande. On y met l'orientation (où aller, quoi faire ensuite), on y laisse hors champ les gestes irréversibles, qui méritent une page et une confirmation. Refléter un cycle de vie, ce n'est pas dupliquer toutes ses commandes partout.
+
+- Le déclencheur est le besoin de cohérence entre la liste et les actions ajoutées au détail.
+- Le statut le plus ambigu (brouillon non soumis) est explicité par une mention.
+- Une seule action contextuelle par ligne, l'orientation prime sur la commande.
+- Les gestes irréversibles restent sur le détail, avec confirmation.
+
+## Itération 21 : un composant d'upload unifié, glisser-déposer
+
+Problème observé : l'ajout de fichiers était pénible des deux côtés. À la création, l'input était techniquement multiple mais rien ne l'indiquait, et le rendu natif (« Aucun fichier sélectionné ») n'invitait pas à la sélection groupée. À la modification, l'ajout passait par un cycle « Parcourir puis Ajouter » à répéter, sans vue d'ensemble des fichiers retenus. Deux présentations différentes pour le même geste, et une multiplication des clics.
+
+Décision : un seul composant d'upload, réutilisé partout, fondé sur le RETEX (zone de dépôt cliquable et glisser-déposer, sélection multiple explicite, liste de contrôle des fichiers choisis avec retrait individuel avant l'envoi). Un contrôleur Stimulus habille un input natif resté multiple : la zone pilote l'input, la liste reflète la sélection, et à chaque ajout ou retrait l'input réel est reconstruit (DataTransfer) pour que le formulaire envoie exactement les fichiers listés. Le même partiel sert à la création (où il enveloppe le champ rendu par Symfony) et à la modification (où il enveloppe un input manuel) : présentation unique, un seul point de maintenance. L'accessibilité est prise en compte : la zone est focalisable et s'active au clavier, l'input reste l'élément réel soumis.
+
+Leçon : un même geste mérite un même composant. Dédoubler la présentation d'une action, c'est dédoubler les défauts et les corrections. Mieux vaut un composant unique, accessible, qui montre ce qui sera envoyé avant de l'envoyer, que deux variantes austères qui multiplient les clics.
+
+- Le déclencheur est une observation concrète, doublée d'un constat d'anti-pattern.
+- La présentation est unifiée entre création et modification, un seul contrôleur.
+- L'input natif reste la source de vérité, reconstruit à chaque changement.
+- L'accessibilité (focus, clavier) et le retour visuel avant envoi sont assurés.

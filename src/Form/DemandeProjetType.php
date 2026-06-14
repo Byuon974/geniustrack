@@ -70,6 +70,11 @@ class DemandeProjetType extends AbstractType
                 'mapped' => false,
                 'required' => false,
                 'multiple' => true,
+                // Habillé par le composant d'upload (zone drag-drop + liste).
+                'attr' => [
+                    'data-file-upload-target' => 'input',
+                    'data-action' => 'change->file-upload#surChangement',
+                ],
                 'constraints' => [
                     // Limite le nombre de plans par demande. Un projet de FabLab
                     // assemble quelques pièces ; 10 couvre un assemblage confortable.

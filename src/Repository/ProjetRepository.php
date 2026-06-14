@@ -91,6 +91,22 @@ class ProjetRepository extends ServiceEntityRepository
     }
 
     /**
+     * Tous les projets, étudiant chargé en une requête (évite le N+1 dans la
+     * vue d'administration). Tri du plus récent au plus ancien.
+     *
+     * @return Projet[]
+     */
+    public function tousAvecEtudiant(): array
+    {
+        return $this->createQueryBuilder('p')
+            ->addSelect('e')
+            ->leftJoin('p.etudiant', 'e')
+            ->orderBy('p.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * Vrai si ce projet est le tout premier de l'étudiant sur GeniusLab,
      * c'est-à-dire qu'il n'en possède aucun autre. Sert à signaler une première
      * utilisation au formateur sur la fiche de demande (accompagnement humain de

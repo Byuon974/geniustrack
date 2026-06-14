@@ -1,0 +1,86 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion des projets{% endblock %}
+{% block fil_ariane %}{{ include("components/fil_ariane.html.twig", {segments: [{libelle: "Pilotage", url: null}, {libelle: "Projets", url: null}]}) }}{% endblock %}
+
+{% block body %}
+{% set libelleTransition = {
+    'soumettre': 'Soumettre',
+    'retracter': 'Rétracter',
+    'valider': 'Valider',
+    'refuser': 'Refuser',
+    'resoumettre': 'Remettre en brouillon',
+    'demarrer': 'Démarrer',
+    'terminer': 'Terminer'
+} %}
+
+<div class="admin-page">
+    {{ include('components/page_header.html.twig', {
+        titre: 'Projets',
+        soustitre: 'Tous les projets du FabLab : statut, mise en avant en galerie et gestion.'
+    }) }}
+
+    {% if projets is empty %}
+        {{ include('components/empty.html.twig', {message: 'Aucun projet enregistré.'}) }}
+    {% else %}
+        <table class="data-table projet-admin-table">
+            <thead>
+                <tr>
+                    <th>Projet</th>
+                    <th>Étudiant</th>
+                    <th>Type</th>
+                    <th>Statut</th>
+                    <th>Galerie</th>
+                    <th class="actions-col">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for projet in projets %}
+                    <tr>
+                        <td class="projet-titre-cell"><span class="projet-titre-texte">{{ projet.titre }}</span></td>
+                        <td>{{ projet.etudiant ? projet.etudiant.nomComplet : '—' }}</td>
+                        <td>{{ projet.type.libelle }}</td>
+                        <td>{{ include('components/badge.html.twig', {couleur: projet.statut.couleur, label: projet.statut.libelle}) }}</td>
+                        <td>
+                            {# Mise en avant en galerie : levier de curation de l'admin.
+                               Le projet n'apparaît réellement que s'il est aussi terminé. #}
+                            <form method="post" action="{{ path('admin_projet_galerie', {id: projet.id}) }}" class="ligne-action">
+                                <input type="hidden" name="_token" value="{{ csrf_token('galerie' ~ projet.id) }}">
+                                {% if projet.partageAutorise %}
+                                    <button type="submit" class="btn btn--sm btn--galerie is-active" title="Retirer de la galerie">
+                                        {{ include('components/icon.html.twig', {name: 'eye', size: 14}) }} En avant
+                                    </button>
+                                {% else %}
+                                    <button type="submit" class="btn btn--sm btn--ghost" title="Mettre en avant">Mettre en avant</button>
+                                {% endif %}
+                            </form>
+                            {% if projet.partageAutorise and projet.statut.value != 'termine' %}
+                                <span class="galerie-note" title="Apparaîtra une fois le projet terminé">non publié</span>
+                            {% endif %}
+                        </td>
+                        <td class="actions-col">
+                            <div class="projet-admin-actions">
+                                {% for t in transitions[projet.id] %}
+                                    <form method="post" action="{{ path('admin_projet_transition', {id: projet.id}) }}" class="ligne-action">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('transition' ~ projet.id) }}">
+                                        <input type="hidden" name="transition" value="{{ t }}">
+                                        <button type="submit" class="btn btn--sm">{{ libelleTransition[t] ?? t }}</button>
+                                    </form>
+                                {% endfor %}
+                                <form method="post" action="{{ path('admin_projet_supprimer', {id: projet.id}) }}" class="ligne-action"
+                                      data-controller="confirm"
+                                      data-confirm-message-value="Le projet « {{ projet.titre }} » sera définitivement supprimé."
+                                      data-confirm-titre-value="Supprimer ce projet ?"
+                                      data-confirm-variante-value="danger" data-confirm-libelle-value="Supprimer">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('supprimer' ~ projet.id) }}">
+                                    <button type="submit" class="btn btn--sm btn--refus">Supprimer</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</div>
+{% endblock %}

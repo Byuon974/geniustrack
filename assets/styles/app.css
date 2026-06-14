@@ -238,6 +238,11 @@ body.no-scroll { overflow: hidden; }
    ignoré en table-layout auto) et on coupe les mots trop longs saisis
    (filet anti-vandalisme), pour ne pas élargir la colonne ni casser le tableau. */
 .projet-titre-texte { display: inline-block; max-width: 360px; overflow-wrap: anywhere; vertical-align: middle; }
+/* Mention discrète sous un badge de statut (ex. « Non soumis » pour un brouillon). */
+.statut-aide { display: block; font-size: var(--gl-text-xs); color: var(--gl-ink-soft); margin-top: 2px; }
+/* Lien « Détail » secondaire, à côté d'une action principale dans une ligne. */
+.lien-detail { color: var(--gl-blueprint); text-decoration: none; font-size: var(--gl-text-sm); margin-left: var(--gl-space-3); }
+.lien-detail:hover { text-decoration: underline; }
 .data-table th { font-size: var(--gl-text-xs); text-transform: uppercase; letter-spacing: .04em; color: var(--gl-ink-soft); background: var(--gl-bg); }
 .data-table tbody tr:last-child td { border-bottom: none; }
 .data-table tbody tr:hover { background: var(--gl-bg); }
@@ -281,7 +286,7 @@ form input, form select, form textarea {
 form textarea { min-height: 48px; }
 
 /* : Widget prédiction de rupture : */
-.prevision-carte { background: var(--gl-surface); border-radius: var(--gl-radius); box-shadow: var(--gl-shadow); padding: var(--gl-space-6); margin-bottom: var(--gl-space-6); }
+.prevision-carte { background: var(--gl-surface); border-radius: var(--gl-radius); box-shadow: var(--gl-shadow); padding: var(--gl-space-6); margin-bottom: var(--gl-space-6); overflow-wrap: anywhere; min-width: 0; }
 .prevision-carte h2 { margin-top: 0; }
 .prevision-liste { display: grid; gap: var(--gl-space-3); }
 .prevision-ligne { display: flex; align-items: center; justify-content: space-between; padding: var(--gl-space-3); border: 1px solid var(--gl-line); border-radius: var(--gl-radius-sm); gap: var(--gl-space-4); }
@@ -626,8 +631,9 @@ form textarea { min-height: 48px; }
 .page-header-actions .btn { display: inline-flex; align-items: center; gap: 5px; }
 
 /* En-tête de page : texte (titre + sous-titre) */
+.page-header h1 { overflow-wrap: anywhere; min-width: 0; }
 .page-header-text { min-width: 0; }
-.page-header-text h1 { margin: 0; }
+.page-header-text h1 { margin: 0; overflow-wrap: anywhere; }
 .page-header-sub { margin: 4px 0 0; color: var(--gl-ink-soft); font-size: var(--gl-text-sm); }
 
 /* Liens d'ancre : compenser le header sticky pour que la cible ne soit pas
@@ -1195,6 +1201,49 @@ tr[class*="dt-row--"] > td:first-child { border-left: 3px solid transparent; pad
 
 /* Carte de demande en attente : filet ambre (cohérent avec le statut « en attente »). */
 .prevision-carte--attente { border-left: 3px solid var(--gl-amber); }
+/* Rétractation d'une demande en attente : encadré discret, deux actions. */
+.projet-retracter { margin-top: var(--gl-space-4); padding-top: var(--gl-space-4); border-top: 1px solid var(--gl-line); }
+.projet-retracter__intro { font-size: var(--gl-text-sm); color: var(--gl-ink-soft); margin: 0 0 var(--gl-space-2); }
+.projet-retracter__actions { display: flex; flex-wrap: wrap; gap: var(--gl-space-3); }
+/* Gestion des plans (demande modifiable) : nom + retrait alignés, ajout simple. */
+.plan-item { display: flex; align-items: center; gap: var(--gl-space-3); }
+.plan-item__retrait { margin: 0; }
+
+/* ───────────── Composant d'upload (zone drag-drop + liste) ───────────── */
+.upload { margin-top: var(--gl-space-3); }
+.upload__label { font-weight: 600; display: block; margin-bottom: var(--gl-space-2); }
+.upload__zone {
+    border: 2px dashed var(--gl-line); border-radius: var(--gl-radius);
+    padding: var(--gl-space-6) var(--gl-space-4); text-align: center;
+    background: var(--gl-surface); cursor: pointer;
+    transition: border-color .15s, background .15s;
+}
+.upload__zone:hover { border-color: var(--gl-blueprint); }
+.upload__zone:focus-visible { outline: 2px solid var(--gl-blueprint); outline-offset: 2px; }
+.upload__zone.is-drag { border-color: var(--gl-filament); background: #fdf3ec; }
+.upload__icone { color: var(--gl-gray); margin-bottom: var(--gl-space-2); }
+.upload__principal { font-weight: 600; color: var(--gl-blueprint); }
+.upload__secondaire { font-size: var(--gl-text-sm); color: var(--gl-ink-soft); margin-top: 2px; }
+.upload__formats { font-size: var(--gl-text-xs); color: var(--gl-gray); margin-top: var(--gl-space-2); }
+.upload__liste { list-style: none; margin: var(--gl-space-3) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--gl-space-2); }
+.upload__item {
+    display: flex; align-items: center; gap: var(--gl-space-2);
+    border: 1px solid var(--gl-line); border-radius: var(--gl-radius);
+    padding: var(--gl-space-2) var(--gl-space-3); background: var(--gl-surface); font-size: var(--gl-text-sm);
+}
+.upload__nom { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.upload__taille { color: var(--gl-ink-soft); font-size: var(--gl-text-xs); flex-shrink: 0; }
+.upload__retrait { border: none; background: transparent; color: var(--gl-red); cursor: pointer; font-size: var(--gl-text-sm); padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
+.upload__retrait:hover { background: var(--gl-red-soft); }
+.upload__vide { font-size: var(--gl-text-sm); color: var(--gl-gray); font-style: italic; margin-top: var(--gl-space-2); }
+.upload__vide[hidden] { display: none; }
+.upload__actions { margin-top: var(--gl-space-3); }
+
+/* ───────────── Vue admin de gestion des projets ───────────── */
+.projet-admin-actions { display: flex; flex-wrap: wrap; gap: var(--gl-space-2); justify-content: flex-end; }
+.ligne-action { display: inline; margin: 0; }
+.btn--galerie.is-active { background: var(--gl-green); color: #fff; border-color: transparent; display: inline-flex; align-items: center; gap: 4px; }
+.galerie-note { display: block; font-size: var(--gl-text-xs); color: var(--gl-amber); margin-top: 2px; }
 
 /* ─────────── Champ de fichier : harmonisé avec le design system ───────────
    L'input file natif garde son comportement (accessible), mais son bouton
@@ -1474,8 +1523,8 @@ form input[type="file"]::file-selector-button:hover {
 .demande-ligne__corps { flex: 1; min-width: 0; }
 .demande-ligne__tete { display: flex; align-items: center; gap: var(--gl-space-2); margin-bottom: 3px; }
 .demande-ligne__tete > .badge { flex-shrink: 0; }
-.demande-ligne__titre { font-family: var(--gl-font-display); font-size: var(--gl-text-lg); font-weight: 700; margin: 0; min-width: 0; overflow-wrap: anywhere; }
-.demande-ligne__desc { font-size: var(--gl-text-sm); color: var(--gl-slate); margin: 0 0 var(--gl-space-1); overflow-wrap: anywhere; }
+.demande-ligne__titre { font-family: var(--gl-font-display); font-size: var(--gl-text-lg); font-weight: 700; margin: 0; min-width: 0; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.demande-ligne__desc { font-size: var(--gl-text-sm); color: var(--gl-slate); margin: 0 0 var(--gl-space-1); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .demande-ligne__meta { font-size: var(--gl-text-xs); color: var(--gl-ink-soft); margin: 0; }
 .demande-ligne__machines { color: var(--gl-blueprint); }
 .demande-ligne__actions { display: flex; gap: var(--gl-space-2); align-items: center; flex-shrink: 0; }
@@ -1490,9 +1539,16 @@ form input[type="file"]::file-selector-button:hover {
 
 /* Aperçu rapide dans la liste : accès à l'examen détaillé. */
 .demande-ligne__apercu { font-size: var(--gl-text-xs); color: var(--gl-ink-soft); margin: var(--gl-space-1) 0 0; }
+/* Bouton « Examiner » : secondaire mais visible (contour bleu plan),
+   sans rivaliser avec Valider/Refuser. */
+.btn--examiner {
+    display: inline-flex; align-items: center; gap: 5px; margin-top: var(--gl-space-2);
+    border: 1px solid var(--gl-blueprint); color: var(--gl-blueprint); background: transparent;
+}
+.btn--examiner:hover { background: var(--gl-blueprint); color: #fff; }
 
 /* Page de détail d'une demande (examen approfondi par le valideur). */
-.demande-detail { display: flex; flex-direction: column; gap: var(--gl-space-4); max-width: 760px; }
+.demande-detail { display: flex; flex-direction: column; gap: var(--gl-space-4); max-width: 760px; min-width: 0; }
 .demande-detail__meta {
     display: flex; flex-wrap: wrap; align-items: center; gap: var(--gl-space-2);
     font-size: var(--gl-text-sm); color: var(--gl-slate);
@@ -1500,6 +1556,7 @@ form input[type="file"]::file-selector-button:hover {
 .demande-detail__section {
     background: var(--gl-surface); border: 1px solid var(--gl-line);
     border-radius: var(--gl-radius); padding: var(--gl-space-3) var(--gl-space-4);
+    overflow-wrap: anywhere; min-width: 0;
 }
 .demande-detail__titre-section {
     font-size: var(--gl-text-sm); text-transform: uppercase; letter-spacing: .04em;

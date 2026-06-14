@@ -79,6 +79,12 @@
                 <a class="nav-item {{ app.request.attributes.get('_route') == 'pilotage_supervision' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') == 'pilotage_supervision' ? ' aria-current="page"' : '' }} href="{{ path('pilotage_supervision') }}">
                     {{ include('components/icon.html.twig', {name: 'trendingUp'}) }}<span>Supervision</span>
                 </a>
+                {# Gestion de tous les projets : réservée à l'administrateur. #}
+                {% if is_granted('ROLE_ADMIN') %}
+                <a class="nav-item {{ app.request.attributes.get('_route') == 'admin_projet_index' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') == 'admin_projet_index' ? ' aria-current="page"' : '' }} href="{{ path('admin_projet_index') }}">
+                    {{ include('components/icon.html.twig', {name: 'clipboard'}) }}<span>Projets</span>
+                </a>
+                {% endif %}
                 {# Le journal d'activité reste réservé à l'administrateur. #}
                 {% if is_granted('ROLE_ADMIN') %}
                 <a class="nav-item {{ app.request.attributes.get('_route') == 'admin_journal' ? 'is-active' : '' }}"{{ app.request.attributes.get('_route') == 'admin_journal' ? ' aria-current="page"' : '' }} href="{{ path('admin_journal') }}">

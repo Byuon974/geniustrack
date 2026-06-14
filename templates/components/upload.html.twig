@@ -1,0 +1,51 @@
+{#
+  Composant d'upload de fichiers : zone cliquable et glisser-deposer, selection
+  multiple, liste des fichiers choisis avec retrait avant envoi. Habille un
+  input file natif « multiple » via le controleur Stimulus file-upload.
+
+  Parametres :
+    input_html (requis) : le balisage de l'input file, fourni par l'appelant.
+        - a la creation : {{ form_widget(form.plansFiles) }} (Symfony)
+        - a la modification : <input type="file" name="plans[]" multiple ...>
+      L'input DOIT porter data-file-upload-target="input".
+    label      (option) : libelle au-dessus de la zone
+    formats    (option) : ligne de rappel des formats et limites
+    bouton     (option) : si fourni, libelle d'un bouton de soumission piloté
+                          (desactive tant qu'aucun fichier n'est choisi)
+
+  L'appelant place ce partiel DANS son <form> et fournit le data-controller.
+#}
+<div class="upload" data-controller="file-upload">
+    {% if label is defined and label %}
+        <span class="upload__label">{{ label }}</span>
+    {% endif %}
+
+    <div class="upload__zone"
+         data-file-upload-target="zone"
+         data-action="click->file-upload#ouvrir keydown->file-upload#toucheZone dragover->file-upload#surDragover dragleave->file-upload#surDragleave drop->file-upload#surDrop"
+         tabindex="0" role="button"
+         aria-label="Choisir des fichiers ou glisser-déposer">
+        <div class="upload__icone" aria-hidden="true">
+            {{ include('components/icon.html.twig', {name: 'pkg', size: 28}) }}
+        </div>
+        <div class="upload__principal">Glissez vos fichiers ici ou cliquez pour parcourir</div>
+        <div class="upload__secondaire">Vous pouvez en sélectionner plusieurs à la fois</div>
+        {% if formats is defined and formats %}
+            <div class="upload__formats">{{ formats }}</div>
+        {% endif %}
+    </div>
+
+    {# Input reel, masque : pilote par la zone, porte la selection envoyee.
+       Le data-action change->file-upload#surChangement est ajoute par l'appelant
+       sur l'input lui-meme (voir usages). #}
+    {{ input_html|raw }}
+
+    <ul class="upload__liste" data-file-upload-target="liste"></ul>
+    <p class="upload__vide" data-file-upload-target="vide">Aucun fichier sélectionné.</p>
+
+    {% if bouton is defined and bouton %}
+        <div class="upload__actions">
+            <button type="submit" class="btn btn--sm btn--primary" data-file-upload-target="envoyer">{{ bouton }}</button>
+        </div>
+    {% endif %}
+</div>

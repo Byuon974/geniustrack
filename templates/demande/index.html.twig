@@ -35,12 +35,14 @@
                     {# Aperçu rapide : présence de plans, et accès à l'examen détaillé. #}
                     <p class="demande-ligne__apercu">
                         {% if projet.plans is not empty %}
-                            {{ projet.plans|length }} fichier(s) joint(s) &middot;
+                            {{ projet.plans|length }} fichier(s) joint(s)
                         {% else %}
-                            Aucun fichier joint &middot;
+                            Aucun fichier joint
                         {% endif %}
-                        <a href="{{ path('demande_show', {id: projet.id}) }}">Examiner la demande</a>
                     </p>
+                    <a href="{{ path('demande_show', {id: projet.id}) }}" class="btn btn--sm btn--examiner">
+                        {{ include('components/icon.html.twig', {name: 'eye', size: 15}) }} Examiner la demande
+                    </a>
 
                     {# Champ motif du refus, masqué jusqu'au clic sur « Refuser ». #}
                     <form method="post" action="{{ path('demande_refuser', {id: projet.id}) }}"

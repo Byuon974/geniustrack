@@ -71,6 +71,17 @@ class ProjetWorkflowService
         $this->appliquer($projet, 'resoumettre');
     }
 
+    /**
+     * Rétractation : l'étudiant retire sa demande en attente, qui repasse en
+     * brouillon. Le projet reste modifiable et resoumettable. La suppression
+     * définitive est traitée à part (au contrôleur), car elle ne relève pas
+     * d'une transition d'état mais d'un retrait de l'entité.
+     */
+    public function retracter(Projet $projet): void
+    {
+        $this->appliquer($projet, 'retracter');
+    }
+
     public function demarrer(Projet $projet): void
     {
         $this->appliquer($projet, 'demarrer');
@@ -79,6 +90,42 @@ class ProjetWorkflowService
     public function terminer(Projet $projet): void
     {
         $this->appliquer($projet, 'terminer');
+    }
+
+    /**
+     * Applique une transition déclenchée par un administrateur depuis la vue de
+     * gestion. La transition doit être légale (la machine à états le vérifie).
+     * Le cas « valider » exige un valideur : on rattache l'administrateur, qui
+     * possède les rôles formateur et BDE par héritage.
+     *
+     * @throws ReservationImpossibleException si la transition est illégale
+     */
+    public function appliquerDepuisAdmin(Projet $projet, string $transition, User $admin): void
+    {
+        $transitionsConnues = ['soumettre', 'retracter', 'valider', 'refuser', 'resoumettre', 'demarrer', 'terminer'];
+        if (!in_array($transition, $transitionsConnues, true)) {
+            throw new ReservationImpossibleException('Transition inconnue.');
+        }
+        if ('valider' === $transition) {
+            $projet->setValideur($admin);
+        }
+        $this->appliquer($projet, $transition);
+    }
+
+    /**
+     * Liste les transitions légales depuis le statut courant d'un projet, pour
+     * que la vue d'administration ne propose que des actions réalisables.
+     *
+     * @return string[] noms des transitions applicables
+     */
+    public function transitionsPossibles(Projet $projet): array
+    {
+        $noms = [];
+        foreach ($this->projetStateMachine->getEnabledTransitions($projet) as $t) {
+            $noms[] = $t->getName();
+        }
+
+        return $noms;
     }
 
     /**

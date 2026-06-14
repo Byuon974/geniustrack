@@ -25,14 +25,62 @@
        {% for m in projet.machines %}{{ include('components/badge.html.twig', {couleur: 'blue', label: m.nom}) }} {% endfor %}
     </p>
 
+    {% set plansModifiables = projet.statut.value in ['brouillon', 'en_attente'] %}
+
     {% if projet.plans is not empty %}
         <div class="plans-list">
             <strong>Plans importés :</strong>
             <ul>
                 {% for plan in projet.plans %}
-                    <li><a href="{{ path('plan_telecharger', {id: plan.id}) }}">{{ plan.nomOriginal }}</a></li>
+                    <li class="plan-item">
+                        <a href="{{ path('plan_telecharger', {id: plan.id}) }}">{{ plan.nomOriginal }}</a>
+                        {% if plansModifiables %}
+                            <form method="post" action="{{ path('plan_supprimer', {id: plan.id}) }}" class="plan-item__retrait"
+                                  data-controller="confirm"
+                                  data-confirm-message-value="Le fichier « {{ plan.nomOriginal }} » sera retiré de la demande."
+                                  data-confirm-titre-value="Retirer ce fichier ?"
+                                  data-confirm-variante-value="danger" data-confirm-libelle-value="Retirer">
+                                <input type="hidden" name="_token" value="{{ csrf_token('plan_supprimer' ~ plan.id) }}">
+                                <button type="submit" class="btn btn--sm btn--ghost">Retirer</button>
+                            </form>
+                        {% endif %}
+                    </li>
                 {% endfor %}
             </ul>
+        </div>
+    {% endif %}
+
+    {% if plansModifiables %}
+        <form method="post" action="{{ path('plan_ajouter', {id: projet.id}) }}" enctype="multipart/form-data" class="plan-ajout-form">
+            <input type="hidden" name="_token" value="{{ csrf_token('plan_ajouter' ~ projet.id) }}">
+            {{ include('components/upload.html.twig', {
+                input_html: '<input type="file" name="plans[]" multiple data-file-upload-target="input" data-action="change->file-upload#surChangement">',
+                label: 'Ajouter des fichiers',
+                formats: 'STL, OBJ, PDF, SVG, ZIP · 10 fichiers max, 25 Mo chacun, 80 Mo au total',
+                bouton: 'Ajouter'
+            }) }}
+        </form>
+    {% endif %}
+
+    {% if projet.statut.value == 'brouillon' %}
+        {# Brouillon : demande non soumise (création interrompue ou rétractation).
+           L'étudiant la complète puis la soumet, ou l'abandonne. #}
+        <div class="projet-retracter">
+            <p class="projet-retracter__intro">Cette demande est en brouillon. Elle n'est pas encore soumise à validation.</p>
+            <div class="projet-retracter__actions">
+                <form method="post" action="{{ path('projet_soumettre', {id: projet.id}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('soumettre' ~ projet.id) }}">
+                    <button type="submit" class="btn btn--primary">Soumettre la demande</button>
+                </form>
+                <form method="post" action="{{ path('projet_supprimer', {id: projet.id}) }}"
+                      data-controller="confirm"
+                      data-confirm-message-value="La demande sera définitivement supprimée. Cette action est irréversible."
+                      data-confirm-titre-value="Supprimer cette demande ?"
+                      data-confirm-variante-value="danger" data-confirm-libelle-value="Supprimer">
+                    <input type="hidden" name="_token" value="{{ csrf_token('supprimer' ~ projet.id) }}">
+                    <button type="submit" class="btn btn--refus">Supprimer la demande</button>
+                </form>
+            </div>
         </div>
     {% endif %}
 
@@ -44,6 +92,32 @@
             <input type="hidden" name="_token" value="{{ csrf_token('resoumettre' ~ projet.id) }}">
             <button type="submit" class="btn btn--primary">Corriger et resoumettre</button>
         </form>
+    {% endif %}
+
+    {% if projet.statut.value == 'en_attente' %}
+        {# Rétractation d'une demande encore en attente : corriger (retour en
+           brouillon) ou supprimer définitivement. #}
+        <div class="projet-retracter">
+            <p class="projet-retracter__intro">Cette demande est en attente de validation. Vous pouvez encore la retirer :</p>
+            <div class="projet-retracter__actions">
+                <form method="post" action="{{ path('projet_retracter', {id: projet.id}) }}"
+                      data-controller="confirm"
+                      data-confirm-message-value="La demande repassera en brouillon. Vous pourrez la corriger puis la resoumettre."
+                      data-confirm-titre-value="Rétracter pour corriger ?"
+                      data-confirm-libelle-value="Rétracter">
+                    <input type="hidden" name="_token" value="{{ csrf_token('retracter' ~ projet.id) }}">
+                    <button type="submit" class="btn btn--primary">Rétracter pour corriger</button>
+                </form>
+                <form method="post" action="{{ path('projet_supprimer', {id: projet.id}) }}"
+                      data-controller="confirm"
+                      data-confirm-message-value="La demande sera définitivement supprimée. Cette action est irréversible."
+                      data-confirm-titre-value="Supprimer cette demande ?"
+                      data-confirm-variante-value="danger" data-confirm-libelle-value="Supprimer">
+                    <input type="hidden" name="_token" value="{{ csrf_token('supprimer' ~ projet.id) }}">
+                    <button type="submit" class="btn btn--refus">Supprimer la demande</button>
+                </form>
+            </div>
+        </div>
     {% endif %}
 
     {% if projet.statut.value in ['valide', 'en_cours'] %}

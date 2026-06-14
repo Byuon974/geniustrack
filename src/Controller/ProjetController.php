@@ -9,6 +9,7 @@ use App\Entity\SessionReservation;
 use App\Form\DemandeProjetType;
 use App\Repository\ProjetRepository;
 use App\Security\Voter\ProjetVoter;
+use App\Service\JournalService;
 use App\Service\ProjetWorkflowService;
 use App\Service\ReservationService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -100,6 +101,85 @@ class ProjetController extends AbstractController
         if ($this->isCsrfTokenValid('resoumettre'.$projet->getId(), $request->request->getString('_token'))) {
             $workflow->resoumettre($projet);
             $this->addFlash('success', 'Projet remis en brouillon, vous pouvez le corriger.');
+        }
+
+        return $this->redirectToRoute('projet_show', ['id' => $projet->getId()]);
+    }
+
+    /**
+     * Soumet un brouillon existant (le fait passer en attente de validation).
+     * Utile après une rétractation : le projet, repassé en brouillon et corrigé,
+     * peut être resoumis sans repasser par le formulaire de création.
+     */
+    #[Route('/{id}/soumettre', name: 'projet_soumettre', methods: ['POST'])]
+    public function soumettreBrouillon(
+        Request $request,
+        Projet $projet,
+        ProjetWorkflowService $workflow,
+        JournalService $journal,
+    ): Response {
+        $this->denyAccessUnlessGranted(ProjetVoter::EDIT, $projet);
+
+        if ($this->isCsrfTokenValid('soumettre'.$projet->getId(), $request->request->getString('_token'))) {
+            $workflow->soumettre($projet);
+            $journal->tracer($this->getUser(), 'Demande soumise', $projet->getTitre());
+            $this->addFlash('success', 'Demande soumise. Elle est de nouveau en attente de validation.');
+        }
+
+        return $this->redirectToRoute('projet_show', ['id' => $projet->getId()]);
+    }
+
+    /**
+     * Rétractation « corriger » : l'étudiant retire sa demande en attente, qui
+     * repasse en brouillon (modifiable et resoumettable).
+     */
+    #[Route('/{id}/retracter', name: 'projet_retracter', methods: ['POST'])]
+    public function retracter(
+        Request $request,
+        Projet $projet,
+        ProjetWorkflowService $workflow,
+        JournalService $journal,
+    ): Response {
+        $this->denyAccessUnlessGranted(ProjetVoter::EDIT, $projet);
+
+        if ($this->isCsrfTokenValid('retracter'.$projet->getId(), $request->request->getString('_token'))) {
+            $workflow->retracter($projet);
+            $journal->tracer($this->getUser(), 'Demande rétractée', $projet->getTitre());
+            $this->addFlash('success', 'Demande rétractée. Elle est repassée en brouillon, vous pouvez la corriger puis la resoumettre.');
+        }
+
+        return $this->redirectToRoute('projet_show', ['id' => $projet->getId()]);
+    }
+
+    /**
+     * Rétractation « supprimer » : l'étudiant abandonne définitivement une
+     * demande encore en attente ou en brouillon. Retrait de l'entité (ce n'est
+     * pas une transition d'état). Interdit dès que la demande a été tranchée.
+     */
+    #[Route('/{id}/supprimer', name: 'projet_supprimer', methods: ['POST'])]
+    public function supprimer(
+        Request $request,
+        Projet $projet,
+        EntityManagerInterface $em,
+        JournalService $journal,
+    ): Response {
+        $this->denyAccessUnlessGranted(ProjetVoter::EDIT, $projet);
+
+        $statutSupprimable = in_array($projet->getStatut()->value, ['brouillon', 'en_attente'], true);
+        if (!$statutSupprimable) {
+            $this->addFlash('error', 'Cette demande ne peut plus être supprimée : elle a déjà été traitée.');
+
+            return $this->redirectToRoute('projet_show', ['id' => $projet->getId()]);
+        }
+
+        if ($this->isCsrfTokenValid('supprimer'.$projet->getId(), $request->request->getString('_token'))) {
+            $titre = $projet->getTitre();
+            $journal->tracer($this->getUser(), 'Demande supprimée', $titre);
+            $em->remove($projet);
+            $em->flush();
+            $this->addFlash('success', 'Demande supprimée.');
+
+            return $this->redirectToRoute('projet_index');
         }
 
         return $this->redirectToRoute('projet_show', ['id' => $projet->getId()]);
@@ -219,5 +299,89 @@ class ProjetController extends AbstractController
         }
 
         return $this->file($chemin, $plan->getNomOriginal());
+    }
+
+    /**
+     * Supprime un plan joint. Autorisé seulement tant que la demande n'a pas été
+     * tranchée (brouillon ou en attente) : le RETEX déconseille de modifier les
+     * pièces d'une demande déjà validée.
+     */
+    #[Route('/plans/{id}/supprimer', name: 'plan_supprimer', methods: ['POST'])]
+    public function supprimerPlan(
+        Request $request,
+        \App\Entity\PlanProjet $plan,
+        EntityManagerInterface $em,
+        \App\Service\PlanUploadService $plans,
+        JournalService $journal,
+    ): Response {
+        $projet = $plan->getProjet();
+        $this->denyAccessUnlessGranted(ProjetVoter::EDIT, $projet);
+
+        if (!$this->plansModifiables($projet)) {
+            $this->addFlash('error', 'Les fichiers ne peuvent plus être modifiés : la demande a déjà été traitée.');
+
+            return $this->redirectToRoute('projet_show', ['id' => $projet->getId()]);
+        }
+
+        if ($this->isCsrfTokenValid('plan_supprimer'.$plan->getId(), $request->request->getString('_token'))) {
+            $plans->supprimer($plan->getFichier());
+            $journal->tracer($this->getUser(), 'Plan retiré', $projet->getTitre().' : '.$plan->getNomOriginal());
+            $em->remove($plan);
+            $em->flush();
+            $this->addFlash('success', 'Fichier retiré.');
+        }
+
+        return $this->redirectToRoute('projet_show', ['id' => $projet->getId()]);
+    }
+
+    /**
+     * Ajoute un ou plusieurs plans à une demande encore modifiable.
+     */
+    #[Route('/{id}/plans/ajouter', name: 'plan_ajouter', methods: ['POST'])]
+    public function ajouterPlans(
+        Request $request,
+        Projet $projet,
+        EntityManagerInterface $em,
+        \App\Service\PlanUploadService $plans,
+        JournalService $journal,
+    ): Response {
+        $this->denyAccessUnlessGranted(ProjetVoter::EDIT, $projet);
+
+        if (!$this->plansModifiables($projet)) {
+            $this->addFlash('error', 'Les fichiers ne peuvent plus être modifiés : la demande a déjà été traitée.');
+
+            return $this->redirectToRoute('projet_show', ['id' => $projet->getId()]);
+        }
+
+        if ($this->isCsrfTokenValid('plan_ajouter'.$projet->getId(), $request->request->getString('_token'))) {
+            $fichiers = $request->files->all('plans');
+            $ajoutes = 0;
+            foreach ($fichiers as $fichier) {
+                if (null === $fichier) {
+                    continue;
+                }
+                $nom = $plans->stocker($fichier);
+                $em->persist(new \App\Entity\PlanProjet($projet, $nom, $fichier->getClientOriginalName()));
+                ++$ajoutes;
+            }
+            if ($ajoutes > 0) {
+                $em->flush();
+                $journal->tracer($this->getUser(), 'Plan(s) ajouté(s)', $projet->getTitre());
+                $this->addFlash('success', $ajoutes > 1 ? 'Fichiers ajoutés.' : 'Fichier ajouté.');
+            } else {
+                $this->addFlash('error', 'Aucun fichier reçu.');
+            }
+        }
+
+        return $this->redirectToRoute('projet_show', ['id' => $projet->getId()]);
+    }
+
+    /**
+     * Les fichiers d'une demande ne sont modifiables que tant qu'elle n'a pas
+     * été tranchée (brouillon ou en attente).
+     */
+    private function plansModifiables(Projet $projet): bool
+    {
+        return in_array($projet->getStatut()->value, ['brouillon', 'en_attente'], true);
     }
 }

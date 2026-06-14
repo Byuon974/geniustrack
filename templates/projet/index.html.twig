@@ -41,9 +41,22 @@
                     data-sort-date="{{ projet.createdAt|date('Ymd') }}">
                     <td class="projet-titre-cell"><span class="statut-pastille statut-pastille--{{ projet.statut.couleur }}" aria-hidden="true"></span><span class="projet-titre-texte">{{ projet.titre }}</span></td>
                     <td>{{ projet.type.libelle }}</td>
-                    <td>{{ include('components/badge.html.twig', {couleur: projet.statut.couleur, label: projet.statut.libelle}) }}</td>
+                    <td>
+                        {{ include('components/badge.html.twig', {couleur: projet.statut.couleur, label: projet.statut.libelle}) }}
+                        {% if projet.statut.value == 'brouillon' %}<span class="statut-aide">Non soumis</span>{% endif %}
+                    </td>
                     <td>{{ projet.createdAt|date('d/m/Y') }}</td>
-                    <td class="actions-col"><a href="{{ path('projet_show', {id: projet.id}) }}" class="btn btn--sm">Détail</a></td>
+                    <td class="actions-col">
+                        {% if projet.statut.value == 'brouillon' %}
+                            <a href="{{ path('projet_show', {id: projet.id}) }}" class="btn btn--sm btn--primary">Soumettre</a>
+                            <a href="{{ path('projet_show', {id: projet.id}) }}" class="lien-detail">Détail</a>
+                        {% elseif projet.statut.value == 'en_attente' %}
+                            <a href="{{ path('projet_show', {id: projet.id}) }}" class="btn btn--sm">Gérer</a>
+                            <a href="{{ path('projet_show', {id: projet.id}) }}" class="lien-detail">Détail</a>
+                        {% else %}
+                            <a href="{{ path('projet_show', {id: projet.id}) }}" class="btn btn--sm">Détail</a>
+                        {% endif %}
+                    </td>
                 </tr>
             {% endfor %}
         {% endblock %}

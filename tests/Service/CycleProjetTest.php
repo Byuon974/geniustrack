@@ -92,4 +92,19 @@ class CycleProjetTest extends KernelTestCase
         self::assertSame(ProjetStatut::Brouillon, $projet->getStatut());
         self::assertNull($projet->getMotifRefus());
     }
+
+    public function testRetractationRamenenEnBrouillon(): void
+    {
+        $etudiant = $this->user('e@cci.re', ['ROLE_ETUDIANT']);
+        $projet = $this->projet($etudiant, ProjetType::Pedagogique);
+        $this->workflow->soumettre($projet);
+        self::assertSame(ProjetStatut::EnAttente, $projet->getStatut());
+
+        $this->workflow->retracter($projet);
+        self::assertSame(ProjetStatut::Brouillon, $projet->getStatut());
+
+        // Le brouillon rétracté peut être resoumis.
+        $this->workflow->soumettre($projet);
+        self::assertSame(ProjetStatut::EnAttente, $projet->getStatut());
+    }
 }

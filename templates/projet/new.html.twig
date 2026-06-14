@@ -29,7 +29,13 @@
             <p class="bloc__titre">Matériel nécessaire</p>
             <div class="bloc__corps">
                 {{ form_row(form.machines) }}
-                {% if form.plansFiles is defined %}{{ form_row(form.plansFiles) }}{% endif %}
+                {% if form.plansFiles is defined %}
+                    {{ include('components/upload.html.twig', {
+                        input_html: form_widget(form.plansFiles),
+                        label: 'Plans / fichiers (optionnel)',
+                        formats: 'STL, OBJ, PDF, SVG, ZIP · 10 fichiers max, 25 Mo chacun, 80 Mo au total'
+                    }) }}
+                {% endif %}
             </div>
         </fieldset>
 

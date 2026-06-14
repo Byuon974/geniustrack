@@ -22,6 +22,9 @@ framework:
                 soumettre:               # étudiant soumet sa demande
                     from: !php/enum App\Enum\ProjetStatut::Brouillon->value
                     to: !php/enum App\Enum\ProjetStatut::EnAttente->value
+                retracter:               # étudiant retire sa demande en attente pour la corriger
+                    from: !php/enum App\Enum\ProjetStatut::EnAttente->value
+                    to: !php/enum App\Enum\ProjetStatut::Brouillon->value
                 valider:                 # formateur (pédago) ou BDE (perso)
                     from: !php/enum App\Enum\ProjetStatut::EnAttente->value
                     to: !php/enum App\Enum\ProjetStatut::Valide->value
