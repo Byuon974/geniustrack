@@ -16,10 +16,15 @@ set -Eeuo pipefail
 readonly NOM_PROJET="assembler-geniuslab"
 readonly VERSION="1.0.0"
 readonly REP_LOGS="${HOME}/.logs/${NOM_PROJET}"
-readonly FICHIER_LOG="${REP_LOGS}/$(date +%Y-%m-%d).log"
+FICHIER_LOG="${REP_LOGS}/$(date +%Y-%m-%d).log"
+readonly FICHIER_LOG
 
-# Couleurs uniquement si le terminal est interactif (TTY).
-if [[ -t 1 ]]; then
+# Couleurs uniquement si le flux d'affichage est un terminal interactif.
+# Tout l'affichage humain (messages de log, encadré final) sort sur stderr ;
+# la donnée machine-parsable sort sur stdout. La détection couleur teste donc
+# stderr (-t 2), le flux réellement utilisé. Tester stdout (-t 1) injecterait
+# des codes ANSI dans un fichier lors d'une redirection « 2>journal ».
+if [[ -t 2 ]]; then
     C_DEBUG=$'\033[2;37m'; C_INFO=$'\033[0;36m'; C_WARN=$'\033[0;33m'
     C_ERROR=$'\033[0;31m'; C_RESET=$'\033[0m'
 else
@@ -52,24 +57,67 @@ journaliser() {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Gestion des interruptions et des erreurs
+# Gestion des interruptions, des erreurs et sortie déterministe
 #
-# Le code de sortie effectif est la seule source de vérité. En cas d'erreur, un
-# message lisible indique la ligne fautive et renvoie vers le journal. En cas de
-# succès, le script se termine sur l'encadré « C'EST PRÊT », sans ligne d'état
-# technique à l'écran.
+# Séparation stricte des flux : tout l'affichage humain (messages de log,
+# encadré final) sort sur stderr ; la SEULE donnée machine-parsable, la ligne
+# d'état finale, sort sur stdout. Ainsi « script > resultat.txt » ne capture
+# que STATUS=...|CODE=...|DURATION_MS=..., exploitable par un orchestrateur.
+#
+# Cette ligne d'état est émise par un trap EXIT, donc elle est garantie en
+# TOUTE circonstance : succès, échec d'une étape, ou interruption (Ctrl+C).
 # ─────────────────────────────────────────────────────────────────────────────
 ETAPES_OK=0
+DEBUT_MS=$(($(date +%s%N) / 1000000))   # horodatage de départ en millisecondes
+DERNIERE_CMD=""                         # dernière commande lancée par executer()
+ETAT_ARME=0                             # 1 dès que main() démarre le travail réel
+
+# Émet la ligne d'état déterministe sur stdout, une seule fois, en fin de vie
+# du script quel que soit le chemin de sortie. STATUS dérive du code effectif.
+# N'émet rien tant que le travail réel n'a pas commencé (--help, --version ou
+# erreur d'argument restent ainsi exempts de bruit machine).
+emettre_etat_final() {
+    local code="$1"
+    [[ "${ETAT_ARME}" -eq 0 ]] && return 0
+    local fin_ms; fin_ms=$(($(date +%s%N) / 1000000))
+    local duree_ms=$(( fin_ms - DEBUT_MS ))
+    local statut="SUCCESS"
+    [[ "${code}" -ne 0 ]] && statut="ERROR"
+    # stdout : la donnée machine, et elle seule.
+    printf 'STATUS=%s|CODE=%d|DURATION_MS=%d|ETAPES_OK=%d\n' \
+        "${statut}" "${code}" "${duree_ms}" "${ETAPES_OK}"
+}
+
+gerer_sortie() {
+    local code=$?
+    # En cas d'échec non déjà tracé, laisser une trace d'état partiel dans le
+    # journal : quel projet reste à moitié assemblé, et où reprendre.
+    if [[ "${code}" -ne 0 && -n "${DEST:-}" && -d "${DEST:-/nonexistent}" ]]; then
+        journaliser WARN "État partiel laissé dans ${DEST} (assemblage interrompu au code ${code})."
+        journaliser WARN "Pour repartir proprement : relancez avec --reset, ou supprimez ${DEST}."
+    fi
+    emettre_etat_final "${code}"
+}
+trap gerer_sortie EXIT
 
 gerer_interruption() {
     journaliser WARN "Interruption reçue : arrêt propre."
+    # On sort en 130 ; le trap EXIT émettra l'état final (STATUS=ERROR).
     exit 130
 }
 trap gerer_interruption INT TERM
 
 gerer_erreur() {
     local ligne="$1"
-    journaliser ERROR "Échec ligne ${ligne}. Voir ${FICHIER_LOG}."
+    # DERNIERE_CMD donne l'étape réelle, là où le numéro de ligne pointe
+    # toujours executer() (le point d'exécution unique). Les deux ensemble
+    # rendent le diagnostic exploitable.
+    if [[ -n "${DERNIERE_CMD}" ]]; then
+        journaliser ERROR "Échec ligne ${ligne} en exécutant : ${DERNIERE_CMD}"
+    else
+        journaliser ERROR "Échec ligne ${ligne}."
+    fi
+    journaliser ERROR "Journal complet : ${FICHIER_LOG}."
 }
 trap 'gerer_erreur "${LINENO}"' ERR
 
@@ -179,6 +227,9 @@ executer() {
         journaliser INFO "[dry-run] $*"
         return 0
     fi
+    # Mémorise l'étape réelle : le trap ERR pointe toujours la ligne ci-dessous
+    # (point d'exécution unique), DERNIERE_CMD restitue la commande concernée.
+    DERNIERE_CMD="$*"
     "$@"
 }
 
@@ -594,8 +645,10 @@ etape_verification() {
 }
 
 afficher_resume_final() {
+    # L'encadré est de l'affichage humain : il sort sur stderr, laissant stdout
+    # réservé à la ligne d'état machine émise par le trap EXIT.
     if [[ "${LANCER_DOCKER}" -eq 1 && "${DRY_RUN}" -eq 0 ]]; then
-        cat <<FIN
+        cat >&2 <<FIN
 
   ════════════════════════════════════════════════════════════════
   ✓ C'EST PRÊT : le site tourne.
@@ -614,7 +667,7 @@ afficher_resume_final() {
   ════════════════════════════════════════════════════════════════
 FIN
     else
-        cat <<FIN
+        cat >&2 <<FIN
 
   ✓ Projet assemblé dans : ${DEST}
 
@@ -634,6 +687,7 @@ FIN
 # Programme principal
 # ─────────────────────────────────────────────────────────────────────────────
 main() {
+    ETAT_ARME=1   # à partir d'ici, toute sortie émet la ligne d'état déterministe
     journaliser INFO "${NOM_PROJET} v${VERSION} : démarrage."
     [[ "${DRY_RUN}" -eq 1 ]] && journaliser WARN "Mode --dry-run : aucune action réelle."
 
